@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,9 +7,12 @@ import { ThemedView } from '@/components/themed-view';
 export default function ModalScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
+      <Stack.Screen options={{ title: 'Help' }} />
+      <ThemedText>- Create recipes</ThemedText>
+      <ThemedText>- Set a recipe for each day</ThemedText>
+      <ThemedText>- Auto-populates shopping list</ThemedText>
+      <Link href="/(tabs)" dismissTo style={styles.link}>
+        <ThemedText type="link">Back</ThemedText>
       </Link>
     </ThemedView>
   );
