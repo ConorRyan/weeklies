@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import Toast, { BaseToast } from 'react-native-toast-message';
 import type { ToastConfigParams } from 'react-native-toast-message';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';

@@ -43,8 +43,4 @@ export const Colors = {
 export const Fonts = Platform.select({
   ios: { rounded: 'ui-rounded' },
   default: { rounded: 'normal' },
-  web: {
-    rounded:
-      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-  },
 }) ?? { rounded: 'normal' };

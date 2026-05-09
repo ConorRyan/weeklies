@@ -15,7 +15,7 @@ You can run the same meals over multiple weeks, change a few days when you feel 
 - Change individual meals whenever your plans change.
 - Shopping list: add lines manually, tap the row (not only the checkbox) to check items off, clear every checked line with **Remove checked**, and append **today’s planned recipe** with quantities scaled by **portions per day** from Settings (numbers in each ingredient line are multiplied).
 - Keep everything fully local and completely offline.
-- **Backup (Settings → Data):** export all app data to a single JSON file (`backup-YYYY-MM-DD.json`)—recipes, weekly plan, shopping list, and settings. On native builds you choose where to save it (the picker opens from your app documents folder); on web the browser downloads the file. **Import** loads a backup file and **replaces** everything currently stored in the app (no merge). Use a development or release build that includes the Expo document-picker and file-system native modules; backup UI is not available in environments where those modules are missing.
+- **Backup (Settings → Data):** export all app data to a single JSON file (`backup-YYYY-MM-DD.json`)—recipes, weekly plan, shopping list, and settings. You choose where to save it (the picker opens from your app documents folder). **Import** loads a backup file and **replaces** everything currently stored in the app (no merge). Use a development or release build that includes the Expo document-picker and file-system native modules; backup UI is not available in environments where those modules are missing.
 
 Settings includes dark mode and **portions per day**, which drives scaling when adding today’s recipe to the shopping list.
 
