@@ -1,8 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, BackHandler, Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -27,11 +27,42 @@ export default function RootLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (router.canDismiss()) {
+        return false;
+      }
+      BackHandler.exitApp();
+      return true;
+    });
+
+    return () => sub.remove();
+  }, []);
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="help-modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="help-modal" options={{ presentation: 'modal', title: 'Help' }} />
+        <Stack.Screen
+          name="recipe/new"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'New recipe',
+          }}
+        />
+        <Stack.Screen
+          name="recipe/[id]"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
