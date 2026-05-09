@@ -18,6 +18,7 @@ type ShoppingListStore = {
   items: Item[];
   toggleItem: (id: string) => void;
   removeItem: (id: string) => void;
+  removeCheckedItems: () => void;
   addItem: (item: NewItem) => void;
 };
 
@@ -65,6 +66,10 @@ export const useShoppingList = create<ShoppingListStore>()(
       removeItem: (id) =>
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
+        })),
+      removeCheckedItems: () =>
+        set((state) => ({
+          items: state.items.filter((item) => !item.checked),
         })),
       addItem: (newItem) => {
         set((state) => ({

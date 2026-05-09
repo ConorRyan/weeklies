@@ -25,6 +25,21 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   sun: 'Sunday',
 };
 
+/** Maps `Date#getDay()` (0 = Sunday … 6 = Saturday) to app weekdays (`mon` … `sun`). */
+export function weekdayFromDate(d: Date): Weekday {
+  const jsDay = d.getDay();
+  const map: Record<number, Weekday> = {
+    0: 'sun',
+    1: 'mon',
+    2: 'tue',
+    3: 'wed',
+    4: 'thu',
+    5: 'fri',
+    6: 'sat',
+  };
+  return map[jsDay] ?? 'mon';
+}
+
 export type DayAssignments = Record<Weekday, string | null>;
 
 const emptyByDay = (): DayAssignments => ({

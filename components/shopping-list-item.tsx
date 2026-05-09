@@ -2,7 +2,7 @@ import { ListSquareActionButton } from '@/components/list-square-action-button';
 import { ThemedText } from '@/components/themed-text';
 import { ShoppingListScreenHeader } from '@/constants/theme';
 import { useShoppingList } from '@/store/shopping-list';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 type Props = {
   id: string;
@@ -20,10 +20,12 @@ export function ShoppingListItem({ id, label, checked, onToggle }: Props) {
 
   return (
     <View style={styles.row}>
-      <TouchableOpacity onPress={onToggle}>
+      <Pressable
+        onPress={onToggle}
+        style={({ pressed }) => [styles.lineToggle, pressed && styles.lineTogglePressed]}>
         <View style={[styles.checkbox, checked && styles.checked]} />
-      </TouchableOpacity>
-      <ThemedText style={[styles.label, checked && styles.strikethrough]}>{label}</ThemedText>
+        <ThemedText style={[styles.label, checked && styles.strikethrough]}>{label}</ThemedText>
+      </Pressable>
       <ListSquareActionButton accent={ShoppingListScreenHeader} label="-" onPress={onPress} />
     </View>
   );
@@ -36,6 +38,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 12,
+  },
+  lineToggle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 0,
+  },
+  lineTogglePressed: {
+    opacity: 0.85,
   },
   checkbox: {
     width: 22,

@@ -13,6 +13,7 @@ import {
   useWeeklyPlan,
   WEEKDAY_LABELS,
   WEEKDAYS,
+  weekdayFromDate,
   type Weekday,
 } from '@/store/weekly-plan';
 import { Link } from 'expo-router';
@@ -50,6 +51,8 @@ export default function WeekliesScreen() {
     closePicker();
   };
 
+  const todayWeekday = weekdayFromDate(new Date());
+
   return (
     <>
       <ParallaxScrollView
@@ -74,43 +77,52 @@ export default function WeekliesScreen() {
         <ThemedText style={styles.subtitle}>
           Tap a row to assign a recipe. Repeats every week.
         </ThemedText>
-        {WEEKDAYS.map((day) => {
-          const recipeId = byDay[day];
-          const recipe = recipeId ? recipeById.get(recipeId) : undefined;
-          let line: string;
-          if (!recipeId) {
-            line = 'Choose recipe';
-          } else if (!recipe) {
-            line = 'Recipe removed';
-          } else {
-            line = recipe.name;
-          }
+        <View>
+          {WEEKDAYS.map((day) => {
+            const recipeId = byDay[day];
+            const recipe = recipeId ? recipeById.get(recipeId) : undefined;
+            let line: string;
+            if (!recipeId) {
+              line = 'Choose recipe';
+            } else if (!recipe) {
+              line = 'Recipe removed';
+            } else {
+              line = recipe.name;
+            }
 
-          return (
-            <Pressable
-              key={day}
-              onPress={() => setPickerDay(day)}
-              style={({ pressed }) => [
-                styles.dayRow,
-                pressed && styles.dayRowPressed,
-              ]}>
-              <ThemedText type="defaultSemiBold" style={styles.dayRowLabel} numberOfLines={1}>
-                {WEEKDAY_LABELS[day]}
-              </ThemedText>
-              <View style={styles.dayRowValueWrap}>
+            const isToday = day === todayWeekday;
+
+            return (
+              <Pressable
+                key={day}
+                onPress={() => setPickerDay(day)}
+                style={({ pressed }) => [
+                  styles.dayRow,
+                  isToday && styles.dayRowToday,
+                  pressed && styles.dayRowPressed,
+                ]}>
                 <ThemedText
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={[
-                    styles.dayRecipe,
-                    (!recipeId || !recipe) && styles.dayRecipeMuted,
-                  ]}>
-                  {line}
+                  type="default"
+                  style={[styles.dayRowLabel, isToday && styles.dayRowTextToday]}
+                  numberOfLines={1}>
+                  {WEEKDAY_LABELS[day]}
                 </ThemedText>
-              </View>
-            </Pressable>
-          );
-        })}
+                <View style={styles.dayRowValueWrap}>
+                  <ThemedText
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[
+                      styles.dayRecipe,
+                      (!recipeId || !recipe) && styles.dayRecipeMuted,
+                      isToday && styles.dayRowTextToday,
+                    ]}>
+                    {line}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       </ParallaxScrollView>
 
       <Modal
@@ -206,6 +218,12 @@ const styles = StyleSheet.create({
   },
   dayRowPressed: {
     opacity: 0.85,
+  },
+  dayRowToday: {
+    backgroundColor: 'rgba(29, 161, 255, 0.14)',
+  },
+  dayRowTextToday: {
+    fontWeight: '700',
   },
   dayRowLabel: {
     flexShrink: 0,
