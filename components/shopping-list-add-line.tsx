@@ -4,24 +4,29 @@ import { useShoppingList } from '@/store/shopping-list';
 import { useState } from 'react';
 import { ThemedTextInput } from './themed-text-input';
 
-
 export function ShoppingListAddLine() {
   const { addItem } = useShoppingList();
 
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [label, setLabel] = useState('');
 
   const onPress = () => {
-    addItem({ name: name, quantity: quantity })
-    setName("");
-    setQuantity("");
+    const trimmed = label.trim();
+    if (!trimmed) {
+      return;
+    }
+    addItem({ label: trimmed });
+    setLabel('');
   };
 
   return (
-    <TouchableOpacity style={styles.row} >
-      <ThemedTextInput style={[styles.name]} placeholder='Name' value={name} onChangeText={setName}></ThemedTextInput>
-      <ThemedTextInput style={styles.quantity} placeholder='Qty' value={quantity} onChangeText={setQuantity}></ThemedTextInput>
-      <Button title="+" onPress={onPress}></Button>
+    <TouchableOpacity style={styles.row}>
+      <ThemedTextInput
+        style={styles.input}
+        placeholder="Item"
+        value={label}
+        onChangeText={setLabel}
+      />
+      <Button title="+" onPress={onPress} />
     </TouchableOpacity>
   );
 }
@@ -34,12 +39,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  name: {
+  input: {
     flex: 1,
     fontSize: 16,
-  },
-  quantity: {
-    fontSize: 14,
-    opacity: 0.6,
   },
 });

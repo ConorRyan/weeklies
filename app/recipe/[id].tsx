@@ -17,10 +17,8 @@ export default function RecipeDetailScreen() {
           <ThemedText type="title">{recipe.name}</ThemedText>
           <ThemedText type="subtitle">Ingredients (single portion)</ThemedText>
           <ThemedView style={styles.ingredients}>
-            {recipe.ingredients.map((ingredient, index) => (
-              <ThemedText key={`${ingredient.name}-${index}`}>
-                - {ingredient.quantity} {ingredient.name}
-              </ThemedText>
+            {recipe.ingredients.map((line, index) => (
+              <ThemedText key={`${line}-${index}`}>- {line}</ThemedText>
             ))}
           </ThemedView>
         </>

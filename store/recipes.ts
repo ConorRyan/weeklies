@@ -4,20 +4,15 @@ import { persist } from 'zustand/middleware';
 
 import { RECIPES_STORAGE_KEY, recipesStorage } from '@/store/persistence';
 
-export type Ingredient = {
-  name: string;
-  quantity: string;
-};
-
 export type NewRecipe = {
   name: string;
-  ingredients: Ingredient[];
+  ingredients: string[];
 };
 
 export type Recipe = {
   id: string;
   name: string;
-  ingredients: Ingredient[];
+  ingredients: string[];
 };
 
 type RecipesStore = {
@@ -27,11 +22,33 @@ type RecipesStore = {
   updateRecipe: (id: string, recipe: Partial<NewRecipe>) => void;
 };
 
-const isIngredient = (value: unknown): value is Ingredient =>
-  !!value &&
-  typeof value === 'object' &&
-  typeof (value as Ingredient).name === 'string' &&
-  typeof (value as Ingredient).quantity === 'string';
+const ingredientToLine = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    const t = value.trim();
+    return t.length > 0 ? t : null;
+  }
+  if (value && typeof value === 'object' && 'name' in value && 'quantity' in value) {
+    const name = String((value as { name: unknown }).name).trim();
+    const quantity = String((value as { quantity: unknown }).quantity).trim();
+    const line = [quantity, name].filter((s) => s.length > 0).join(' ');
+    return line.length > 0 ? line : null;
+  }
+  return null;
+};
+
+const normalizeRecipe = (value: unknown): Recipe | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const r = value as Record<string, unknown>;
+  if (typeof r.id !== 'string' || typeof r.name !== 'string' || !Array.isArray(r.ingredients)) {
+    return null;
+  }
+  const ingredients = r.ingredients
+    .map(ingredientToLine)
+    .filter((line): line is string => line !== null);
+  return { id: r.id, name: r.name, ingredients };
+};
 
 const isRecipe = (value: unknown): value is Recipe =>
   !!value &&
@@ -39,7 +56,7 @@ const isRecipe = (value: unknown): value is Recipe =>
   typeof (value as Recipe).id === 'string' &&
   typeof (value as Recipe).name === 'string' &&
   Array.isArray((value as Recipe).ingredients) &&
-  (value as Recipe).ingredients.every(isIngredient);
+  (value as Recipe).ingredients.every((i) => typeof i === 'string');
 
 export const useRecipes = create<RecipesStore>()(
   persist(
@@ -63,7 +80,7 @@ export const useRecipes = create<RecipesStore>()(
     {
       name: RECIPES_STORAGE_KEY,
       storage: recipesStorage,
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         recipes: state.recipes,
       }),
@@ -74,7 +91,10 @@ export const useRecipes = create<RecipesStore>()(
         }
 
         return {
-          recipes: recipes.filter(isRecipe),
+          recipes: recipes
+            .map(normalizeRecipe)
+            .filter((recipe): recipe is Recipe => recipe !== null)
+            .filter(isRecipe),
         };
       },
     }

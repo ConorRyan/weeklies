@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import type { Ingredient, NewRecipe } from '@/store/recipes';
+import type { NewRecipe } from '@/store/recipes';
 import { ThemedText } from './themed-text';
 import { ThemedTextInput } from './themed-text-input';
 
@@ -9,27 +9,22 @@ type Props = {
   onAddRecipe: (recipe: NewRecipe) => void;
 };
 
-const emptyIngredient = (): Ingredient => ({ name: '', quantity: '' });
-
 export function RecipeAddForm({ onAddRecipe }: Props) {
   const [name, setName] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([emptyIngredient()]);
+  const [ingredients, setIngredients] = useState<string[]>(['']);
   const [error, setError] = useState('');
-  const ingredientNameRefs = useRef<(TextInput | null)[]>([]);
-  const ingredientQtyRefs = useRef<(TextInput | null)[]>([]);
+  const ingredientRefs = useRef<(TextInput | null)[]>([]);
 
-  const updateIngredient = (index: number, patch: Partial<Ingredient>) => {
-    setIngredients((state) =>
-      state.map((ingredient, i) => (i === index ? { ...ingredient, ...patch } : ingredient))
-    );
+  const updateIngredientLine = (index: number, value: string) => {
+    setIngredients((state) => state.map((line, i) => (i === index ? value : line)));
   };
 
   const addIngredientRow = (focusNewIngredient = false) => {
     const nextIndex = ingredients.length;
-    setIngredients((state) => [...state, emptyIngredient()]);
+    setIngredients((state) => [...state, '']);
     if (focusNewIngredient) {
       requestAnimationFrame(() => {
-        ingredientNameRefs.current[nextIndex]?.focus();
+        ingredientRefs.current[nextIndex]?.focus();
       });
     }
   };
@@ -45,30 +40,21 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
 
   const submit = () => {
     const trimmedName = name.trim();
-    const cleanedIngredients = ingredients
-      .map((ingredient) => ({
-        name: ingredient.name.trim(),
-        quantity: ingredient.quantity.trim(),
-      }))
-      .filter((ingredient) => ingredient.name.length > 0 || ingredient.quantity.length > 0);
-
-    const hasInvalidIngredient = cleanedIngredients.some(
-      (ingredient) => ingredient.name.length === 0 || ingredient.quantity.length === 0
-    );
+    const cleanedIngredients = ingredients.map((line) => line.trim()).filter((line) => line.length > 0);
 
     if (!trimmedName) {
       setError('Recipe name is required.');
       return;
     }
 
-    if (cleanedIngredients.length === 0 || hasInvalidIngredient) {
-      setError('Add at least one ingredient with both name and quantity.');
+    if (cleanedIngredients.length === 0) {
+      setError('Add at least one ingredient.');
       return;
     }
 
     onAddRecipe({ name: trimmedName, ingredients: cleanedIngredients });
     setName('');
-    setIngredients([emptyIngredient()]);
+    setIngredients(['']);
     setError('');
   };
 
@@ -81,29 +67,17 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
         value={name}
         onChangeText={setName}
         returnKeyType="next"
-        onSubmitEditing={() => ingredientNameRefs.current[0]?.focus()}
+        onSubmitEditing={() => ingredientRefs.current[0]?.focus()}
       />
-      {ingredients.map((ingredient, index) => (
+      {ingredients.map((line, index) => (
         <View key={index} style={styles.ingredientRow}>
           <ThemedTextInput
             placeholder="Ingredient"
-            style={styles.ingredientName}
-            value={ingredient.name}
-            onChangeText={(value) => updateIngredient(index, { name: value })}
+            style={styles.ingredientLine}
+            value={line}
+            onChangeText={(value) => updateIngredientLine(index, value)}
             ref={(ref) => {
-              ingredientNameRefs.current[index] = ref;
-            }}
-            returnKeyType="next"
-            blurOnSubmit={false}
-            onSubmitEditing={() => ingredientQtyRefs.current[index]?.focus()}
-          />
-          <ThemedTextInput
-            placeholder="Qty"
-            style={styles.ingredientQty}
-            value={ingredient.quantity}
-            onChangeText={(value) => updateIngredient(index, { quantity: value })}
-            ref={(ref) => {
-              ingredientQtyRefs.current[index] = ref;
+              ingredientRefs.current[index] = ref;
             }}
             returnKeyType={index === ingredients.length - 1 ? 'done' : 'next'}
             blurOnSubmit={false}
@@ -111,7 +85,7 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
               if (index === ingredients.length - 1) {
                 addIngredientRow(true);
               } else {
-                ingredientNameRefs.current[index + 1]?.focus();
+                ingredientRefs.current[index + 1]?.focus();
               }
             }}
           />
@@ -153,17 +127,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  ingredientName: {
+  ingredientLine: {
     borderRadius: 6,
     borderWidth: 1,
     flex: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  ingredientQty: {
-    borderRadius: 6,
-    borderWidth: 1,
-    minWidth: 80,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
