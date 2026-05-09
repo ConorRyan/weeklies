@@ -1,18 +1,53 @@
 import { Link } from 'expo-router';
-import { Pressable, StyleSheet, Switch } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Dimensions, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts, SettingsScreenHeader } from '@/constants/theme';
-import { useThemePreference } from '@/contexts/theme-preference';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { isValidPortionsPerDay, usePortionsPerDay, useThemePreference } from '@/contexts/settings';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
+
+const PORTIONS_INFO_TEXT = 'Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.';
 
 export default function SettingsScreen() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppColorScheme();
   const { setColorScheme } = useThemePreference();
+  const { portionsPerDay, setPortionsPerDay } = usePortionsPerDay();
+  const [portionsText, setPortionsText] = useState(() => String(portionsPerDay));
+  const [portionsInfoOpen, setPortionsInfoOpen] = useState(false);
+  const [portionsInfoAnchor, setPortionsInfoAnchor] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const portionsInfoRef = useRef<View>(null);
   const tint = Colors[colorScheme].tint;
+
+  useEffect(() => {
+    setPortionsText(String(portionsPerDay));
+  }, [portionsPerDay]);
+
+  const openPortionsInfo = () => {
+    portionsInfoRef.current?.measureInWindow((x, y, width, height) => {
+      setPortionsInfoAnchor({ x, y, width, height });
+      setPortionsInfoOpen(true);
+    });
+  };
+
+  const commitPortionsText = () => {
+    const n = Number(portionsText.trim());
+    if (isValidPortionsPerDay(n)) {
+      setPortionsPerDay(n);
+      setPortionsText(String(n));
+    } else {
+      setPortionsText(String(portionsPerDay));
+    }
+  };
 
   return (
     <ParallaxScrollView
@@ -34,18 +69,89 @@ export default function SettingsScreen() {
           Settings
         </ThemedText>
       </ThemedView>
+
+      <ThemedText style={[styles.sectionHeading, styles.sectionHeadingFirst]} accessibilityRole="header">
+        Appearance
+      </ThemedText>
       <ThemedView style={styles.row}>
-        <ThemedText style={styles.label}>Dark mode</ThemedText>
+        <ThemedText style={styles.label} accessibilityRole="text">
+          Dark mode
+        </ThemedText>
         <Switch
           value={colorScheme === 'dark'}
           onValueChange={(on) => setColorScheme(on ? 'dark' : 'light')}
           trackColor={{ false: '#767577', true: '#81b0ff' }}
           thumbColor={colorScheme === 'dark' ? tint : '#f4f3f4'}
+          accessibilityLabel="Dark mode"
+          accessibilityRole="switch"
         />
       </ThemedView>
+
+      <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
+        Planning
+      </ThemedText>
+      <ThemedView style={styles.portionsRow}>
+        <ThemedView style={styles.portionsLabelRow}>
+          <ThemedText style={styles.label}>Portions per day</ThemedText>
+          <View ref={portionsInfoRef} collapsable={false} style={styles.infoIconWrap}>
+            <Pressable
+              onPress={openPortionsInfo}
+              hitSlop={8}
+              accessibilityLabel="About portions per day"
+              accessibilityRole="button">
+              <IconSymbol name="info.circle" size={20} color={Colors[colorScheme].icon} />
+            </Pressable>
+          </View>
+        </ThemedView>
+        <ThemedTextInput
+          keyboardType="decimal-pad"
+          value={portionsText}
+          onChangeText={setPortionsText}
+          onBlur={commitPortionsText}
+          style={styles.portionsInput}
+          selectTextOnFocus
+          accessibilityLabel="Portions per day"
+        />
+      </ThemedView>
+
+      <Modal
+        visible={portionsInfoOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPortionsInfoOpen(false)}>
+        <Pressable
+          style={styles.infoBackdrop}
+          onPress={() => setPortionsInfoOpen(false)}
+          accessibilityLabel="Dismiss"
+        />
+        {portionsInfoAnchor ? (
+          <View
+            style={[
+              styles.infoBubble,
+              {
+                backgroundColor: Colors[colorScheme].background,
+                top: portionsInfoAnchor.y + portionsInfoAnchor.height + 8,
+                left: (() => {
+                  const w = Dimensions.get('window').width;
+                  const bubbleW = Math.min(280, w - 24);
+                  const idealLeft = portionsInfoAnchor.x + portionsInfoAnchor.width / 2 - bubbleW / 2;
+                  return Math.max(12, Math.min(idealLeft, w - bubbleW - 12));
+                })(),
+                maxWidth: Math.min(280, Dimensions.get('window').width - 24),
+              },
+            ]}
+            pointerEvents="box-none">
+            <ThemedText style={styles.infoBubbleText}>{PORTIONS_INFO_TEXT}</ThemedText>
+          </View>
+        ) : null}
+      </Modal>
+
+      <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
+        Support
+      </ThemedText>
       <ThemedView style={styles.helpLink}>
         <Link href="/help-modal" asChild>
-          <Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Help">
             <ThemedText type="link">Help</ThemedText>
           </Pressable>
         </Link>
@@ -65,18 +171,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    opacity: 0.65,
+  },
+  sectionHeadingFirst: {
+    marginTop: 24,
+  },
+  sectionHeadingSpacing: {
+    marginTop: 28,
+  },
+  portionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+    paddingVertical: 8,
+  },
+  portionsLabelRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  infoIconWrap: {
+    justifyContent: 'center',
+  },
+  infoBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  infoBubble: {
+    position: 'absolute',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  infoBubbleText: {
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  portionsInput: {
+    width: 72,
+    fontSize: 17,
+    paddingVertical: 4,
+    textAlign: 'right',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 24,
+    marginTop: 8,
     paddingVertical: 8,
   },
   label: {
     fontSize: 17,
   },
   helpLink: {
-    marginTop: 8,
+    marginTop: 4,
     paddingVertical: 8,
   },
 });

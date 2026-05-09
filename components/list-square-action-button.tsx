@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 
 export const LIST_SQUARE_ACTION_SIZE = 32;
 
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function ListSquareActionButton({ label, accent, onPress, disabled }: Props) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppColorScheme();
   const backgroundColor = colorScheme === 'dark' ? accent.dark : accent.light;
 
   return (

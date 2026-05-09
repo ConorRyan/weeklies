@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { RecipesScreenHeader } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import type { NewRecipe } from '@/store/recipes';
 import { ListSquareActionButton } from './list-square-action-button';
 import { ThemedText } from './themed-text';
@@ -13,7 +13,7 @@ type Props = {
 };
 
 export function RecipeAddForm({ onAddRecipe }: Props) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppColorScheme();
   const inputBorderColor = colorScheme === 'dark' ? '#FFFFFF' : '#9A9A9A';
 
   const [name, setName] = useState('');

@@ -19,6 +19,7 @@ const MAPPING = {
   'cart': 'shopping-cart',
   'chevron.right': 'chevron-right',
   'gearshape': 'settings',
+  'info.circle': 'info-outline',
 } as IconMapping;
 
 /**

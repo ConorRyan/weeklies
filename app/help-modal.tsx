@@ -72,8 +72,14 @@ export default function HelpModalScreen() {
           Settings
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Turn dark mode on or off; the choice is remembered after you close the app. This Help screen
-          is linked from Settings.
+          Turn dark mode on or off; the choice is remembered after you close the app.
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          Portions per day is the multiplier we will use for recipe quantities when your shopping list is
+          built from your weekly plan (coming soon).
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          This Help screen is linked from Settings.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>

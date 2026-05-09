@@ -5,8 +5,8 @@ import { useEffect } from 'react';
 import { AppState, BackHandler, Platform } from 'react-native';
 import 'react-native-reanimated';
 
-import { ThemePreferenceProvider } from '@/contexts/theme-preference';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SettingsProvider } from '@/contexts/settings';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { flushPendingShoppingListWrites } from '@/store/persistence';
 
 export const unstable_settings = {
@@ -14,7 +14,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppColorScheme();
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -72,8 +72,8 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <ThemePreferenceProvider>
+    <SettingsProvider>
       <RootLayoutNav />
-    </ThemePreferenceProvider>
+    </SettingsProvider>
   );
 }

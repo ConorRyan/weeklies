@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { useRecipes } from '@/store/recipes';
 import {
   useWeeklyPlan,
@@ -18,7 +18,7 @@ import {
 import { Link } from 'expo-router';
 
 export default function WeekliesScreen() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppColorScheme();
   const insets = useSafeAreaInsets();
   const { recipes } = useRecipes();
   const { byDay, setDayRecipe } = useWeeklyPlan();
