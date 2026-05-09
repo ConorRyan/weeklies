@@ -1,40 +1,45 @@
-# Welcome to your Expo app 👋
+# Weeklies
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Weeklies is a weekly meal planner for people who do not want to ask themselves what to eat every day.
 
-## Get started
+Add the meals you already know how to cook, store the ingredients for each one, and choose a recipe for every day of the week. The recipe storage is intentionally ingredient-focused; it is not trying to be a cooking instruction book.
 
-1. Install dependencies
+You can run the same meals over multiple weeks, change a few days when you feel like it, or rebuild the week from scratch. Weeklies is fully local and completely offline. Shopping list integration is planned next, so the app can automatically add the right ingredients on the right day for the number of portions needed.
+
+## Features
+
+- Save known recipes with their ingredients.
+- Plan a recipe for each day of the week.
+- Reuse a weekly plan across multiple weeks.
+- Change individual meals whenever your plans change.
+- Keep everything fully local and completely offline.
+- Coming soon: automatically populate the shopping list from the weekly plan and portion counts.
+
+## Development
+
+Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+Start Expo:
 
    ```bash
-   npx expo start
+   npm run start
    ```
 
-In the output, you'll find options to open the app in a
+Create Android builds with EAS:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+```bash
+npm run build:android
+npm run build:android:preview
+```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Contributing
 
-## Learn more
+Contributions are welcome. Open an issue or pull request if you have a bug fix, improvement, or idea that fits the direction of the app.
 
-To learn more about developing your project with Expo, look at the following resources:
+## License
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Weeklies is released under the [MIT License](./LICENSE).

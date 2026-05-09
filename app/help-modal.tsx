@@ -45,26 +45,27 @@ export default function HelpModalScreen() {
           Weeklies
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Your week is always Monday through Sunday. Tap a day to choose which recipe is on the menu
-          that night. The same plan comes back every week until you change it. Pick Clear in the sheet to leave a day
-          empty.
+          Weeklies is for planning meals once, then not asking yourself what to eat every day.
+          Your week runs Monday through Sunday. Tap a day to choose a recipe, reuse the same
+          plan across multiple weeks, or change any day whenever your plans change.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Recipes
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Open the Recipes tab to see everything you have saved. Use the New recipe link to add a name and
-          ingredient lines (one line per ingredient or amount). Tap a recipe to read it; remove
-          it from the list with the minus control when you no longer need it.
+          Recipes are for meals you already know how to cook. Store the ingredients you need,
+          one line at a time, without writing out full cooking instructions. Open the Recipes
+          tab to add, review, or remove saved meals.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Shopping list
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Build your list yourself: type at the bottom and tap + to add a line. Tap a row to mark it
-          bought or still needed. Use − to delete a line. Your list is saved on the device.
+          For now, build your list yourself: type at the bottom and tap + to add a line. Soon,
+          Weeklies will use your weekly plan to add the right ingredients on the right day for
+          the number of portions you need.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -79,8 +80,9 @@ export default function HelpModalScreen() {
           Data
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Recipes, your weekly plan, and the shopping list are stored locally on this device. They stay
-          until you remove them in the app.
+          Weeklies is fully local and completely offline. Recipes, your weekly plan, and the
+          shopping list are stored on this device, where they stay until you remove them in the
+          app.
         </ThemedText>
 
         <Pressable onPress={handleBack} style={styles.footerLink} accessibilityRole="button">
