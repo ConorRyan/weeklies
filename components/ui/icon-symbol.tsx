@@ -17,7 +17,6 @@ const MAPPING = {
   'calendar': 'calendar-month',
   'book': 'book',
   'cart': 'shopping-cart',
-  'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
 } as IconMapping;
 

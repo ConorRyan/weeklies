@@ -13,12 +13,12 @@ export default function RecipesScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      headerBackgroundColor={{ light: '#FF4D4D', dark: '#8E0000' }}
       headerImage={
         <IconSymbol
           size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
+          color="#FFFFFF"
+          name="book"
           style={styles.headerImage}
         />
       }>
@@ -47,7 +47,7 @@ export default function RecipesScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#808080',
+    color: '#FFFFFF',
     bottom: -90,
     left: -35,
     position: 'absolute',
