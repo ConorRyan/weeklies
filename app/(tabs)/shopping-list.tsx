@@ -6,7 +6,7 @@ import { ShoppingListItem } from '@/components/shopping-list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Fonts, ShoppingListScreenHeader } from '@/constants/theme';
 import { useShoppingList } from '@/store/shopping-list';
 
 
@@ -18,7 +18,7 @@ export default function ShoppingListScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#00DD77', dark: '#006B45' }}
+      headerBackgroundColor={ShoppingListScreenHeader}
       headerImage={
         <IconSymbol
           size={310}

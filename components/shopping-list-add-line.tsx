@@ -1,7 +1,9 @@
-import { Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ShoppingListScreenHeader } from '@/constants/theme';
 import { useShoppingList } from '@/store/shopping-list';
 import { useState } from 'react';
+import { ListSquareActionButton } from './list-square-action-button';
 import { ThemedTextInput } from './themed-text-input';
 
 export function ShoppingListAddLine() {
@@ -19,15 +21,15 @@ export function ShoppingListAddLine() {
   };
 
   return (
-    <TouchableOpacity style={styles.row}>
+    <View style={styles.row}>
       <ThemedTextInput
         style={styles.input}
         placeholder="Item"
         value={label}
         onChangeText={setLabel}
       />
-      <Button title="+" onPress={onPress} />
-    </TouchableOpacity>
+      <ListSquareActionButton accent={ShoppingListScreenHeader} label="+" onPress={onPress} />
+    </View>
   );
 }
 

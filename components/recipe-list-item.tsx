@@ -1,7 +1,9 @@
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { RecipesScreenHeader } from '@/constants/theme';
 import type { Recipe } from '@/store/recipes';
+import { ListSquareActionButton } from './list-square-action-button';
 import { ThemedText } from './themed-text';
 
 type Props = {
@@ -20,9 +22,11 @@ export function RecipeListItem({ recipe, onRemove }: Props) {
           </ThemedText>
         </Pressable>
       </Link>
-      <Pressable onPress={() => onRemove(recipe.id)} style={styles.removeButton}>
-        <ThemedText>-</ThemedText>
-      </Pressable>
+      <ListSquareActionButton
+        accent={RecipesScreenHeader}
+        label="-"
+        onPress={() => onRemove(recipe.id)}
+      />
     </View>
   );
 }
@@ -42,13 +46,5 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
-  },
-  removeButton: {
-    alignItems: 'center',
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 28,
-    justifyContent: 'center',
-    width: 28,
   },
 });

@@ -8,6 +8,17 @@ import { Platform } from 'react-native';
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+/** Parallax header backgrounds per tab — reuse for list action buttons on that screen. */
+export const RecipesScreenHeader = {
+  light: '#FF4D4D',
+  dark: '#8E0000',
+} as const;
+
+export const ShoppingListScreenHeader = {
+  light: '#00DD77',
+  dark: '#006B45',
+} as const;
+
 export const Colors = {
   light: {
     text: '#11181C',

@@ -5,7 +5,7 @@ import { RecipeListItem } from '@/components/recipe-list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Fonts, RecipesScreenHeader } from '@/constants/theme';
 import { useRecipes } from '@/store/recipes';
 
 export default function RecipesScreen() {
@@ -13,7 +13,7 @@ export default function RecipesScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#FF4D4D', dark: '#8E0000' }}
+      headerBackgroundColor={RecipesScreenHeader}
       headerImage={
         <IconSymbol
           size={310}

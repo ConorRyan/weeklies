@@ -1,7 +1,8 @@
+import { ListSquareActionButton } from '@/components/list-square-action-button';
 import { ThemedText } from '@/components/themed-text';
-import { Button, StyleSheet, TouchableOpacity, View } from 'react-native';
-
+import { ShoppingListScreenHeader } from '@/constants/theme';
 import { useShoppingList } from '@/store/shopping-list';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Props = {
   id: string;
@@ -23,7 +24,7 @@ export function ShoppingListItem({ id, label, checked, onToggle }: Props) {
         <View style={[styles.checkbox, checked && styles.checked]} />
       </TouchableOpacity>
       <ThemedText style={[styles.label, checked && styles.strikethrough]}>{label}</ThemedText>
-      <Button title="-" onPress={onPress} />
+      <ListSquareActionButton accent={ShoppingListScreenHeader} label="-" onPress={onPress} />
     </View>
   );
 }
