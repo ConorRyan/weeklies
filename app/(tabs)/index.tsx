@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +19,7 @@ import { Link } from 'expo-router';
 
 export default function WeekliesScreen() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const { recipes } = useRecipes();
   const { byDay, setDayRecipe } = useWeeklyPlan();
   const [pickerDay, setPickerDay] = useState<Weekday | null>(null);
@@ -116,7 +118,15 @@ export default function WeekliesScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={closePicker}>
-        <View style={[styles.modalContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              paddingTop: insets.top + 16,
+              paddingBottom: insets.bottom,
+            },
+          ]}>
           <View style={styles.modalHeader}>
             <ThemedText type="subtitle">
               {pickerDay ? WEEKDAY_LABELS[pickerDay] : ''}
@@ -215,7 +225,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    paddingTop: 16,
   },
   modalHeader: {
     flexDirection: 'row',

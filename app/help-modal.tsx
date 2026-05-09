@@ -2,6 +2,7 @@ import { HeaderBackButton } from '@react-navigation/elements';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -9,6 +10,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function HelpModalScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const tintColor = useThemeColor({}, 'tint');
 
   const handleBack = useCallback(() => {
@@ -34,7 +36,10 @@ export default function HelpModalScreen() {
         }}
       />
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 40 },
+        ]}
         keyboardShouldPersistTaps="handled">
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Weeklies
@@ -91,8 +96,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   sectionTitle: {
     marginTop: 20,
