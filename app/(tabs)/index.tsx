@@ -1,102 +1,260 @@
-import { Platform, Pressable, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors, Fonts } from '@/constants/theme';
+import { useRecipes } from '@/store/recipes';
+import {
+  useWeeklyPlan,
+  WEEKDAY_LABELS,
+  WEEKDAYS,
+  type Weekday,
+} from '@/store/weekly-plan';
 import { Link } from 'expo-router';
 
 export default function WeekliesScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#1DA1FF', dark: '#003D82' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#FFFFFF"
-          name="calendar"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/help-modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colorScheme = useColorScheme();
+  const { recipes } = useRecipes();
+  const { byDay, setDayRecipe } = useWeeklyPlan();
+  const [pickerDay, setPickerDay] = useState<Weekday | null>(null);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  const recipeById = useMemo(() => {
+    const m = new Map<string, (typeof recipes)[0]>();
+    for (const r of recipes) {
+      m.set(r.id, r);
+    }
+    return m;
+  }, [recipes]);
+
+  const modalTint = Colors[colorScheme ?? 'light'].tint;
+
+  const closePicker = () => setPickerDay(null);
+
+  const handlePickRecipe = (recipeId: string) => {
+    if (pickerDay) {
+      setDayRecipe(pickerDay, recipeId);
+    }
+    closePicker();
+  };
+
+  const handleClearDay = () => {
+    if (pickerDay) {
+      setDayRecipe(pickerDay, null);
+    }
+    closePicker();
+  };
+
+  return (
+    <>
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#1DA1FF', dark: '#003D82' }}
+        headerImage={
+          <IconSymbol
+            size={310}
+            color="#FFFFFF"
+            name="calendar"
+            style={styles.headerImage}
+          />
+        }>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedText
+            type="title"
+            style={{
+              fontFamily: Fonts.rounded,
+            }}>
+            Weeklies
+          </ThemedText>
+        </ThemedView>
+        <ThemedText style={styles.subtitle}>
+          Tap a row to assign a recipe. Repeats every week.
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-        <Link href="/help-modal" asChild>
-          <Pressable><ThemedText>Help</ThemedText></Pressable>
-        </Link>
-      </ThemedView>
-    </ParallaxScrollView>
+        {WEEKDAYS.map((day) => {
+          const recipeId = byDay[day];
+          const recipe = recipeId ? recipeById.get(recipeId) : undefined;
+          let line: string;
+          if (!recipeId) {
+            line = 'Choose recipe';
+          } else if (!recipe) {
+            line = 'Recipe removed';
+          } else {
+            line = recipe.name;
+          }
+
+          return (
+            <Pressable
+              key={day}
+              onPress={() => setPickerDay(day)}
+              style={({ pressed }) => [
+                styles.dayRow,
+                pressed && styles.dayRowPressed,
+              ]}>
+              <ThemedText type="defaultSemiBold" style={styles.dayRowLabel} numberOfLines={1}>
+                {WEEKDAY_LABELS[day]}
+              </ThemedText>
+              <View style={styles.dayRowValueWrap}>
+                <ThemedText
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={[
+                    styles.dayRecipe,
+                    (!recipeId || !recipe) && styles.dayRecipeMuted,
+                  ]}>
+                  {line}
+                </ThemedText>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ParallaxScrollView>
+
+      <Modal
+        visible={pickerDay !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closePicker}>
+        <View style={[styles.modalContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="subtitle">
+              {pickerDay ? WEEKDAY_LABELS[pickerDay] : ''}
+            </ThemedText>
+            <Pressable onPress={closePicker} hitSlop={12}>
+              <ThemedText type="defaultSemiBold" style={{ color: modalTint }}>
+                Done
+              </ThemedText>
+            </Pressable>
+          </View>
+          {pickerDay && byDay[pickerDay] ? (
+            <Pressable onPress={handleClearDay} style={styles.clearButton}>
+              <ThemedText style={{ color: modalTint }}>Clear assignment</ThemedText>
+            </Pressable>
+          ) : null}
+          {recipes.length === 0 ? (
+            <ThemedView style={styles.emptyPicker}>
+              <ThemedText>Add recipes first, then pick one for each day.</ThemedText>
+              <Link href="/(tabs)/recipes" asChild>
+                <Pressable>
+                  <ThemedText type="defaultSemiBold" style={{ color: modalTint }}>
+                    Go to Recipes
+                  </ThemedText>
+                </Pressable>
+              </Link>
+            </ThemedView>
+          ) : (
+            <FlatList
+              data={recipes}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => handlePickRecipe(item.id)}
+                  style={({ pressed }) => [
+                    styles.recipeRow,
+                    pressed && styles.recipeRowPressed,
+                  ]}>
+                  <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                  <ThemedText style={styles.recipeMeta}>
+                    {item.ingredients.length} ingredient{item.ingredients.length === 1 ? '' : 's'}
+                  </ThemedText>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
   headerImage: {
     color: '#FFFFFF',
     bottom: -90,
     left: -35,
     position: 'absolute',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  subtitle: {
+    opacity: 0.75,
+    marginBottom: 4,
+    paddingHorizontal: 16,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.35)',
+  },
+  dayRowPressed: {
+    opacity: 0.85,
+  },
+  dayRowLabel: {
+    flexShrink: 0,
+  },
+  dayRowValueWrap: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-end',
+  },
+  dayRecipe: {
+    fontSize: 16,
+    textAlign: 'right',
+    width: '100%',
+  },
+  dayRecipeMuted: {
+    opacity: 0.55,
+  },
+  modalContainer: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  clearButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  emptyPicker: {
+    padding: 24,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  recipeRow: {
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.35)',
+  },
+  recipeRowPressed: {
+    opacity: 0.85,
+  },
+  recipeMeta: {
+    opacity: 0.7,
+    fontSize: 14,
   },
 });

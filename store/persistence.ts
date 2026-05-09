@@ -3,6 +3,7 @@ import { createJSONStorage, type StateStorage } from 'zustand/middleware';
 
 export const RECIPES_STORAGE_KEY = 'weeklies:recipes:v1';
 export const SHOPPING_LIST_STORAGE_KEY = 'weeklies:shopping-list:v1';
+export const WEEKLY_PLAN_STORAGE_KEY = 'weeklies:weekly-plan:v1';
 
 const SHOPPING_LIST_DEBOUNCE_MS = 400;
 
@@ -81,6 +82,7 @@ const debouncedStateStorage: StateStorage = {
 };
 
 export const recipesStorage = createJSONStorage(() => AsyncStorage);
+export const weeklyPlanStorage = createJSONStorage(() => AsyncStorage);
 export const shoppingListStorage = createJSONStorage(() => debouncedStateStorage);
 
 export const flushPendingShoppingListWrites = async () => {
