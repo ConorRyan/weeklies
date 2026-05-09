@@ -1,18 +1,12 @@
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRecipes } from '@/store/recipes';
 import {
   useWeeklyPlan,
@@ -57,7 +51,7 @@ export default function WeekliesScreen() {
   return (
     <>
       <ParallaxScrollView
-        headerBackgroundColor={{ light: '#1DA1FF', dark: '#003D82' }}
+        headerBackgroundColor={{ light: '#1DA1FF', dark: '#0F6FC1' }}
         headerImage={
           <IconSymbol
             size={310}
@@ -177,7 +171,6 @@ export default function WeekliesScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#FFFFFF',
     bottom: -90,
     left: -35,
     position: 'absolute',

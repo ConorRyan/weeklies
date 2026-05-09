@@ -56,7 +56,6 @@ export default function RecipesScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#FFFFFF',
     bottom: -90,
     left: -35,
     position: 'absolute',

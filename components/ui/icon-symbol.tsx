@@ -18,6 +18,7 @@ const MAPPING = {
   'book': 'book',
   'cart': 'shopping-cart',
   'chevron.right': 'chevron-right',
+  'gearshape': 'settings',
 } as IconMapping;
 
 /**

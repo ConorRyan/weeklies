@@ -11,12 +11,17 @@ const tintColorDark = '#fff';
 /** Parallax header backgrounds per tab — reuse for list action buttons on that screen. */
 export const RecipesScreenHeader = {
   light: '#FF4D4D',
-  dark: '#8E0000',
+  dark: '#C72727',
 } as const;
 
 export const ShoppingListScreenHeader = {
   light: '#00DD77',
-  dark: '#006B45',
+  dark: '#00A45E',
+} as const;
+
+export const SettingsScreenHeader = {
+  light: '#9333EA',
+  dark: '#7028C0',
 } as const;
 
 export const Colors = {

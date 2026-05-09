@@ -15,7 +15,6 @@ import { useShoppingList } from '@/store/shopping-list';
 export default function ShoppingListScreen() {
   const { items, toggleItem } = useShoppingList();
 
-
   return (
     <ParallaxScrollView
       headerBackgroundColor={ShoppingListScreenHeader}
@@ -51,7 +50,6 @@ export default function ShoppingListScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#FFFFFF',
     bottom: -90,
     left: -35,
     position: 'absolute',

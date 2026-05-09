@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { AppState, BackHandler, Platform } from 'react-native';
 import 'react-native-reanimated';
 
+import { ThemePreferenceProvider } from '@/contexts/theme-preference';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushPendingShoppingListWrites } from '@/store/persistence';
 
@@ -12,7 +13,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
@@ -64,7 +65,15 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemePreferenceProvider>
+      <RootLayoutNav />
+    </ThemePreferenceProvider>
   );
 }
