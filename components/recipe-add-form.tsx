@@ -9,15 +9,18 @@ import { ThemedText } from './themed-text';
 import { ThemedTextInput } from './themed-text-input';
 
 type Props = {
+  initialRecipe?: NewRecipe;
   onAddRecipe: (recipe: NewRecipe) => void;
 };
 
-export function RecipeAddForm({ onAddRecipe }: Props) {
+export function RecipeAddForm({ initialRecipe, onAddRecipe }: Props) {
   const colorScheme = useAppColorScheme();
   const inputBorderColor = colorScheme === 'dark' ? '#FFFFFF' : '#9A9A9A';
 
-  const [name, setName] = useState('');
-  const [ingredients, setIngredients] = useState<string[]>(['']);
+  const [name, setName] = useState(initialRecipe?.name ?? '');
+  const [ingredients, setIngredients] = useState<string[]>(() =>
+    initialRecipe?.ingredients?.length ? [...initialRecipe.ingredients] : ['']
+  );
   const [error, setError] = useState('');
   const ingredientRefs = useRef<(TextInput | null)[]>([]);
 
@@ -59,8 +62,10 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
     }
 
     onAddRecipe({ name: trimmedName, ingredients: cleanedIngredients });
-    setName('');
-    setIngredients(['']);
+    if (!initialRecipe) {
+      setName('');
+      setIngredients(['']);
+    }
     setError('');
   };
 

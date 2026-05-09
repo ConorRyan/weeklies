@@ -1,5 +1,5 @@
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,6 +15,11 @@ export default function RecipeDetailScreen() {
       {recipe ? (
         <>
           <ThemedText type="title">{recipe.name}</ThemedText>
+          <Link href={`/recipe/${recipe.id}/edit`} asChild>
+            <Pressable>
+              <ThemedText type="link">Edit recipe</ThemedText>
+            </Pressable>
+          </Link>
           <ThemedText type="subtitle">Ingredients (single portion)</ThemedText>
           <ThemedView style={styles.ingredients}>
             {recipe.ingredients.map((line, index) => (

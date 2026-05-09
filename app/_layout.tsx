@@ -58,10 +58,18 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
-          name="recipe/[id]"
+          name="recipe/[id]/index"
           options={{
             presentation: 'modal',
             headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="recipe/[id]/edit"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'New recipe',
           }}
         />
       </Stack>
