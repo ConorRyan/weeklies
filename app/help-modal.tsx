@@ -47,7 +47,9 @@ export default function HelpModalScreen() {
         <ThemedText style={styles.paragraph}>
           Weeklies is for planning meals once, then not asking yourself what to eat every day.
           Your week runs Monday through Sunday. Tap a day to choose a recipe, reuse the same
-          plan across multiple weeks, or change any day whenever your plans change.
+          plan across multiple weeks, or change any day whenever your plans change. Today’s row
+          has a light highlight and the day name and recipe line are bold so you can spot the
+          current day quickly.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -58,14 +60,22 @@ export default function HelpModalScreen() {
           one line at a time, without writing out full cooking instructions. Open the Recipes
           tab to add, review, or remove saved meals.
         </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          To edit a recipe, open it from the list and tap Edit recipe. The screen matches new
+          recipe (same fields and Save recipe), with your current name and ingredients filled
+          in; saving replaces that recipe and keeps the same entry everywhere it is used in your
+          plan.
+        </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Shopping list
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          For now, build your list yourself: type at the bottom and tap + to add a line. Soon,
-          Weeklies will use your weekly plan to add the right ingredients on the right day for
-          the number of portions you need.
+          Type at the bottom and tap + to add a line. Tap the checkbox or anywhere on the row
+          (except remove) to check an item off. Use Remove checked to delete every checked line.
+          Tap Add today&apos;s recipe to append ingredients from whatever recipe is planned for
+          today on the Weeklies tab; amounts are scaled using Portions per day in Settings (each
+          number in an ingredient line is multiplied by that value).
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -75,8 +85,9 @@ export default function HelpModalScreen() {
           Turn dark mode on or off; the choice is remembered after you close the app.
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Portions per day is the multiplier we will use for recipe quantities when your shopping list is
-          built from your weekly plan (coming soon).
+          Portions per day is the multiplier used when you use Add today&apos;s recipe on the
+          shopping list: every numeric quantity in each ingredient line is multiplied by this
+          value.
         </ThemedText>
         <ThemedText style={styles.paragraph}>
           This Help screen is linked from Settings.
@@ -88,7 +99,21 @@ export default function HelpModalScreen() {
         <ThemedText style={styles.paragraph}>
           Weeklies is fully local and completely offline. Recipes, your weekly plan, and the
           shopping list are stored on this device, where they stay until you remove them in the
-          app.
+          app or replace them by importing a backup.
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          In Settings, open the Data section.{' '}
+          <ThemedText type="defaultSemiBold">Export</ThemedText>
+          {' '}
+          writes one JSON file (default name like backup-2026-05-09.json) containing recipes,
+          your weekly plan, the shopping list, and settings—including dark mode and portions per
+          day. On a device you choose a folder to save into; in a browser the file downloads.
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          <ThemedText type="defaultSemiBold">Import</ThemedText>
+          {' '}
+          replaces all stored data with the contents of that file. Nothing is merged with what you
+          already had—confirm only when you intend to overwrite the app completely.
         </ThemedText>
 
         <Pressable onPress={handleBack} style={styles.footerLink} accessibilityRole="button">
