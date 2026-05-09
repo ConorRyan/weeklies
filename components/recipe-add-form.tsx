@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { RecipesScreenHeader } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { NewRecipe } from '@/store/recipes';
+import { ListSquareActionButton } from './list-square-action-button';
 import { ThemedText } from './themed-text';
 import { ThemedTextInput } from './themed-text-input';
 
@@ -10,6 +13,9 @@ type Props = {
 };
 
 export function RecipeAddForm({ onAddRecipe }: Props) {
+  const colorScheme = useColorScheme();
+  const inputBorderColor = colorScheme === 'dark' ? '#FFFFFF' : '#9A9A9A';
+
   const [name, setName] = useState('');
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [error, setError] = useState('');
@@ -60,19 +66,21 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
 
   return (
     <View style={styles.container}>
+      <ThemedText style={styles.fieldHeading}>Name</ThemedText>
       <ThemedTextInput
         placeholder="Recipe name"
-        style={styles.recipeName}
+        style={[styles.recipeName, { borderColor: inputBorderColor }]}
         value={name}
         onChangeText={setName}
         returnKeyType="next"
         onSubmitEditing={() => ingredientRefs.current[0]?.focus()}
       />
+      <ThemedText style={styles.fieldHeading}>Ingredients</ThemedText>
       {ingredients.map((line, index) => (
         <View key={index} style={styles.ingredientRow}>
           <ThemedTextInput
             placeholder="Ingredient"
-            style={styles.ingredientLine}
+            style={[styles.ingredientLine, { borderColor: inputBorderColor }]}
             value={line}
             onChangeText={(value) => updateIngredientLine(index, value)}
             ref={(ref) => {
@@ -88,12 +96,12 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
               }
             }}
           />
-          <Pressable
-            onPress={() => removeIngredientRow(index)}
+          <ListSquareActionButton
+            accent={RecipesScreenHeader}
             disabled={ingredients.length === 1}
-            style={styles.smallButton}>
-            <ThemedText style={ingredients.length === 1 ? styles.disabled : undefined}>-</ThemedText>
-          </Pressable>
+            label="-"
+            onPress={() => removeIngredientRow(index)}
+          />
         </View>
       ))}
       <View style={styles.actions}>
@@ -115,6 +123,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 16,
   },
+  fieldHeading: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: -4,
+    opacity: 0.9,
+  },
   recipeName: {
     borderRadius: 6,
     borderWidth: 1,
@@ -133,14 +147,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  smallButton: {
-    alignItems: 'center',
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
   actions: {
     flexDirection: 'row',
     gap: 8,
@@ -150,9 +156,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
-  },
-  disabled: {
-    opacity: 0.4,
   },
   error: {
     color: '#d11a2a',
