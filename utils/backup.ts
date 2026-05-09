@@ -168,15 +168,34 @@ export async function exportBackupToFilesystem(settings: Settings): Promise<void
     if (typeof document === 'undefined') {
       return;
     }
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    let objectUrl: string | null = null;
+    let link: HTMLAnchorElement | null = null;
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      objectUrl = URL.createObjectURL(blob);
+      link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+    } catch (e) {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      throw e instanceof Error ? e : new Error('Could not start download.');
+    }
+    const cleanup = (): void => {
+      try {
+        link?.remove();
+      } catch {
+        // Navigating away can detach nodes; avoid surfacing DOM errors.
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    setTimeout(cleanup, 250);
     return;
   }
 

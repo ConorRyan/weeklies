@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ShoppingListAddLine } from '@/components/shopping-list-add-line';
@@ -13,6 +13,7 @@ import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { useRecipes } from '@/store/recipes';
 import { useShoppingList } from '@/store/shopping-list';
 import { useWeeklyPlan, weekdayFromDate } from '@/store/weekly-plan';
+import { notifyInfo } from '@/utils/notify';
 import { scaleIngredientLine } from '@/utils/scale-ingredient-line';
 
 export default function ShoppingListScreen() {
@@ -29,7 +30,7 @@ export default function ShoppingListScreen() {
     const day = weekdayFromDate(new Date());
     const recipeId = byDay[day];
     if (!recipeId) {
-      Alert.alert(
+      notifyInfo(
         'No recipe today',
         'Assign a recipe to today on the Weeklies tab first.'
       );
@@ -37,7 +38,7 @@ export default function ShoppingListScreen() {
     }
     const recipe = recipes.find((r) => r.id === recipeId);
     if (!recipe) {
-      Alert.alert(
+      notifyInfo(
         'Recipe missing',
         'The planned recipe was removed. Update Weeklies or Recipes.'
       );

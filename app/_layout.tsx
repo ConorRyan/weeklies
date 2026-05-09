@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { AppState, BackHandler, Platform } from 'react-native';
 import 'react-native-reanimated';
 
+import { ThemedToast } from '@/components/themed-toast';
 import { SettingsProvider } from '@/contexts/settings';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { flushPendingShoppingListWrites } from '@/store/persistence';
@@ -74,6 +75,7 @@ function RootLayoutNav() {
         />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <ThemedToast />
     </ThemeProvider>
   );
 }

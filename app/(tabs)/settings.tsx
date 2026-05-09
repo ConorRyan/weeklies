@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Dimensions, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +16,11 @@ import {
 } from '@/contexts/settings';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { exportBackupToFilesystem, pickAndImportBackup } from '@/utils/backup';
+import {
+  formatBackupError,
+  isUserCanceledBackup,
+} from '@/utils/backup-errors';
+import { notifyError, notifyInfo } from '@/utils/notify';
 
 const PORTIONS_INFO_TEXT = 'Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.';
 
@@ -34,7 +39,16 @@ export default function SettingsScreen() {
     height: number;
   } | null>(null);
   const portionsInfoRef = useRef<View>(null);
+  const mountedRef = useRef(true);
   const tint = Colors[colorScheme].tint;
+  const schemeKey = colorScheme === 'dark' ? 'dark' : 'light';
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setPortionsText(String(portionsPerDay));
@@ -61,31 +75,34 @@ export default function SettingsScreen() {
     setBackupBusy(true);
     void exportBackupToFilesystem(settings)
       .catch((e: unknown) => {
-        Alert.alert('Export failed', e instanceof Error ? e.message : 'Unknown error');
+        if (isUserCanceledBackup(e)) {
+          notifyInfo('Export canceled');
+          return;
+        }
+        notifyError('Export failed', formatBackupError(e, 'export'));
       })
-      .finally(() => setBackupBusy(false));
+      .finally(() => {
+        if (mountedRef.current) {
+          setBackupBusy(false);
+        }
+      });
   };
 
-  const handleImportPress = () => {
-    Alert.alert(
-      'Replace all data?',
-      'Importing will replace your recipes, weekly plan, shopping list, and settings. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Replace',
-          style: 'destructive',
-          onPress: () => {
-            setBackupBusy(true);
-            void pickAndImportBackup(replaceSettings)
-              .catch((e: unknown) => {
-                Alert.alert('Import failed', e instanceof Error ? e.message : 'Unknown error');
-              })
-              .finally(() => setBackupBusy(false));
-          },
-        },
-      ]
-    );
+  const handleImport = () => {
+    setBackupBusy(true);
+    void pickAndImportBackup(replaceSettings)
+      .catch((e: unknown) => {
+        if (isUserCanceledBackup(e)) {
+          notifyInfo('Import canceled');
+          return;
+        }
+        notifyError('Import failed', formatBackupError(e, 'import'));
+      })
+      .finally(() => {
+        if (mountedRef.current) {
+          setBackupBusy(false);
+        }
+      });
   };
 
   return (
@@ -200,13 +217,17 @@ export default function SettingsScreen() {
           </ThemedText>
         </Pressable>
         <Pressable
-          onPress={handleImportPress}
+          onPress={handleImport}
           disabled={backupBusy}
           accessibilityRole="button"
-          accessibilityLabel="Import data from JSON file"
+          accessibilityLabel="Import backup from file. Warning: replaces all data."
+          accessibilityHint="Import replaces recipes, weekly plan, shopping list, and settings."
           style={({ pressed }) => [styles.dataRow, pressed && styles.dataRowPressed]}>
           <ThemedText type="link" style={backupBusy ? styles.dataLinkDisabled : undefined}>
-            Import…
+            Import…{' '}
+            <Text style={[styles.importQualifier, { color: Colors[schemeKey].icon }]}>
+              (WARNING: replaces all data)
+            </Text>
           </ThemedText>
         </Pressable>
       </ThemedView>
@@ -316,6 +337,10 @@ const styles = StyleSheet.create({
   },
   dataRow: {
     paddingVertical: 8,
+  },
+  importQualifier: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   dataRowPressed: {
     opacity: 0.65,
