@@ -42,7 +42,7 @@ export function weekdayFromDate(d: Date): Weekday {
 
 export type DayAssignments = Record<Weekday, string | null>;
 
-const emptyByDay = (): DayAssignments => ({
+export const emptyByDay = (): DayAssignments => ({
   mon: null,
   tue: null,
   wed: null,

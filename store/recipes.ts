@@ -36,7 +36,7 @@ const ingredientToLine = (value: unknown): string | null => {
   return null;
 };
 
-const normalizeRecipe = (value: unknown): Recipe | null => {
+export const normalizeRecipe = (value: unknown): Recipe | null => {
   if (!value || typeof value !== 'object') {
     return null;
   }

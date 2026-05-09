@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { Appearance } from 'react-native';
 
-const STORAGE_KEY = 'weeklies.settings';
+export const SETTINGS_STORAGE_KEY = 'weeklies.settings';
 
 const CURRENT_SCHEMA_VERSION = 1;
 
@@ -86,21 +86,27 @@ export function parseStoredSettings(raw: string | null): Settings {
 }
 
 async function readSettingsFromStorage(): Promise<Settings> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  const raw = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
   return parseStoredSettings(raw);
 }
 
-async function persistSettings(settings: Settings): Promise<void> {
+/** Serialized value stored under {@link SETTINGS_STORAGE_KEY}. */
+export function serializeSettingsStorage(settings: Settings): string {
   const payload: PersistedSettings = {
     ...settings,
     settingsSchemaVersion: CURRENT_SCHEMA_VERSION,
   };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  return JSON.stringify(payload);
+}
+
+async function persistSettings(settings: Settings): Promise<void> {
+  await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, serializeSettingsStorage(settings));
 }
 
 type SettingsStoreContextValue = {
   settings: Settings;
   patchSettings: (partial: Partial<Settings>) => void;
+  replaceSettings: (next: Settings) => void;
 };
 
 type ThemePreferenceContextValue = {
@@ -163,6 +169,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const replaceSettings = useCallback((next: Settings) => {
+    hasUserMutatedRef.current = true;
+    const validated: Settings = {
+      colorScheme: next.colorScheme === 'light' || next.colorScheme === 'dark' ? next.colorScheme : defaultSettings().colorScheme,
+      portionsPerDay: isValidPortionsPerDay(next.portionsPerDay) ? next.portionsPerDay : defaultSettings().portionsPerDay,
+    };
+    setSettings(validated);
+    void persistSettings(validated);
+  }, []);
+
   const setColorScheme = useCallback(
     (scheme: AppColorScheme) => {
       patchSettings({ colorScheme: scheme });
@@ -181,8 +197,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const storeValue = useMemo(
-    () => ({ settings, patchSettings }),
-    [settings, patchSettings]
+    () => ({ settings, patchSettings, replaceSettings }),
+    [settings, patchSettings, replaceSettings]
   );
 
   const themeValue = useMemo(

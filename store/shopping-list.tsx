@@ -8,7 +8,7 @@ export type NewItem = {
   label: string;
 };
 
-type Item = {
+export type Item = {
   id: string;
   label: string;
   checked: boolean;
@@ -22,7 +22,7 @@ type ShoppingListStore = {
   addItem: (item: NewItem) => void;
 };
 
-const normalizeItem = (value: unknown): Item | null => {
+export const normalizeItem = (value: unknown): Item | null => {
   if (!value || typeof value !== 'object') {
     return null;
   }

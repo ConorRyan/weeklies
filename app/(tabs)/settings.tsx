@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Dimensions, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -8,8 +8,14 @@ import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts, SettingsScreenHeader } from '@/constants/theme';
-import { isValidPortionsPerDay, usePortionsPerDay, useThemePreference } from '@/contexts/settings';
+import {
+  isValidPortionsPerDay,
+  usePortionsPerDay,
+  useSettings,
+  useThemePreference,
+} from '@/contexts/settings';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
+import { exportBackupToFilesystem, pickAndImportBackup } from '@/utils/backup';
 
 const PORTIONS_INFO_TEXT = 'Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.';
 
@@ -17,6 +23,8 @@ export default function SettingsScreen() {
   const colorScheme = useAppColorScheme();
   const { setColorScheme } = useThemePreference();
   const { portionsPerDay, setPortionsPerDay } = usePortionsPerDay();
+  const { settings, replaceSettings } = useSettings();
+  const [backupBusy, setBackupBusy] = useState(false);
   const [portionsText, setPortionsText] = useState(() => String(portionsPerDay));
   const [portionsInfoOpen, setPortionsInfoOpen] = useState(false);
   const [portionsInfoAnchor, setPortionsInfoAnchor] = useState<{
@@ -47,6 +55,37 @@ export default function SettingsScreen() {
     } else {
       setPortionsText(String(portionsPerDay));
     }
+  };
+
+  const handleExport = () => {
+    setBackupBusy(true);
+    void exportBackupToFilesystem(settings)
+      .catch((e: unknown) => {
+        Alert.alert('Export failed', e instanceof Error ? e.message : 'Unknown error');
+      })
+      .finally(() => setBackupBusy(false));
+  };
+
+  const handleImportPress = () => {
+    Alert.alert(
+      'Replace all data?',
+      'Importing will replace your recipes, weekly plan, shopping list, and settings. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace',
+          style: 'destructive',
+          onPress: () => {
+            setBackupBusy(true);
+            void pickAndImportBackup(replaceSettings)
+              .catch((e: unknown) => {
+                Alert.alert('Import failed', e instanceof Error ? e.message : 'Unknown error');
+              })
+              .finally(() => setBackupBusy(false));
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -147,6 +186,32 @@ export default function SettingsScreen() {
       </Modal>
 
       <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
+        Data
+      </ThemedText>
+      <ThemedView style={styles.dataActions}>
+        <Pressable
+          onPress={handleExport}
+          disabled={backupBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Export data as JSON"
+          style={({ pressed }) => [styles.dataRow, pressed && styles.dataRowPressed]}>
+          <ThemedText type="link" style={backupBusy ? styles.dataLinkDisabled : undefined}>
+            Export…
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={handleImportPress}
+          disabled={backupBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Import data from JSON file"
+          style={({ pressed }) => [styles.dataRow, pressed && styles.dataRowPressed]}>
+          <ThemedText type="link" style={backupBusy ? styles.dataLinkDisabled : undefined}>
+            Import…
+          </ThemedText>
+        </Pressable>
+      </ThemedView>
+
+      <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
         Support
       </ThemedText>
       <ThemedView style={styles.helpLink}>
@@ -240,5 +305,18 @@ const styles = StyleSheet.create({
   helpLink: {
     marginTop: 4,
     paddingVertical: 8,
+  },
+  dataActions: {
+    marginTop: 4,
+    gap: 4,
+  },
+  dataRow: {
+    paddingVertical: 8,
+  },
+  dataRowPressed: {
+    opacity: 0.65,
+  },
+  dataLinkDisabled: {
+    opacity: 0.45,
   },
 });
