@@ -1,6 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet } from 'react-native';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { RecipeAddForm } from '@/components/recipe-add-form';
 import { RecipeListItem } from '@/components/recipe-list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -9,7 +9,7 @@ import { Fonts } from '@/constants/theme';
 import { useRecipes } from '@/store/recipes';
 
 export default function RecipesScreen() {
-  const { recipes, addRecipe, removeRecipe } = useRecipes();
+  const { recipes, removeRecipe } = useRecipes();
 
   return (
     <ParallaxScrollView
@@ -30,11 +30,20 @@ export default function RecipesScreen() {
           }}>
           Recipes
         </ThemedText>
+        <Link href="/recipe/new" asChild>
+          <Pressable>
+            <ThemedText type="link">New recipe</ThemedText>
+          </Pressable>
+        </Link>
       </ThemedView>
-      <RecipeAddForm onAddRecipe={addRecipe} />
       {recipes.length === 0 ? (
         <ThemedView style={styles.emptyState}>
-          <ThemedText>No recipes yet. Create one above.</ThemedText>
+          <ThemedText>No recipes yet.</ThemedText>
+          <Link href="/recipe/new" asChild>
+            <Pressable style={styles.emptyLink}>
+              <ThemedText type="link">Add a recipe</ThemedText>
+            </Pressable>
+          </Link>
         </ThemedView>
       ) : (
         recipes.map((recipe) => (
@@ -53,10 +62,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   titleContainer: {
+    alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
   emptyState: {
+    gap: 8,
     paddingHorizontal: 16,
+  },
+  emptyLink: {
+    alignSelf: 'flex-start',
   },
 });

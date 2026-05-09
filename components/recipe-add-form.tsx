@@ -60,7 +60,6 @@ export function RecipeAddForm({ onAddRecipe }: Props) {
 
   return (
     <View style={styles.container}>
-      <ThemedText type="subtitle">Create recipe</ThemedText>
       <ThemedTextInput
         placeholder="Recipe name"
         style={styles.recipeName}
