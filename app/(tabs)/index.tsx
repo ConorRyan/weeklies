@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -18,12 +17,15 @@ import {
 } from '@/store/weekly-plan';
 import { Link } from 'expo-router';
 
+import { useDeferredSafeAreaInsets } from '@/hooks/use-deferred-safe-area-insets';
+
 export default function WeekliesScreen() {
   const colorScheme = useAppColorScheme();
-  const insets = useSafeAreaInsets();
+  const insets = useDeferredSafeAreaInsets();
   const { recipes } = useRecipes();
   const { byDay, setDayRecipe } = useWeeklyPlan();
   const [pickerDay, setPickerDay] = useState<Weekday | null>(null);
+  const [todayWeekday, setTodayWeekday] = useState<Weekday | null>(null);
 
   const recipeById = useMemo(() => {
     const m = new Map<string, (typeof recipes)[0]>();
@@ -51,7 +53,9 @@ export default function WeekliesScreen() {
     closePicker();
   };
 
-  const todayWeekday = weekdayFromDate(new Date());
+  useEffect(() => {
+    setTodayWeekday(weekdayFromDate(new Date()));
+  }, []);
 
   return (
     <>
@@ -90,7 +94,7 @@ export default function WeekliesScreen() {
               line = recipe.name;
             }
 
-            const isToday = day === todayWeekday;
+            const isToday = todayWeekday !== null && day === todayWeekday;
 
             return (
               <Pressable

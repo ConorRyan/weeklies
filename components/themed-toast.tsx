@@ -2,15 +2,13 @@ import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import Toast, { BaseToast } from 'react-native-toast-message';
 import type { ToastConfigParams } from 'react-native-toast-message';
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { Colors } from '@/constants/theme';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
+import { useDeferredSafeAreaInsets } from '@/hooks/use-deferred-safe-area-insets';
 
 export function ThemedToast() {
   const colorScheme = useAppColorScheme();
-  const insets = useSafeAreaInsets();
+  const insets = useDeferredSafeAreaInsets();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
   const c = Colors[scheme];
 

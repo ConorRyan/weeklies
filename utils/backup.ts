@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File as ExpoFile, Paths } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import {
   SETTINGS_STORAGE_KEY,
@@ -137,6 +138,9 @@ export async function applyBackupImport(
 }
 
 async function readPickedAssetText(asset: DocumentPicker.DocumentPickerAsset): Promise<string> {
+  if (Platform.OS === 'web' && asset.file) {
+    return asset.file.text();
+  }
   const f = new ExpoFile(asset.uri);
   return f.text();
 }
@@ -159,6 +163,41 @@ export async function pickAndImportBackup(replaceSettings: (next: Settings) => v
 export async function exportBackupToFilesystem(settings: Settings): Promise<void> {
   const json = buildBackupJson(settings);
   const filename = defaultBackupFilename();
+
+  if (Platform.OS === 'web') {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    let objectUrl: string | null = null;
+    let link: HTMLAnchorElement | null = null;
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      objectUrl = URL.createObjectURL(blob);
+      link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+    } catch (e) {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      throw e instanceof Error ? e : new Error('Could not start download.');
+    }
+    const cleanup = (): void => {
+      try {
+        link?.remove();
+      } catch {
+        // Navigating away can detach nodes; avoid surfacing DOM errors.
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    setTimeout(cleanup, 250);
+    return;
+  }
 
   const pickedDir = await Directory.pickDirectoryAsync(Paths.document.uri);
   // Use `createFile` on the picked directory so SAF/content providers get a proper document URI (joining

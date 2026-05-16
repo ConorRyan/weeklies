@@ -2,7 +2,11 @@ import * as Crypto from 'expo-crypto';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { RECIPES_STORAGE_KEY, recipesStorage } from '@/store/persistence';
+import {
+  persistOptionsForPlatform,
+  RECIPES_STORAGE_KEY,
+  recipesStorage,
+} from '@/store/persistence';
 
 export type NewRecipe = {
   name: string;
@@ -78,6 +82,7 @@ export const useRecipes = create<RecipesStore>()(
         })),
     }),
     {
+      ...persistOptionsForPlatform,
       name: RECIPES_STORAGE_KEY,
       storage: recipesStorage,
       version: 2,

@@ -6,6 +6,7 @@ import { AppState, BackHandler, Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { ThemedToast } from '@/components/themed-toast';
+import { WebStoreRehydrate } from '@/components/web-store-rehydrate';
 import { SettingsProvider } from '@/contexts/settings';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { flushPendingShoppingListWrites } from '@/store/persistence';
@@ -83,6 +84,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <SettingsProvider>
+      <WebStoreRehydrate />
       <RootLayoutNav />
     </SettingsProvider>
   );

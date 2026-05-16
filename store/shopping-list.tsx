@@ -2,7 +2,11 @@ import * as Crypto from 'expo-crypto';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { SHOPPING_LIST_STORAGE_KEY, shoppingListStorage } from '@/store/persistence';
+import {
+  persistOptionsForPlatform,
+  SHOPPING_LIST_STORAGE_KEY,
+  shoppingListStorage,
+} from '@/store/persistence';
 
 export type NewItem = {
   label: string;
@@ -81,6 +85,7 @@ export const useShoppingList = create<ShoppingListStore>()(
       },
     }),
     {
+      ...persistOptionsForPlatform,
       name: SHOPPING_LIST_STORAGE_KEY,
       storage: shoppingListStorage,
       version: 2,

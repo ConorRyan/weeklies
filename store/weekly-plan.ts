@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { WEEKLY_PLAN_STORAGE_KEY, weeklyPlanStorage } from '@/store/persistence';
+import {
+  persistOptionsForPlatform,
+  WEEKLY_PLAN_STORAGE_KEY,
+  weeklyPlanStorage,
+} from '@/store/persistence';
 
 export const WEEKDAYS = [
   'mon',
@@ -70,6 +74,7 @@ export const useWeeklyPlan = create<WeeklyPlanStore>()(
         })),
     }),
     {
+      ...persistOptionsForPlatform,
       name: WEEKLY_PLAN_STORAGE_KEY,
       storage: weeklyPlanStorage,
       version: 1,

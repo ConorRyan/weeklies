@@ -5,7 +5,7 @@ const toastBase = {
   visibilityTime: 4000,
 };
 
-/** Short notifications via toast UI. */
+/** Short notifications (web has no `Alert.alert`; native gets toasts for parity). */
 export function notifyInfo(title: string, message?: string): void {
   Toast.show({
     type: 'info',

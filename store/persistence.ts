@@ -1,5 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { createJSONStorage, type StateStorage } from 'zustand/middleware';
+
+/** On static web export, defer reading AsyncStorage until after React hydration (avoids #418). */
+export const persistOptionsForPlatform =
+  Platform.OS === 'web' ? ({ skipHydration: true } as const) : {};
 
 export const RECIPES_STORAGE_KEY = 'weeklies:recipes:v1';
 export const SHOPPING_LIST_STORAGE_KEY = 'weeklies:shopping-list:v1';

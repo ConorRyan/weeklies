@@ -43,6 +43,12 @@ function defaultSettings(): Settings {
   };
 }
 
+/** Stable on static web export and first client paint; storage/OS theme applied in {@link SettingsProvider}. */
+const HYDRATION_SAFE_SETTINGS: Settings = {
+  colorScheme: 'dark',
+  portionsPerDay: DEFAULT_PORTIONS_PER_DAY,
+};
+
 function extractPartialFromObject(o: Record<string, unknown>): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (o.colorScheme === 'light' || o.colorScheme === 'dark') {
@@ -124,7 +130,7 @@ const ThemePreferenceContext = createContext<ThemePreferenceContextValue | null>
 const PortionsPreferenceContext = createContext<PortionsPreferenceContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [settings, setSettings] = useState<Settings>(HYDRATION_SAFE_SETTINGS);
   const hasUserMutatedRef = useRef(false);
 
   useEffect(() => {

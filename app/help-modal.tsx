@@ -2,16 +2,14 @@ import { HeaderBackButton } from '@react-navigation/elements';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useDeferredSafeAreaInsets } from '@/hooks/use-deferred-safe-area-insets';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function HelpModalScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const insets = useDeferredSafeAreaInsets();
   const tintColor = useThemeColor({}, 'tint');
 
   const handleBack = useCallback(() => {
@@ -108,7 +106,7 @@ export default function HelpModalScreen() {
           {' '}
           writes one JSON file (default name like backup-2026-05-09.json) containing recipes,
           your weekly plan, the shopping list, and settings—including dark mode and portions per
-          day. You choose a folder to save into.
+          day.
         </ThemedText>
         <ThemedText style={styles.paragraph}>
           <ThemedText type="defaultSemiBold">Import</ThemedText>
