@@ -70,8 +70,8 @@ export default function HelpModalScreen() {
           Shopping list
         </ThemedText>
         <ThemedText style={styles.paragraph}>
-          Type at the bottom and tap + to add a line. Tap the checkbox or anywhere on the row
-          (except remove) to check an item off. Use Remove checked to delete every checked line.
+          Type at the bottom and tap + to add a line. Tap the checkbox or anywhere on the row to
+          check an item off. Use Remove checked to delete every checked line.
           Tap Add today&apos;s recipe to append ingredients from whatever recipe is planned for
           today on the Weeklies tab; amounts are scaled using Portions per day in Settings (each
           number in an ingredient line is multiplied by that value).

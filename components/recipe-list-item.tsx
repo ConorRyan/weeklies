@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { RecipesScreenHeader } from '@/constants/theme';
 import type { Recipe } from '@/store/recipes';
+import { confirmAction } from '@/utils/confirm';
 import { ListSquareActionButton } from './list-square-action-button';
 import { ThemedText } from './themed-text';
 
@@ -25,7 +26,15 @@ export function RecipeListItem({ recipe, onRemove }: Props) {
       <ListSquareActionButton
         accent={RecipesScreenHeader}
         label="-"
-        onPress={() => onRemove(recipe.id)}
+        onPress={() =>
+          confirmAction({
+            title: 'Delete recipe?',
+            message: `Remove "${recipe.name}"? This cannot be undone.`,
+            confirmLabel: 'Delete',
+            destructive: true,
+            onConfirm: () => onRemove(recipe.id),
+          })
+        }
       />
     </View>
   );

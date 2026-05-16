@@ -1,10 +1,4 @@
-import {
-  LIST_SQUARE_ACTION_COMPACT_SIZE,
-  ListSquareActionButton,
-} from '@/components/list-square-action-button';
 import { ThemedText } from '@/components/themed-text';
-import { ShoppingListScreenHeader } from '@/constants/theme';
-import { useShoppingList } from '@/store/shopping-list';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 type Props = {
@@ -14,13 +8,7 @@ type Props = {
   onToggle: () => void;
 };
 
-export function ShoppingListItem({ id, label, checked, onToggle }: Props) {
-  const { removeItem } = useShoppingList();
-
-  const onPress = (): void => {
-    removeItem(id);
-  };
-
+export function ShoppingListItem({ label, checked, onToggle }: Props) {
   return (
     <View style={styles.row}>
       <Pressable
@@ -31,12 +19,6 @@ export function ShoppingListItem({ id, label, checked, onToggle }: Props) {
         <View style={[styles.checkbox, checked && styles.checked]} />
         <ThemedText style={[styles.label, checked && styles.strikethrough]}>{label}</ThemedText>
       </Pressable>
-      <ListSquareActionButton
-        accent={ShoppingListScreenHeader}
-        label="-"
-        size={LIST_SQUARE_ACTION_COMPACT_SIZE}
-        onPress={onPress}
-      />
     </View>
   );
 }
