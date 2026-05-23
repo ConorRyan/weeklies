@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { ThemedToast } from '@/components/themed-toast';
 import { WebStoreRehydrate } from '@/components/web-store-rehydrate';
+import { ImportSecretsProvider } from '@/contexts/import-secrets';
 import { SettingsProvider } from '@/contexts/settings';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { flushPendingShoppingListWrites } from '@/store/persistence';
@@ -74,6 +75,14 @@ function RootLayoutNav() {
             title: 'New recipe',
           }}
         />
+        <Stack.Screen
+          name="recipe/import"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Import with AI',
+          }}
+        />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <ThemedToast />
@@ -84,8 +93,10 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <SettingsProvider>
-      <WebStoreRehydrate />
-      <RootLayoutNav />
+      <ImportSecretsProvider>
+        <WebStoreRehydrate />
+        <RootLayoutNav />
+      </ImportSecretsProvider>
     </SettingsProvider>
   );
 }

@@ -30,11 +30,18 @@ export default function RecipesScreen() {
           }}>
           Recipes
         </ThemedText>
-        <Link href="/recipe/new" asChild>
-          <Pressable>
-            <ThemedText type="link">New recipe</ThemedText>
-          </Pressable>
-        </Link>
+        <ThemedView style={styles.titleLinks}>
+          <Link href="/recipe/import" asChild>
+            <Pressable>
+              <ThemedText type="link">Import with AI</ThemedText>
+            </Pressable>
+          </Link>
+          <Link href="/recipe/new" asChild>
+            <Pressable>
+              <ThemedText type="link">New recipe</ThemedText>
+            </Pressable>
+          </Link>
+        </ThemedView>
       </ThemedView>
       {recipes.length === 0 ? (
         <ThemedView style={styles.emptyState}>
@@ -66,6 +73,13 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+  },
+  titleLinks: {
+    flexDirection: 'row',
+    gap: 12,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
   emptyState: {
     gap: 8,

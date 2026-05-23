@@ -8,6 +8,7 @@ import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts, SettingsScreenHeader } from '@/constants/theme';
+import { useImportSecrets } from '@/contexts/import-secrets';
 import {
   isValidPortionsPerDay,
   usePortionsPerDay,
@@ -24,12 +25,25 @@ import { notifyError, notifyInfo } from '@/utils/notify';
 
 const PORTIONS_INFO_TEXT = 'Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.';
 
+const MISTRAL_KEY_INFO_TEXT =
+  'Your Mistral API key is stored only on this device and is not included in backup export or import. Get a key at console.mistral.ai.';
+
 export default function SettingsScreen() {
   const colorScheme = useAppColorScheme();
   const { setColorScheme } = useThemePreference();
   const { portionsPerDay, setPortionsPerDay } = usePortionsPerDay();
   const { settings, replaceSettings } = useSettings();
+  const { secrets, setMistralApiKey, clearMistralApiKey } = useImportSecrets();
   const [backupBusy, setBackupBusy] = useState(false);
+  const [mistralKeyText, setMistralKeyText] = useState(() => secrets.mistralApiKey);
+  const [mistralKeyInfoOpen, setMistralKeyInfoOpen] = useState(false);
+  const [mistralKeyInfoAnchor, setMistralKeyInfoAnchor] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const mistralKeyInfoRef = useRef<View>(null);
   const [portionsText, setPortionsText] = useState(() => String(portionsPerDay));
   const [portionsInfoOpen, setPortionsInfoOpen] = useState(false);
   const [portionsInfoAnchor, setPortionsInfoAnchor] = useState<{
@@ -53,6 +67,21 @@ export default function SettingsScreen() {
   useEffect(() => {
     setPortionsText(String(portionsPerDay));
   }, [portionsPerDay]);
+
+  useEffect(() => {
+    setMistralKeyText(secrets.mistralApiKey);
+  }, [secrets.mistralApiKey]);
+
+  const openMistralKeyInfo = () => {
+    mistralKeyInfoRef.current?.measureInWindow((x, y, width, height) => {
+      setMistralKeyInfoAnchor({ x, y, width, height });
+      setMistralKeyInfoOpen(true);
+    });
+  };
+
+  const commitMistralKeyText = () => {
+    setMistralApiKey(mistralKeyText.trim());
+  };
 
   const openPortionsInfo = () => {
     portionsInfoRef.current?.measureInWindow((x, y, width, height) => {
@@ -203,6 +232,80 @@ export default function SettingsScreen() {
       </Modal>
 
       <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
+        Recipe import
+      </ThemedText>
+      <ThemedView style={styles.mistralKeyBlock}>
+        <ThemedView style={styles.portionsLabelRow}>
+          <ThemedText style={styles.label}>Mistral API key</ThemedText>
+          <View ref={mistralKeyInfoRef} collapsable={false} style={styles.infoIconWrap}>
+            <Pressable
+              onPress={openMistralKeyInfo}
+              hitSlop={8}
+              accessibilityLabel="About Mistral API key"
+              accessibilityRole="button">
+              <IconSymbol name="info.circle" size={20} color={Colors[colorScheme].icon} />
+            </Pressable>
+          </View>
+        </ThemedView>
+        <ThemedTextInput
+          value={mistralKeyText}
+          onChangeText={setMistralKeyText}
+          onBlur={commitMistralKeyText}
+          placeholder="Paste API key"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.mistralKeyInput}
+          accessibilityLabel="Mistral API key"
+        />
+        {secrets.mistralApiKey.trim().length > 0 ? (
+          <Pressable
+            onPress={() => {
+              clearMistralApiKey();
+              setMistralKeyText('');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear Mistral API key"
+            style={({ pressed }) => [styles.clearKeyRow, pressed && styles.dataRowPressed]}>
+            <ThemedText type="link">Clear key</ThemedText>
+          </Pressable>
+        ) : null}
+      </ThemedView>
+
+      <Modal
+        visible={mistralKeyInfoOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMistralKeyInfoOpen(false)}>
+        <Pressable
+          style={styles.infoBackdrop}
+          onPress={() => setMistralKeyInfoOpen(false)}
+          accessibilityLabel="Dismiss"
+        />
+        {mistralKeyInfoAnchor ? (
+          <View
+            style={[
+              styles.infoBubble,
+              {
+                backgroundColor: Colors[colorScheme].background,
+                top: mistralKeyInfoAnchor.y + mistralKeyInfoAnchor.height + 8,
+                left: (() => {
+                  const w = Dimensions.get('window').width;
+                  const bubbleW = Math.min(280, w - 24);
+                  const idealLeft =
+                    mistralKeyInfoAnchor.x + mistralKeyInfoAnchor.width / 2 - bubbleW / 2;
+                  return Math.max(12, Math.min(idealLeft, w - bubbleW - 12));
+                })(),
+                maxWidth: Math.min(280, Dimensions.get('window').width - 24),
+              },
+            ]}
+            pointerEvents="box-none">
+            <ThemedText style={styles.infoBubbleText}>{MISTRAL_KEY_INFO_TEXT}</ThemedText>
+          </View>
+        ) : null}
+      </Modal>
+
+      <ThemedText style={[styles.sectionHeading, styles.sectionHeadingSpacing]} accessibilityRole="header">
         Data
       </ThemedText>
       <ThemedView style={styles.dataActions}>
@@ -316,6 +419,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     paddingVertical: 4,
     textAlign: 'right',
+  },
+  mistralKeyBlock: {
+    marginTop: 8,
+    gap: 8,
+  },
+  mistralKeyInput: {
+    fontSize: 15,
+    paddingVertical: 8,
+  },
+  clearKeyRow: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
   },
   row: {
     flexDirection: 'row',

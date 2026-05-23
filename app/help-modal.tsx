@@ -65,6 +65,16 @@ export default function HelpModalScreen() {
           in; saving replaces that recipe and keeps the same entry everywhere it is used in your
           plan.
         </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          <ThemedText type="defaultSemiBold">Import with AI</ThemedText>
+          {' '}
+          (Recipes tab) needs an internet connection and a Mistral API key in Settings → Recipe
+          import. The key stays on this device and is not included in backup files. On the phone
+          app, enter a recipe URL; in the browser build, paste the page HTML instead (copy from
+          View Source or developer tools).           Mistral extracts the title, serving count, and ingredients; amounts are scaled to one
+          portion before saving. You review and edit before saving. The shopping list multiplies
+          by portions per day when you add a planned recipe.
+        </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Shopping list
@@ -87,6 +97,10 @@ export default function HelpModalScreen() {
           Portions per day is the multiplier used when you use Add today&apos;s recipe on the
           shopping list: every numeric quantity in each ingredient line is multiplied by this
           value.
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
+          Recipe import: add your Mistral API key under Recipe import. It is stored locally and
+          excluded from backup export and import.
         </ThemedText>
         <ThemedText style={styles.paragraph}>
           This Help screen is linked from Settings.
