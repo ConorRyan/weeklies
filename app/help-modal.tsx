@@ -66,14 +66,19 @@ export default function HelpModalScreen() {
           plan.
         </ThemedText>
         <ThemedText style={styles.paragraph}>
+          <ThemedText type="defaultSemiBold">Import</ThemedText>
+          {' '}
+          (Recipes tab) reads recipe data from JSON-LD on the page — no API key
+          needed. On the phone app, enter a recipe URL; in the browser build, paste the page HTML
+          instead (copy from View Source or developer tools). Ingredient amounts are scaled to one
+          portion before saving. You review and edit before saving.
+        </ThemedText>
+        <ThemedText style={styles.paragraph}>
           <ThemedText type="defaultSemiBold">Import with AI</ThemedText>
           {' '}
-          (Recipes tab) needs an internet connection and a Mistral API key in Settings → Recipe
-          import. The key stays on this device and is not included in backup files. On the phone
-          app, enter a recipe URL; in the browser build, paste the page HTML instead (copy from
-          View Source or developer tools).           Mistral extracts the title, serving count, and ingredients; amounts are scaled to one
-          portion before saving. You review and edit before saving. The shopping list multiplies
-          by portions per day when you add a planned recipe.
+          uses your Mistral API key (Settings → Recipe import) to extract the recipe when schema
+          data is missing or incomplete. The key stays on this device and is not included in backup
+          files. Same URL or HTML input as Import; requires an internet connection.
         </ThemedText>
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>

@@ -1,7 +1,8 @@
-import { Link } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { RecipeListItem } from '@/components/recipe-list-item';
+import { TabActionButton, TabActionRow } from '@/components/tab-action-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -30,27 +31,14 @@ export default function RecipesScreen() {
           }}>
           Recipes
         </ThemedText>
-        <ThemedView style={styles.titleLinks}>
-          <Link href="/recipe/import" asChild>
-            <Pressable>
-              <ThemedText type="link">Import with AI</ThemedText>
-            </Pressable>
-          </Link>
-          <Link href="/recipe/new" asChild>
-            <Pressable>
-              <ThemedText type="link">New recipe</ThemedText>
-            </Pressable>
-          </Link>
-        </ThemedView>
       </ThemedView>
+      <TabActionRow>
+        <TabActionButton label="Create new" href="/recipe/new" />
+        <TabActionButton label="Import" href="/recipe/import" />
+      </TabActionRow>
       {recipes.length === 0 ? (
         <ThemedView style={styles.emptyState}>
           <ThemedText>No recipes yet.</ThemedText>
-          <Link href="/recipe/new" asChild>
-            <Pressable style={styles.emptyLink}>
-              <ThemedText type="link">Add a recipe</ThemedText>
-            </Pressable>
-          </Link>
         </ThemedView>
       ) : (
         recipes.map((recipe) => (
@@ -68,24 +56,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   titleContainer: {
-    alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  titleLinks: {
-    flexDirection: 'row',
-    gap: 12,
-    flexShrink: 1,
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
+    gap: 8,
   },
   emptyState: {
     gap: 8,
-    paddingHorizontal: 16,
-  },
-  emptyLink: {
-    alignSelf: 'flex-start',
   },
 });

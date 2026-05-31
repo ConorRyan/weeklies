@@ -1,11 +1,20 @@
+import { recipeImportErrors } from '@/utils/recipe-import/import-errors';
 import { extractRecipeWithMistral } from '@/utils/recipe-import/mistral-client';
 import { fetchRecipePageHtml } from '@/utils/recipe-import/native-fetch-url';
 import { preprocessRecipeHtml } from '@/utils/recipe-import/preprocess';
 import type { NewRecipe } from '@/store/recipes';
 
-export { preprocessRecipeHtml } from '@/utils/recipe-import/preprocess';
-export { fetchRecipePageHtml, isValidRecipeUrl } from '@/utils/recipe-import/native-fetch-url';
-export { extractRecipeWithMistral } from '@/utils/recipe-import/mistral-client';
+export {
+  displayRecipeImportError,
+  formatRecipeImportError,
+  recipeImportErrors,
+  type RecipeImportErrorDisplay,
+} from '@/utils/recipe-import/import-errors';
+export { isValidRecipeUrl } from '@/utils/recipe-import/native-fetch-url';
+export {
+  importRecipeFromHtmlWithScraper,
+  importRecipeFromUrlWithScraper,
+} from '@/utils/recipe-import/scraper-import';
 
 export async function importRecipeWithMistral(options: {
   html: string;
@@ -15,7 +24,7 @@ export async function importRecipeWithMistral(options: {
 }): Promise<NewRecipe> {
   const trimmed = options.html.trim();
   if (!trimmed) {
-    throw new Error('Page content is empty.');
+    throw recipeImportErrors.emptyContent();
   }
   const preprocessed = preprocessRecipeHtml(trimmed);
   return extractRecipeWithMistral({

@@ -4,6 +4,7 @@ import {
   mistralPayloadToNewRecipe,
   parseMistralContentJson,
   parseMistralRecipePayload,
+  parseMistralResponse,
   scaleIngredientsToServings,
 } from '@/utils/recipe-import/parse-recipe';
 
@@ -112,6 +113,44 @@ describe('mistralPayloadToNewRecipe', () => {
         1
       )
     ).toBeNull();
+  });
+});
+
+describe('parseMistralResponse', () => {
+  it('returns no_recipe when found is false', () => {
+    const content = JSON.stringify({
+      found: false,
+      name: '',
+      servings: 1,
+      ingredients: [],
+    });
+    expect(parseMistralResponse(content)).toEqual({ outcome: 'no_recipe' });
+  });
+
+  it('returns recipe payload when found is true', () => {
+    const content = JSON.stringify({
+      found: true,
+      name: 'Soup',
+      servings: 2,
+      ingredients: [{ name: 'water' }],
+    });
+    expect(parseMistralResponse(content)).toEqual({
+      outcome: 'recipe',
+      payload: {
+        name: 'Soup',
+        servings: 2,
+        ingredients: [{ name: 'water' }],
+      },
+    });
+  });
+
+  it('treats missing found as recipe when payload is valid', () => {
+    const content = JSON.stringify({
+      name: 'Soup',
+      servings: 2,
+      ingredients: [{ name: 'water' }],
+    });
+    expect(parseMistralResponse(content)?.outcome).toBe('recipe');
   });
 });
 

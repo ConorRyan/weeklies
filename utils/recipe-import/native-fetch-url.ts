@@ -1,4 +1,5 @@
 import { NATIVE_FETCH_TIMEOUT_MS, NATIVE_MAX_RESPONSE_BYTES } from '@/utils/recipe-import/constants';
+import { RecipeImportError, recipeImportErrors } from '@/utils/recipe-import/import-errors';
 
 export type FetchFn = typeof fetch;
 
@@ -18,7 +19,7 @@ export async function fetchRecipePageHtml(
 ): Promise<string> {
   const trimmed = url.trim();
   if (!isValidRecipeUrl(trimmed)) {
-    throw new Error('Enter a valid http or https URL.');
+    throw recipeImportErrors.invalidUrl();
   }
 
   const controller = new AbortController();
@@ -28,7 +29,7 @@ export async function fetchRecipePageHtml(
   if (signal) {
     if (signal.aborted) {
       clearTimeout(timeoutId);
-      throw new Error('Import canceled.');
+      throw recipeImportErrors.canceled();
     }
     signal.addEventListener('abort', onAbort);
   }
@@ -44,14 +45,14 @@ export async function fetchRecipePageHtml(
     });
 
     if (!response.ok) {
-      throw new Error(`Could not load page (${response.status}).`);
+      throw recipeImportErrors.fetchFailed(response.status);
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
       const text = await response.text();
       if (text.length > NATIVE_MAX_RESPONSE_BYTES) {
-        throw new Error('Page is too large to import.');
+        throw recipeImportErrors.pageTooLarge();
       }
       return text;
     }
@@ -66,7 +67,7 @@ export async function fetchRecipePageHtml(
       if (value) {
         total += value.length;
         if (total > NATIVE_MAX_RESPONSE_BYTES) {
-          throw new Error('Page is too large to import.');
+          throw recipeImportErrors.pageTooLarge();
         }
         chunks.push(value);
       }
@@ -80,15 +81,13 @@ export async function fetchRecipePageHtml(
     }
     return new TextDecoder('utf-8', { fatal: false }).decode(combined);
   } catch (e) {
-    if (e instanceof Error) {
-      if (e.name === 'AbortError') {
-        throw new Error('Import canceled.');
-      }
-      if (e.message.includes('Could not load') || e.message.includes('too large') || e.message.includes('valid http')) {
-        throw e;
-      }
+    if (e instanceof RecipeImportError) {
+      throw e;
     }
-    throw new Error('Could not load page. Check the URL and your connection.');
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw recipeImportErrors.canceled();
+    }
+    throw recipeImportErrors.fetchFailed();
   } finally {
     clearTimeout(timeoutId);
     if (signal) {

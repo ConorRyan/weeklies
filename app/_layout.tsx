@@ -80,7 +80,7 @@ function RootLayoutNav() {
           options={{
             presentation: 'modal',
             headerShown: true,
-            title: 'Import with AI',
+            title: 'Import recipe',
           }}
         />
       </Stack>

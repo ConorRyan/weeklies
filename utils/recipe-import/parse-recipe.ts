@@ -94,6 +94,31 @@ export function mistralPayloadToNewRecipe(
   return { name, ingredients };
 }
 
+export type MistralParseOutcome =
+  | { outcome: 'recipe'; payload: MistralRecipePayload }
+  | { outcome: 'no_recipe' };
+
+/** Parse Mistral JSON content, distinguishing "no recipe on page" from invalid JSON. */
+export function parseMistralResponse(content: string): MistralParseOutcome | null {
+  try {
+    const data = JSON.parse(content) as unknown;
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+    const o = data as Record<string, unknown>;
+    if (o.found === false) {
+      return { outcome: 'no_recipe' };
+    }
+    const payload = parseMistralRecipePayload(data);
+    if (!payload) {
+      return null;
+    }
+    return { outcome: 'recipe', payload };
+  } catch {
+    return null;
+  }
+}
+
 export function parseMistralContentJson(content: string): MistralRecipePayload | null {
   try {
     const data = JSON.parse(content) as unknown;

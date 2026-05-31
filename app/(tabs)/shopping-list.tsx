@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ShoppingListAddLine } from '@/components/shopping-list-add-line';
 import { ShoppingListItem } from '@/components/shopping-list-item';
+import { TabActionButton, TabActionRow } from '@/components/tab-action-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Fonts, ShoppingListScreenHeader } from '@/constants/theme';
+import { Fonts, ShoppingListScreenHeader } from '@/constants/theme';
 import { usePortionsPerDay } from '@/contexts/settings';
-import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { useRecipes } from '@/store/recipes';
 import { useShoppingList } from '@/store/shopping-list';
 import { useWeeklyPlan, weekdayFromDate } from '@/store/weekly-plan';
@@ -17,13 +17,11 @@ import { notifyInfo } from '@/utils/notify';
 import { scaleIngredientLine } from '@/utils/scale-ingredient-line';
 
 export default function ShoppingListScreen() {
-  const colorScheme = useAppColorScheme();
   const { portionsPerDay } = usePortionsPerDay();
   const { recipes } = useRecipes();
   const { byDay } = useWeeklyPlan();
   const { items, toggleItem, addItem, removeCheckedItems } = useShoppingList();
 
-  const tint = Colors[colorScheme ?? 'light'].tint;
   const hasChecked = useMemo(() => items.some((i) => i.checked), [items]);
 
   const handleAddTodaysRecipe = (): void => {
@@ -74,40 +72,16 @@ export default function ShoppingListScreen() {
           Shopping List
         </ThemedText>
       </ThemedView>
-      <View style={styles.actionRow}>
-        <Pressable
-          onPress={handleAddTodaysRecipe}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.actionButtonEqual,
-            { borderColor: tint },
-            pressed && styles.actionButtonPressed,
-          ]}>
-          <ThemedText
-            type="defaultSemiBold"
-            style={{ color: tint, textAlign: 'center' }}
-            numberOfLines={2}>
-            Add today&apos;s recipe
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          disabled={!hasChecked}
+      <TabActionRow>
+        <TabActionButton label="Add today&apos;s recipe" onPress={handleAddTodaysRecipe} />
+        <TabActionButton
+          label="Remove checked"
           onPress={removeCheckedItems}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.actionButtonEqual,
-            styles.removeCheckedButton,
-            !hasChecked && styles.actionButtonDisabled,
-            pressed && hasChecked && styles.actionButtonPressed,
-          ]}>
-          <ThemedText
-            type="defaultSemiBold"
-            style={styles.removeCheckedButtonLabel}
-            numberOfLines={2}>
-            Remove checked
-          </ThemedText>
-        </Pressable>
-      </View>
+          disabled={!hasChecked}
+          borderColor="#C62828"
+          textColor="#C62828"
+        />
+      </TabActionRow>
       {items.map((item) => (
         <ShoppingListItem
           key={item.id}
@@ -129,38 +103,5 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  actionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  actionButtonEqual: {
-    flex: 1,
-    minWidth: 0,
-  },
-  actionButtonPressed: {
-    opacity: 0.85,
-  },
-  actionButtonDisabled: {
-    opacity: 0.45,
-  },
-  removeCheckedButton: {
-    borderColor: '#C62828',
-  },
-  removeCheckedButtonLabel: {
-    color: '#C62828',
-    textAlign: 'center',
   },
 });

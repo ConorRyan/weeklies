@@ -11,13 +11,13 @@ function fixture(name: string): string {
 
 describe('mapMistralHttpError', () => {
   it('maps known status codes', () => {
-    expect(mapMistralHttpError(401)).toContain('Invalid Mistral API key');
-    expect(mapMistralHttpError(429)).toContain('rate limit');
-    expect(mapMistralHttpError(503)).toContain('temporarily unavailable');
+    expect(mapMistralHttpError(401).message).toContain('Invalid Mistral API key');
+    expect(mapMistralHttpError(429).message).toContain('rate limit');
+    expect(mapMistralHttpError(503).message).toContain('temporarily unavailable');
   });
 
   it('maps unknown status codes', () => {
-    expect(mapMistralHttpError(418)).toBe('Mistral request failed (418).');
+    expect(mapMistralHttpError(418).message).toBe('Mistral request failed (418).');
   });
 });
 
@@ -75,6 +75,7 @@ describe('extractRecipeWithMistral', () => {
 
   it('retries once when first response JSON is invalid', async () => {
     const goodContent = JSON.stringify({
+      found: true,
       name: 'Soup',
       servings: 2,
       ingredients: [{ name: 'water', quantity: '2 cups' }],
@@ -102,5 +103,30 @@ describe('extractRecipeWithMistral', () => {
     );
     expect(recipe.name).toBe('Soup');
     expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws when Mistral reports no recipe on the page', async () => {
+    const fetchFn: FetchFn = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                found: false,
+                name: '',
+                servings: 1,
+                ingredients: [],
+              }),
+            },
+          },
+        ],
+      }),
+    })) as unknown as FetchFn;
+
+    await expect(
+      extractRecipeWithMistral({ apiKey: 'sk-test', preprocessed }, fetchFn)
+    ).rejects.toThrow("This page doesn't include recipe data we can read.");
   });
 });

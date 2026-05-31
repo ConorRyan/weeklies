@@ -48,7 +48,7 @@ describe('fetchRecipePageHtml', () => {
     const fetchFn: FetchFn = jest.fn(async () => mockResponse({ ok: false, status: 404 }));
     await expect(
       fetchRecipePageHtml('https://example.com/missing', undefined, fetchFn)
-    ).rejects.toThrow('Could not load page (404).');
+    ).rejects.toThrow('Could not load page (HTTP 404).');
   });
 
   it('throws when page exceeds max bytes via text fallback', async () => {

@@ -15,6 +15,11 @@ export const NATIVE_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 export const RECIPE_JSON_SCHEMA = {
   type: 'object',
   properties: {
+    found: {
+      type: 'boolean',
+      description:
+        'True only when the page contains a cookable food recipe with a real ingredient list.',
+    },
     name: { type: 'string' },
     servings: { type: 'number' },
     ingredients: {
@@ -30,6 +35,6 @@ export const RECIPE_JSON_SCHEMA = {
       },
     },
   },
-  required: ['name', 'servings', 'ingredients'],
+  required: ['found', 'name', 'servings', 'ingredients'],
   additionalProperties: false,
 } as const;

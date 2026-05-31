@@ -11,31 +11,14 @@ function stripScriptAndStyle(html: string): string {
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
 }
 
-function extractJsonLdRecipes(html: string): unknown[] {
-  const recipes: unknown[] = [];
-  const re = /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(html)) !== null) {
-    const raw = match[1]?.trim();
-    if (!raw) {
-      continue;
-    }
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      collectRecipeNodes(parsed, recipes);
-    } catch {
-      /* skip invalid JSON-LD block */
-    }
-  }
-  return recipes;
-}
-
-function isRecipeType(typeValue: unknown): boolean {
+export function isRecipeSchemaType(typeValue: unknown): boolean {
   if (typeof typeValue === 'string') {
     return typeValue === 'Recipe' || typeValue.endsWith('Recipe');
   }
   if (Array.isArray(typeValue)) {
-    return typeValue.some((t) => typeof t === 'string' && (t === 'Recipe' || t.endsWith('Recipe')));
+    return typeValue.some(
+      (t) => typeof t === 'string' && (t === 'Recipe' || t.endsWith('Recipe'))
+    );
   }
   return false;
 }
@@ -57,9 +40,29 @@ function collectRecipeNodes(node: unknown, out: unknown[]): void {
   if ('@graph' in o) {
     collectRecipeNodes(o['@graph'], out);
   }
-  if (isRecipeType(o['@type'])) {
+  if (isRecipeSchemaType(o['@type'])) {
     out.push(node);
   }
+}
+
+/** Recipe-shaped JSON-LD nodes extracted from HTML script tags. */
+export function extractJsonLdRecipeNodes(html: string): unknown[] {
+  const recipes: unknown[] = [];
+  const re = /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    const raw = match[1]?.trim();
+    if (!raw) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      collectRecipeNodes(parsed, recipes);
+    } catch {
+      /* skip invalid JSON-LD block */
+    }
+  }
+  return recipes;
 }
 
 function capText(text: string, max: number): string {
@@ -71,7 +74,7 @@ function capText(text: string, max: number): string {
 
 export function preprocessRecipeHtml(html: string): PreprocessedRecipePage {
   const stripped = stripScriptAndStyle(html);
-  const jsonLdRecipes = extractJsonLdRecipes(html);
+  const jsonLdRecipes = extractJsonLdRecipeNodes(html);
   const htmlSnippet = capText(stripped.replace(/\s+/g, ' ').trim(), MAX_HTML_FOR_LLM);
   return { jsonLdRecipes, htmlSnippet };
 }

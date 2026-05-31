@@ -4,9 +4,10 @@ import {
   RECIPE_IMPORT_TARGET_SERVINGS,
   RECIPE_JSON_SCHEMA,
 } from '@/utils/recipe-import/constants';
+import { RecipeImportError, recipeImportErrors } from '@/utils/recipe-import/import-errors';
 import {
   mistralPayloadToNewRecipe,
-  parseMistralContentJson,
+  parseMistralResponse,
   type MistralRecipePayload,
 } from '@/utils/recipe-import/parse-recipe';
 import type { FetchFn } from '@/utils/recipe-import/native-fetch-url';
@@ -14,12 +15,22 @@ import type { PreprocessedRecipePage } from '@/utils/recipe-import/preprocess';
 import type { NewRecipe } from '@/store/recipes';
 
 const SYSTEM_PROMPT = `You extract recipe data from web page content.
-Return only a JSON object matching the schema: recipe title, servings (yield), and ingredients.
-"servings" is how many people the listed ingredient amounts are for (e.g. from "Serves 4", recipeYield, or portion count). Use a positive number; if only a range is given, use the lower number.
-Each ingredient has "name" (required) and optional "quantity" (amount and unit, e.g. "200 g", "1/2 cup").
-Do not include cooking steps, notes, or equipment.
-If quantities appear in the source, put them in "quantity" so they can be scaled later.
-Prefer fewer, accurate lines over guessing.`;
+Return only a JSON object matching the schema.
+
+"found": set to true ONLY when the page is a food recipe with a genuine ingredient list for cooking a dish.
+Set found to false when the page is not a recipe — e.g. homepages, news, blogs, shop pages, login screens, search results, or any page without recipe ingredients.
+When found is false, return name as "", servings as 1, and ingredients as [].
+
+Do NOT treat navigation links, menu items, page headers, footers, categories, or section titles as recipe name or ingredients.
+Do NOT invent a recipe from page chrome or marketing copy.
+
+When found is true:
+- "name" is the recipe dish title (not the site name or page heading).
+- "servings" is how many people the listed ingredient amounts are for (e.g. from "Serves 4", recipeYield, or portion count). Use a positive number; if only a range is given, use the lower number.
+- Each ingredient has "name" (required) and optional "quantity" (amount and unit, e.g. "200 g", "1/2 cup").
+- Do not include cooking steps, notes, or equipment.
+- If quantities appear in the source, put them in "quantity" so they can be scaled later.
+- Prefer fewer, accurate lines over guessing.`;
 
 function buildUserMessage(
   preprocessed: PreprocessedRecipePage,
@@ -38,17 +49,17 @@ function buildUserMessage(
   return parts.join('\n\n');
 }
 
-export function mapMistralHttpError(status: number): string {
+export function mapMistralHttpError(status: number): RecipeImportError {
   if (status === 401) {
-    return 'Invalid Mistral API key. Check Settings → Recipe import.';
+    return recipeImportErrors.mistralAuth();
   }
   if (status === 429) {
-    return 'Mistral rate limit reached. Try again later.';
+    return recipeImportErrors.mistralRateLimit();
   }
   if (status >= 500) {
-    return 'Mistral is temporarily unavailable. Try again later.';
+    return recipeImportErrors.mistralUnavailable();
   }
-  return `Mistral request failed (${status}).`;
+  return recipeImportErrors.mistralFailed(status);
 }
 
 async function callMistralOnce(
@@ -89,7 +100,7 @@ async function callMistralOnce(
   });
 
   if (!response.ok) {
-    throw new Error(mapMistralHttpError(response.status));
+    throw mapMistralHttpError(response.status);
   }
 
   const body = (await response.json()) as {
@@ -97,7 +108,7 @@ async function callMistralOnce(
   };
   const content = body.choices?.[0]?.message?.content;
   if (typeof content !== 'string' || content.trim() === '') {
-    throw new Error('Mistral returned an empty response.');
+    throw recipeImportErrors.mistralEmpty();
   }
   return content;
 }
@@ -105,7 +116,7 @@ async function callMistralOnce(
 function payloadToRecipe(payload: MistralRecipePayload, targetServings: number): NewRecipe {
   const recipe = mistralPayloadToNewRecipe(payload, targetServings);
   if (!recipe) {
-    throw new Error('Could not parse recipe from Mistral response.');
+    throw recipeImportErrors.mistralParse();
   }
   return recipe;
 }
@@ -121,7 +132,7 @@ export async function extractRecipeWithMistral(
 ): Promise<NewRecipe> {
   const key = options.apiKey.trim();
   if (!key) {
-    throw new Error('Add your Mistral API key in Settings → Recipe import.');
+    throw recipeImportErrors.mistralKeyMissing();
   }
 
   let content = await callMistralOnce(
@@ -133,8 +144,11 @@ export async function extractRecipeWithMistral(
     fetchFn
   );
 
-  let payload = parseMistralContentJson(content);
-  if (!payload) {
+  let result = parseMistralResponse(content);
+  if (result?.outcome === 'no_recipe') {
+    throw recipeImportErrors.noRecipeData();
+  }
+  if (!result) {
     content = await callMistralOnce(
       key,
       options.preprocessed,
@@ -143,12 +157,15 @@ export async function extractRecipeWithMistral(
       true,
       fetchFn
     );
-    payload = parseMistralContentJson(content);
+    result = parseMistralResponse(content);
+    if (result?.outcome === 'no_recipe') {
+      throw recipeImportErrors.noRecipeData();
+    }
   }
 
-  if (!payload) {
-    throw new Error('Could not parse recipe from Mistral response.');
+  if (!result || result.outcome !== 'recipe') {
+    throw recipeImportErrors.mistralParse();
   }
 
-  return payloadToRecipe(payload, RECIPE_IMPORT_TARGET_SERVINGS);
+  return payloadToRecipe(result.payload, RECIPE_IMPORT_TARGET_SERVINGS);
 }

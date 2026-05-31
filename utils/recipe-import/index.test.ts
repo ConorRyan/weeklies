@@ -15,7 +15,7 @@ describe('importRecipeWithMistral', () => {
   it('throws when html is empty', async () => {
     await expect(
       importRecipeWithMistral({ html: '  ', apiKey: 'sk-test' })
-    ).rejects.toThrow('Page content is empty.');
+    ).rejects.toThrow('Paste or load page content before importing.');
   });
 });
 
@@ -27,6 +27,7 @@ describe('importRecipeFromUrlWithMistral', () => {
         {
           message: {
             content: JSON.stringify({
+              found: true,
               name: 'Tomato Pasta',
               servings: 2,
               ingredients: [{ name: 'pasta', quantity: '200 g' }],
