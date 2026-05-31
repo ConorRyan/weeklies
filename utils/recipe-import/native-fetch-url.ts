@@ -1,5 +1,7 @@
 import { NATIVE_FETCH_TIMEOUT_MS, NATIVE_MAX_RESPONSE_BYTES } from '@/utils/recipe-import/constants';
 
+export type FetchFn = typeof fetch;
+
 export function isValidRecipeUrl(urlString: string): boolean {
   try {
     const u = new URL(urlString.trim());
@@ -9,7 +11,11 @@ export function isValidRecipeUrl(urlString: string): boolean {
   }
 }
 
-export async function fetchRecipePageHtml(url: string, signal?: AbortSignal): Promise<string> {
+export async function fetchRecipePageHtml(
+  url: string,
+  signal?: AbortSignal,
+  fetchFn: FetchFn = fetch
+): Promise<string> {
   const trimmed = url.trim();
   if (!isValidRecipeUrl(trimmed)) {
     throw new Error('Enter a valid http or https URL.');
@@ -28,7 +34,7 @@ export async function fetchRecipePageHtml(url: string, signal?: AbortSignal): Pr
   }
 
   try {
-    const response = await fetch(trimmed, {
+    const response = await fetchFn(trimmed, {
       method: 'GET',
       headers: {
         Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',

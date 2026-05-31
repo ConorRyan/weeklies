@@ -9,6 +9,7 @@ import {
   parseMistralContentJson,
   type MistralRecipePayload,
 } from '@/utils/recipe-import/parse-recipe';
+import type { FetchFn } from '@/utils/recipe-import/native-fetch-url';
 import type { PreprocessedRecipePage } from '@/utils/recipe-import/preprocess';
 import type { NewRecipe } from '@/store/recipes';
 
@@ -37,7 +38,7 @@ function buildUserMessage(
   return parts.join('\n\n');
 }
 
-function mapMistralHttpError(status: number): string {
+export function mapMistralHttpError(status: number): string {
   if (status === 401) {
     return 'Invalid Mistral API key. Check Settings → Recipe import.';
   }
@@ -55,13 +56,14 @@ async function callMistralOnce(
   preprocessed: PreprocessedRecipePage,
   sourceUrl: string | undefined,
   signal: AbortSignal | undefined,
-  retryFixJson: boolean
+  retryFixJson: boolean,
+  fetchFn: FetchFn
 ): Promise<string> {
   const userContent = retryFixJson
     ? 'Your previous response was not valid JSON for the schema. Reply with only valid JSON for the recipe schema, no markdown.'
     : buildUserMessage(preprocessed, sourceUrl);
 
-  const response = await fetch(MISTRAL_CHAT_URL, {
+  const response = await fetchFn(MISTRAL_CHAT_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -108,12 +110,15 @@ function payloadToRecipe(payload: MistralRecipePayload, targetServings: number):
   return recipe;
 }
 
-export async function extractRecipeWithMistral(options: {
-  apiKey: string;
-  preprocessed: PreprocessedRecipePage;
-  sourceUrl?: string;
-  signal?: AbortSignal;
-}): Promise<NewRecipe> {
+export async function extractRecipeWithMistral(
+  options: {
+    apiKey: string;
+    preprocessed: PreprocessedRecipePage;
+    sourceUrl?: string;
+    signal?: AbortSignal;
+  },
+  fetchFn: FetchFn = fetch
+): Promise<NewRecipe> {
   const key = options.apiKey.trim();
   if (!key) {
     throw new Error('Add your Mistral API key in Settings → Recipe import.');
@@ -124,7 +129,8 @@ export async function extractRecipeWithMistral(options: {
     options.preprocessed,
     options.sourceUrl,
     options.signal,
-    false
+    false,
+    fetchFn
   );
 
   let payload = parseMistralContentJson(content);
@@ -134,7 +140,8 @@ export async function extractRecipeWithMistral(options: {
       options.preprocessed,
       options.sourceUrl,
       options.signal,
-      true
+      true,
+      fetchFn
     );
     payload = parseMistralContentJson(content);
   }

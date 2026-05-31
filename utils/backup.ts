@@ -15,23 +15,25 @@ import {
   WEEKLY_PLAN_STORAGE_KEY,
   flushPendingShoppingListWrites,
 } from '@/store/persistence';
-import { normalizeRecipe, useRecipes, type Recipe } from '@/store/recipes';
-import { normalizeItem, useShoppingList, type Item } from '@/store/shopping-list';
-import { WEEKDAYS, emptyByDay, useWeeklyPlan, type DayAssignments } from '@/store/weekly-plan';
+import { useRecipes } from '@/store/recipes';
+import { useShoppingList } from '@/store/shopping-list';
+import { useWeeklyPlan } from '@/store/weekly-plan';
+import {
+  BACKUP_EXPORT_FORMAT,
+  BACKUP_EXPORT_VERSION,
+  buildBackupPayload,
+  normalizeWeeklyPlanImport,
+  sanitizeItemsForImport,
+  sanitizeRecipesForImport,
+  validateBackupPayload,
+  type BackupPayload,
+} from '@/utils/backup-payload';
 
-export const BACKUP_EXPORT_FORMAT = 'backup' as const;
-
-export const BACKUP_EXPORT_VERSION = 1 as const;
-
-export type BackupPayload = {
-  format: typeof BACKUP_EXPORT_FORMAT;
-  version: typeof BACKUP_EXPORT_VERSION;
-  exportedAt: string;
-  settings: unknown;
-  weeklyPlan: { byDay: DayAssignments };
-  recipes: Recipe[];
-  shoppingList: { items: Item[] };
-};
+export {
+  BACKUP_EXPORT_FORMAT,
+  BACKUP_EXPORT_VERSION,
+  type BackupPayload,
+} from '@/utils/backup-payload';
 
 export function defaultBackupFilename(): string {
   const d = new Date();
@@ -41,60 +43,16 @@ export function defaultBackupFilename(): string {
   return `backup-${y}-${m}-${day}.json`;
 }
 
-function normalizeWeeklyPlanImport(raw: unknown): DayAssignments {
-  const next = emptyByDay();
-  if (!raw || typeof raw !== 'object') {
-    return next;
-  }
-  const byDay = (raw as { byDay?: unknown }).byDay;
-  if (!byDay || typeof byDay !== 'object') {
-    return next;
-  }
-  for (const day of WEEKDAYS) {
-    const v = (byDay as Record<string, unknown>)[day];
-    next[day] = v === null || v === undefined ? null : typeof v === 'string' ? v : null;
-  }
-  return next;
-}
-
-function sanitizeRecipes(raw: unknown): Recipe[] {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw.map(normalizeRecipe).filter((r): r is Recipe => r !== null);
-}
-
-function sanitizeItems(raw: unknown): Item[] {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw.map(normalizeItem).filter((i): i is Item => i !== null);
-}
-
-function validateBackupPayload(data: unknown): asserts data is Record<string, unknown> {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid file');
-  }
-  const o = data as Record<string, unknown>;
-  if (o.format !== BACKUP_EXPORT_FORMAT) {
-    throw new Error('Not a valid backup file');
-  }
-  if (o.version !== BACKUP_EXPORT_VERSION) {
-    throw new Error('Unsupported backup version');
-  }
-}
-
 export function buildBackupJson(settings: Settings): string {
-  const exportedAt = new Date().toISOString();
-  const payload: BackupPayload = {
-    format: BACKUP_EXPORT_FORMAT,
-    version: BACKUP_EXPORT_VERSION,
-    exportedAt,
-    settings: JSON.parse(serializeSettingsStorage(settings)) as BackupPayload['settings'],
-    weeklyPlan: { byDay: useWeeklyPlan.getState().byDay },
-    recipes: useRecipes.getState().recipes,
-    shoppingList: { items: useShoppingList.getState().items },
-  };
+  const payload = buildBackupPayload(
+    settings,
+    {
+      byDay: useWeeklyPlan.getState().byDay,
+      recipes: useRecipes.getState().recipes,
+      items: useShoppingList.getState().items,
+    },
+    new Date().toISOString()
+  );
   return JSON.stringify(payload, null, 2);
 }
 
@@ -111,8 +69,8 @@ export async function applyBackupImport(
 
   validateBackupPayload(data);
   const weeklyByDay = normalizeWeeklyPlanImport(data.weeklyPlan);
-  const recipes = sanitizeRecipes(data.recipes);
-  const items = sanitizeItems(
+  const recipes = sanitizeRecipesForImport(data.recipes);
+  const items = sanitizeItemsForImport(
     data.shoppingList && typeof data.shoppingList === 'object'
       ? (data.shoppingList as { items?: unknown }).items
       : undefined
@@ -200,8 +158,6 @@ export async function exportBackupToFilesystem(settings: Settings): Promise<void
   }
 
   const pickedDir = await Directory.pickDirectoryAsync(Paths.document.uri);
-  // Use `createFile` on the picked directory so SAF/content providers get a proper document URI (joining
-  // `pickedDir.uri` + filename as strings breaks on Android and can mis-create paths).
   const file = pickedDir.createFile(filename, 'application/json');
   file.write(json);
 }

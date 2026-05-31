@@ -12,7 +12,22 @@
     "build:web": "expo export -p web",
     "deploy:web": "npm run build:web && eas deploy",
     "deploy:web:prod": "npm run build:web && eas deploy --prod",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "test:watch": "jest --watchAll"
+  },
+  "jest": {
+    "preset": "jest-expo/node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^expo-modules-core(|/.*)$": "<rootDir>/node_modules/expo/node_modules/expo-modules-core$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -49,9 +64,12 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~55.0.0",
+    "jest": "^29.7.0",
+    "jest-expo": "~55.0.17",
     "typescript": "~5.9.2"
   },
   "private": true
