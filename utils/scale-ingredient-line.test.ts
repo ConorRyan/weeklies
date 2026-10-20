@@ -33,3 +33,17 @@ describe('scaleIngredientLine', () => {
     expect(scaleIngredientLine('1 1/2 cups flour', 2)).toBe('2 1 cups flour');
   });
 });
+
+describe('scaleIngredientLine edge cases', () => {
+  it('leaves zero-denominator fractions untouched', () => {
+    expect(scaleIngredientLine('1/0 cups', 2)).toBe('1/0 cups');
+  });
+
+  it('renders overflowing values as Infinity', () => {
+    expect(scaleIngredientLine('9999999999999999999999999999 g', 1e308)).toBe('Infinity g');
+  });
+
+  it('rounds repeating decimals to four places', () => {
+    expect(scaleIngredientLine('1 cup', 1 / 3)).toBe('0.3333 cup');
+  });
+});

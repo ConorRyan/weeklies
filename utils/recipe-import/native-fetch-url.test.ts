@@ -98,3 +98,35 @@ describe('fetchRecipePageHtml', () => {
     await expect(promise).rejects.toThrow('Import canceled.');
   });
 });
+
+describe('fetchRecipePageHtml additional paths', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('rethrows generic network failures as fetch errors', async () => {
+    const fetchFn: FetchFn = jest.fn(async () => {
+      throw new Error('network down');
+    });
+    await expect(
+      fetchRecipePageHtml('https://example.com/recipe', undefined, fetchFn)
+    ).rejects.toThrow('Could not load page.');
+  });
+
+  it('decodes multi-chunk streamed bodies in order', async () => {
+    const first = new TextEncoder().encode('<html>part-');
+    const second = new TextEncoder().encode('two</html>');
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(first);
+        controller.enqueue(second);
+        controller.close();
+      },
+    });
+    const fetchFn: FetchFn = jest.fn(async () => mockResponse({ body: stream }));
+
+    const result = await fetchRecipePageHtml('https://example.com/recipe', undefined, fetchFn);
+
+    expect(result).toBe('<html>part-two</html>');
+  });
+});

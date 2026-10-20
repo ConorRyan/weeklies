@@ -51,3 +51,24 @@ describe('formatBackupError', () => {
     );
   });
 });
+
+describe('formatBackupError non-error values', () => {
+  it('treats unknown objects as generic failures', () => {
+    expect(formatBackupError({ status: 500 }, 'import')).toBe(
+      'Could not import. Pick a backup JSON file from this app.'
+    );
+  });
+
+  it('handles numbers and undefined', () => {
+    expect(isUserCanceledBackup(42)).toBe(false);
+    expect(formatBackupError(undefined, 'export')).toBe(
+      'Could not save your backup. Try again or choose another folder.'
+    );
+  });
+
+  it('maps unsupported backup versions on import', () => {
+    expect(formatBackupError(new Error('Unsupported backup version'), 'import')).toBe(
+      'That backup version is not supported.'
+    );
+  });
+});
