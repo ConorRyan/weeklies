@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { Platform } from 'react-native';
 
@@ -15,7 +16,11 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        // expo-router vendors its own react-navigation types, which do not
+        // match the public @react-navigation copies; bridge with a cast.
+        tabBarButton: (props) => (
+          <HapticTab {...(props as unknown as BottomTabBarButtonProps)} />
+        ),
         // Inactive tab screens stay out of the DOM on web so static HTML matches first client paint.
         lazy: Platform.OS === 'web',
       }}>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, type TextInputInstance, View } from 'react-native';
 
 import { ShoppingListScreenHeader } from '@/constants/theme';
 import { useShoppingList } from '@/store/shopping-list';
@@ -13,7 +13,7 @@ export function ShoppingListAddLine() {
   const { addItem } = useShoppingList();
 
   const [label, setLabel] = useState('');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const submit = () => {
     const trimmed = label.trim();

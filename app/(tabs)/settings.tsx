@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, StyleSheet, Switch, Text, View, type ViewInstance } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -44,7 +44,7 @@ export default function SettingsScreen() {
     width: number;
     height: number;
   } | null>(null);
-  const mistralKeyInfoRef = useRef<View>(null);
+  const mistralKeyInfoRef = useRef<ViewInstance>(null);
   const [portionsText, setPortionsText] = useState(() => String(portionsPerDay));
   const [lastPortionsPerDay, setLastPortionsPerDay] = useState(portionsPerDay);
   const [portionsInfoOpen, setPortionsInfoOpen] = useState(false);
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     width: number;
     height: number;
   } | null>(null);
-  const portionsInfoRef = useRef<View>(null);
+  const portionsInfoRef = useRef<ViewInstance>(null);
   const mountedRef = useRef(true);
   const tint = Colors[colorScheme].tint;
   const schemeKey = colorScheme === 'dark' ? 'dark' : 'light';

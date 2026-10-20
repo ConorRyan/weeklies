@@ -2,7 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { ComponentProps, useSyncExternalStore } from 'react';
 import {
-  OpaqueColorValue,
+  ColorValue,
   Platform,
   StyleSheet,
   View,
@@ -36,7 +36,7 @@ export function IconSymbol({
 }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
+  color: ColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
@@ -53,5 +53,5 @@ export function IconSymbol({
     return <View style={[{ width: size, height: size }, flat]} />;
   }
 
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return <MaterialIcons color={color as ComponentProps<typeof MaterialIcons>['color']} size={size} name={MAPPING[name]} style={style} />;
 }

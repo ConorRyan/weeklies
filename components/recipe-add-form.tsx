@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, type TextInputInstance, View } from 'react-native';
 
 import { RecipesScreenHeader } from '@/constants/theme';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
@@ -22,7 +22,7 @@ export function RecipeAddForm({ initialRecipe, onAddRecipe }: Props) {
     initialRecipe?.ingredients?.length ? [...initialRecipe.ingredients] : ['']
   );
   const [error, setError] = useState('');
-  const ingredientRefs = useRef<(TextInput | null)[]>([]);
+  const ingredientRefs = useRef<(TextInputInstance | null)[]>([]);
 
   const updateIngredientLine = (index: number, value: string) => {
     setIngredients((state) => state.map((line, i) => (i === index ? value : line)));

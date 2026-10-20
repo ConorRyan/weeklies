@@ -1,8 +1,5 @@
-// expo-router vendors its own react-navigation types; use its
-// BottomTabBarButtonProps and PlatformPressable so the component matches
-// the tabBarButton option.
-import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs';
-import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
+import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { PlatformPressable } from '@react-navigation/elements';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 
