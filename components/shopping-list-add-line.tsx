@@ -38,7 +38,6 @@ export function ShoppingListAddLine() {
         blurOnSubmit={false}
         returnKeyType="done"
         onSubmitEditing={submit}
-        includeFontPadding={false}
         textAlignVertical="center"
       />
       <ListSquareActionButton
@@ -66,5 +65,6 @@ const styles = StyleSheet.create({
     margin: 0,
     paddingVertical: 0,
     paddingHorizontal: 0,
+    includeFontPadding: false,
   },
 });

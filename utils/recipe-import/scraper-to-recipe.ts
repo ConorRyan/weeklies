@@ -18,7 +18,7 @@ export function parseRecipeYield(raw?: string): number | null {
 }
 
 export function scrapedRecipeToNewRecipe(
-  data: ScrapedRecipeData,
+  data: Partial<ScrapedRecipeData>,
   targetServings: number = RECIPE_IMPORT_TARGET_SERVINGS
 ): NewRecipe | null {
   const name = data.name?.trim() ?? '';
