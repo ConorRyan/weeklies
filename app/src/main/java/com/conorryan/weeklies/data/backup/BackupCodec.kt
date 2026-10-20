@@ -120,7 +120,9 @@ object BackupCodec {
         return ImportedBackup(
             byDay = normalizeWeeklyPlanImport(root["weeklyPlan"]),
             recipes = sanitizeRecipesForImport(root["recipes"]),
-            items = sanitizeItemsForImport(root["shoppingList"]),
+            items = sanitizeItemsForImport(
+                (root["shoppingList"] as? JsonObject)?.get("items"),
+            ),
             settings = parseStoredSettings(root["settings"], defaults),
         )
     }
@@ -130,9 +132,8 @@ object BackupCodec {
         val byDay = (raw as? JsonObject)?.get("byDay") as? JsonObject ?: return next.toMap()
         for (day in Weekday.entries) {
             val value = byDay[day.key]
-            next[day] = when (value) {
-                null, is JsonNull -> null
-                is JsonPrimitive -> value.contentOrNull()
+            next[day] = when {
+                value is JsonPrimitive && value.isString -> value.content
                 else -> null
             }
         }
