@@ -1,9 +1,0 @@
-{
-  "choices": [
-    {
-      "message": {
-        "content": "{\"found\":true,\"name\":\"Tomato Pasta\",\"servings\":4,\"ingredients\":[{\"name\":\"pasta\",\"quantity\":\"400 g\"},{\"name\":\"tomatoes\",\"quantity\":\"2\"}]}"
-      }
-    }
-  ]
-}
