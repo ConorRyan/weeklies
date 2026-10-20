@@ -1,0 +1,127 @@
+package com.conorryan.weeklies.data.repo
+
+import com.conorryan.weeklies.data.db.AppDatabase
+import com.conorryan.weeklies.data.db.PlanEntryEntity
+import com.conorryan.weeklies.data.db.RecipeEntity
+import com.conorryan.weeklies.data.db.ShoppingItemEntity
+import com.conorryan.weeklies.data.model.DayAssignments
+import com.conorryan.weeklies.data.model.NewRecipe
+import com.conorryan.weeklies.data.model.Recipe
+import com.conorryan.weeklies.data.model.ShoppingItem
+import com.conorryan.weeklies.data.model.Weekday
+import com.conorryan.weeklies.data.model.emptyByDay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.util.UUID
+
+private fun RecipeEntity.toModel() = Recipe(id = id, name = name, ingredients = ingredients)
+private fun ShoppingItemEntity.toModel() =
+    ShoppingItem(id = id, label = label, checked = checked)
+
+class RecipeRepository(private val db: AppDatabase) {
+
+    val recipes: Flow<List<Recipe>> = db.recipeDao().observeAll().map { rows ->
+        rows.map { it.toModel() }
+    }
+
+    suspend fun snapshot(): List<Recipe> = db.recipeDao().getAll().map { it.toModel() }
+
+    suspend fun addRecipe(recipe: NewRecipe): Recipe {
+        val entity = RecipeEntity(
+            id = UUID.randomUUID().toString(),
+            name = recipe.name,
+            ingredients = recipe.ingredients,
+        )
+        db.recipeDao().insert(entity)
+        return entity.toModel()
+    }
+
+    suspend fun updateRecipe(id: String, recipe: NewRecipe) {
+        val existing = db.recipeDao().getById(id) ?: return
+        db.recipeDao().update(
+            existing.copy(name = recipe.name, ingredients = recipe.ingredients),
+        )
+    }
+
+    suspend fun removeRecipe(id: String) = db.recipeDao().delete(id)
+
+    suspend fun getById(id: String): Recipe? = db.recipeDao().getById(id)?.toModel()
+}
+
+class PlanRepository(private val db: AppDatabase) {
+
+    val byDay: Flow<DayAssignments> = db.planDao().observeAll().map { rows ->
+        val next = emptyByDay().toMutableMap()
+        for (row in rows) {
+            val day = Weekday.fromKey(row.weekday) ?: continue
+            next[day] = row.recipeId
+        }
+        next.toMap()
+    }
+
+    suspend fun snapshot(): DayAssignments {
+        val next = emptyByDay().toMutableMap()
+        for (row in db.planDao().getAll()) {
+            val day = Weekday.fromKey(row.weekday) ?: continue
+            next[day] = row.recipeId
+        }
+        return next.toMap()
+    }
+
+    suspend fun setDayRecipe(day: Weekday, recipeId: String?) {
+        db.planDao().upsert(PlanEntryEntity(weekday = day.key, recipeId = recipeId))
+    }
+
+    /** Replaces the whole plan; days missing from [byDay] are cleared. */
+    suspend fun replaceAll(byDay: DayAssignments) {
+        val entries = byDay.map { (day, recipeId) ->
+            PlanEntryEntity(weekday = day.key, recipeId = recipeId)
+        }
+        db.planDao().replaceAll(entries)
+    }
+}
+
+class ShoppingRepository(private val db: AppDatabase) {
+
+    val items: Flow<List<ShoppingItem>> = db.shoppingItemDao().observeAll().map { rows ->
+        rows.map { it.toModel() }
+    }
+
+    suspend fun snapshot(): List<ShoppingItem> =
+        db.shoppingItemDao().getAll().map { it.toModel() }
+
+    suspend fun addItem(label: String) {
+        val trimmed = label.trim()
+        if (trimmed.isEmpty()) return
+        db.shoppingItemDao().insert(
+            ShoppingItemEntity(
+                id = UUID.randomUUID().toString(),
+                label = trimmed,
+                checked = false,
+                position = db.shoppingItemDao().nextPosition(),
+            ),
+        )
+    }
+
+    suspend fun toggleItem(id: String) {
+        val all = db.shoppingItemDao().getAll()
+        val item = all.firstOrNull { it.id == id } ?: return
+        db.shoppingItemDao().setChecked(id, !item.checked)
+    }
+
+    suspend fun removeItem(id: String) = db.shoppingItemDao().delete(id)
+
+    suspend fun removeCheckedItems() = db.shoppingItemDao().deleteChecked()
+
+    /** Replaces the whole list; order follows the given list. */
+    suspend fun replaceAll(items: List<ShoppingItem>) {
+        db.shoppingItemDao().replaceAll(items.map { it.toEntity() })
+    }
+
+    private fun ShoppingItem.toEntity() = ShoppingItemEntity(
+        id = id,
+        label = label,
+        checked = checked,
+        position = 0,
+    )
+}
