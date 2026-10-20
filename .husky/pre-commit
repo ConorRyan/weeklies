@@ -1,0 +1,8 @@
+# Local verification gates: tests, typecheck, lint, web bundle.
+# Escape hatch for the slowest step: SKIP_WEB_BUILD=1 git commit ...
+npm test
+npx tsc --noEmit
+npm run lint
+if [ "$SKIP_WEB_BUILD" != "1" ]; then
+  npm run build:web
+fi

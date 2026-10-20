@@ -108,21 +108,28 @@ describe('exportBackupToFilesystem', () => {
   });
 
   it('writes the backup to a picked directory on native', async () => {
-    const createFile = jest.fn((_filename: string, _mimeType: string) => ({ write: jest.fn() }));
-    mockPickDirectoryAsync.mockReset();
-    mockPickDirectoryAsync.mockResolvedValue({ createFile });
-    setOS('ios');
+    // Freeze the clock so the expected JSON and the exported payload share
+    // the same exportedAt timestamp.
+    jest.useFakeTimers({ now: new Date('2026-01-15T12:00:00.000Z') });
+    try {
+      const createFile = jest.fn((_filename: string, _mimeType: string) => ({ write: jest.fn() }));
+      mockPickDirectoryAsync.mockReset();
+      mockPickDirectoryAsync.mockResolvedValue({ createFile });
+      setOS('ios');
 
-    const json = backupJson();
+      const json = backupJson();
 
-    await exportBackupToFilesystem(settings);
+      await exportBackupToFilesystem(settings);
 
-    expect(mockPickDirectoryAsync).toHaveBeenCalledWith(Paths.document.uri);
-    expect(createFile).toHaveBeenCalledTimes(1);
-    const [filename, mimeType] = createFile.mock.calls[0];
-    expect(filename).toMatch(/^backup-\d{4}-\d{2}-\d{2}\.json$/);
-    expect(mimeType).toBe('application/json');
-    expect(createFile.mock.results[0].value.write.mock.calls[0][0]).toBe(json);
+      expect(mockPickDirectoryAsync).toHaveBeenCalledWith(Paths.document.uri);
+      expect(createFile).toHaveBeenCalledTimes(1);
+      const [filename, mimeType] = createFile.mock.calls[0];
+      expect(filename).toMatch(/^backup-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(mimeType).toBe('application/json');
+      expect(createFile.mock.results[0].value.write.mock.calls[0][0]).toBe(json);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('starts a browser download on web and cleans up', async () => {
