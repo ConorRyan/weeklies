@@ -36,6 +36,7 @@ export default function SettingsScreen() {
   const { secrets, setMistralApiKey, clearMistralApiKey } = useImportSecrets();
   const [backupBusy, setBackupBusy] = useState(false);
   const [mistralKeyText, setMistralKeyText] = useState(() => secrets.mistralApiKey);
+  const [lastMistralKey, setLastMistralKey] = useState(secrets.mistralApiKey);
   const [mistralKeyInfoOpen, setMistralKeyInfoOpen] = useState(false);
   const [mistralKeyInfoAnchor, setMistralKeyInfoAnchor] = useState<{
     x: number;
@@ -45,6 +46,7 @@ export default function SettingsScreen() {
   } | null>(null);
   const mistralKeyInfoRef = useRef<View>(null);
   const [portionsText, setPortionsText] = useState(() => String(portionsPerDay));
+  const [lastPortionsPerDay, setLastPortionsPerDay] = useState(portionsPerDay);
   const [portionsInfoOpen, setPortionsInfoOpen] = useState(false);
   const [portionsInfoAnchor, setPortionsInfoAnchor] = useState<{
     x: number;
@@ -64,13 +66,16 @@ export default function SettingsScreen() {
     };
   }, []);
 
-  useEffect(() => {
+  // Adjust the input text when the external value changes; render-time sync
+  // instead of an effect.
+  if (portionsPerDay !== lastPortionsPerDay) {
+    setLastPortionsPerDay(portionsPerDay);
     setPortionsText(String(portionsPerDay));
-  }, [portionsPerDay]);
-
-  useEffect(() => {
+  }
+  if (secrets.mistralApiKey !== lastMistralKey) {
+    setLastMistralKey(secrets.mistralApiKey);
     setMistralKeyText(secrets.mistralApiKey);
-  }, [secrets.mistralApiKey]);
+  }
 
   const openMistralKeyInfo = () => {
     mistralKeyInfoRef.current?.measureInWindow((x, y, width, height) => {
@@ -392,7 +397,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   infoBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   infoBubble: {

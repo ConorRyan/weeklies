@@ -29,7 +29,7 @@ export default function HelpModalScreen() {
             <HeaderBackButton
               {...props}
               onPress={handleBack}
-              tintColor={props.tintColor ?? tintColor}
+              tintColor={typeof props.tintColor === 'string' ? props.tintColor : tintColor}
             />
           ),
         }}

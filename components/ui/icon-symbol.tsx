@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { ComponentProps, useEffect, useState } from 'react';
+import { ComponentProps, useSyncExternalStore } from 'react';
 import {
   OpaqueColorValue,
   Platform,
@@ -40,13 +40,13 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  const [iconReady, setIconReady] = useState(Platform.OS !== 'web');
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      setIconReady(true);
-    }
-  }, []);
+  // Render the placeholder during web prerender/hydration so static HTML
+  // matches; swap in the icon on the client after hydration.
+  const iconReady = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => Platform.OS !== 'web'
+  );
 
   if (!iconReady) {
     const flat = StyleSheet.flatten(style) as ViewStyle | undefined;

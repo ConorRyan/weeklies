@@ -6,6 +6,7 @@ import {
 
 jest.mock('react-native', () => ({
   Appearance: { getColorScheme: () => 'dark' },
+  Platform: { OS: 'ios', select: ({ ios }: { ios: unknown }) => ios },
 }));
 
 describe('parseStoredSettings', () => {

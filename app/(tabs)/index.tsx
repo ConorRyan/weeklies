@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -25,7 +25,12 @@ export default function WeekliesScreen() {
   const { recipes } = useRecipes();
   const { byDay, setDayRecipe } = useWeeklyPlan();
   const [pickerDay, setPickerDay] = useState<Weekday | null>(null);
-  const [todayWeekday, setTodayWeekday] = useState<Weekday | null>(null);
+  // Highlight "today" only after hydration so prerendered web HTML matches.
+  const todayWeekday = useSyncExternalStore<Weekday | null>(
+    () => () => {},
+    () => weekdayFromDate(new Date()),
+    () => null
+  );
 
   const recipeById = useMemo(() => {
     const m = new Map<string, (typeof recipes)[0]>();
@@ -52,10 +57,6 @@ export default function WeekliesScreen() {
     }
     closePicker();
   };
-
-  useEffect(() => {
-    setTodayWeekday(weekdayFromDate(new Date()));
-  }, []);
 
   return (
     <>
