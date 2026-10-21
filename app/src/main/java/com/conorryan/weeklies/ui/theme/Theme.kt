@@ -1,12 +1,16 @@
 package com.conorryan.weeklies.ui.theme
 
+import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.conorryan.weeklies.data.model.AppColorScheme
 
 /** Brand blue from the plan header. */
@@ -53,6 +57,17 @@ fun WeekliesTheme(
     content: @Composable () -> Unit,
 ) {
     val dark = colorScheme == AppColorScheme.DARK
+    // enableEdgeToEdge() picks system-bar icon color from the OS theme, but the
+    // in-app setting can override it; keep the bars in sync with the resolved theme.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !dark
+            insetsController.isAppearanceLightNavigationBars = !dark
+        }
+    }
     CompositionLocalProvider(LocalIsDarkTheme provides dark) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,
