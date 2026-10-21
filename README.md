@@ -40,15 +40,13 @@ Build and run:
 
 Install the debug APK on a connected device/emulator with `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
 
-License report for the FOSS audit:
-
-```bash
-./gradlew :app:generateLicenseReport
-```
-
 ## Architecture
 
 - `app/src/main/java/io/github/conorryan/weeklies/data/` — Room database (recipes, plan, shopping list), DataStore-backed settings and secrets, backup codec/manager (JSON format compatible with previous React Native releases), and the recipe import subsystem (JSON-LD scraper, Mistral client, ingredient scaling).
 - `app/src/main/java/io/github/conorryan/weeklies/ui/` — Compose screens: four tabs (plan, recipes, shopping list, settings) plus recipe detail/edit/new, import with review, help, and privacy.
 - `app/src/test/java/` — unit tests ported from the original test suite, reusing the same HTML/JSON fixtures.
 
+## License
+
+MIT — see [LICENSE](LICENSE). Third-party notices are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
