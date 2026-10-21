@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -30,7 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.conorryan.weeklies.AppGraph
-import io.github.conorryan.weeklies.ui.ActionButton
+import io.github.conorryan.weeklies.ui.BottomAction
+import io.github.conorryan.weeklies.ui.BottomActionBar
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
@@ -47,69 +50,69 @@ fun RecipesScreen(
     val scope = rememberCoroutineScope()
     var deleteTarget by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         TabHeader("Recipes", Icons.AutoMirrored.Filled.MenuBook, headerColorFor(HeaderColor.RECIPES))
 
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .fillMaxSize()
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
         ) {
-            ActionButton(
-                label = "Create new",
-                onClick = onNew,
-                modifier = Modifier.weight(1f),
-            )
-            ActionButton(
-                label = "Import",
-                onClick = onImport,
-                modifier = Modifier.weight(1f),
-            )
-        }
+            if (recipes.isEmpty()) {
+                Text(
+                    "No recipes yet.",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
 
-        if (recipes.isEmpty()) {
-            Text(
-                "No recipes yet.",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-
-        for (recipe in recipes) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Surface(
-                    onClick = { onOpenRecipe(recipe.id) },
-                    modifier = Modifier.weight(1f),
-                    color = androidx.compose.ui.graphics.Color.Transparent,
+            for (recipe in recipes) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
-                        Text(recipe.name, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "${recipe.ingredients.size} ingredient${if (recipe.ingredients.size == 1) "" else "s"}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Surface(
+                        onClick = { onOpenRecipe(recipe.id) },
+                        modifier = Modifier.weight(1f),
+                        color = androidx.compose.ui.graphics.Color.Transparent,
+                    ) {
+                        Column(Modifier.padding(vertical = 8.dp)) {
+                            Text(recipe.name, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${recipe.ingredients.size} ingredient${if (recipe.ingredients.size == 1) "" else "s"}",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    IconButton(onClick = { deleteTarget = recipe.id }) {
+                        Icon(
+                            Icons.Filled.Remove,
+                            contentDescription = "Delete ${recipe.name}",
+                            tint = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
-                IconButton(onClick = { deleteTarget = recipe.id }) {
-                    Icon(
-                        Icons.Filled.Remove,
-                        contentDescription = "Delete ${recipe.name}",
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
             }
         }
+
+        BottomActionBar(
+            listOf(
+                BottomAction(
+                    icon = Icons.Filled.Add,
+                    label = "Create new",
+                    onClick = onNew,
+                ),
+                BottomAction(
+                    icon = Icons.Filled.Download,
+                    label = "Import",
+                    onClick = onImport,
+                ),
+            ),
+        )
     }
 
     val target = deleteTarget

@@ -2,6 +2,7 @@ package io.github.conorryan.weeklies.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
@@ -135,5 +137,60 @@ fun ActionButton(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Text(label, maxLines = 2)
+    }
+}
+
+/**
+ * One entry in a [BottomActionBar]: icon over label, tinted to its role.
+ */
+data class BottomAction(
+    val icon: ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+    val enabled: Boolean = true,
+    val destructive: Boolean = false,
+)
+
+/**
+ * Row of actions pinned to the bottom of a tab screen, directly above the
+ * navigation bar. Renders each action as a stacked icon + label so three or
+ * more actions fit without cramped text buttons.
+ */
+@Composable
+fun BottomActionBar(
+    actions: List<BottomAction>,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier.fillMaxWidth()) {
+        for (action in actions) {
+            val tint = if (action.destructive) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
+            val resolved = if (action.enabled) tint else tint.copy(alpha = 0.45f)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = action.enabled) { action.onClick() }
+                    .padding(horizontal = 4.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(
+                    action.icon,
+                    contentDescription = action.label,
+                    tint = resolved,
+                    modifier = Modifier.size(24.dp),
+                )
+                Text(
+                    action.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = resolved,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                )
+            }
+        }
     }
 }
