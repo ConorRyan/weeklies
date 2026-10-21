@@ -10,6 +10,7 @@ import com.conorryan.weeklies.data.model.Recipe
 import com.conorryan.weeklies.data.model.ShoppingItem
 import com.conorryan.weeklies.data.model.Weekday
 import com.conorryan.weeklies.data.model.emptyByDay
+import com.conorryan.weeklies.data.shopping.combineShoppingLine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -97,17 +98,30 @@ class ShoppingRepository(private val db: AppDatabase) {
     suspend fun snapshot(): List<ShoppingItem> =
         db.shoppingItemDao().getAll().map { it.toModel() }
 
+    /**
+     * Adds an item, summing the first number into an existing unchecked line
+     * whose remaining text matches (e.g. "100g pasta" + "100g pasta" becomes
+     * "200g pasta"); otherwise inserts a new row.
+     */
     suspend fun addItem(label: String) {
         val trimmed = label.trim()
         if (trimmed.isEmpty()) return
-        db.shoppingItemDao().insert(
-            ShoppingItemEntity(
-                id = UUID.randomUUID().toString(),
-                label = trimmed,
-                checked = false,
-                position = db.shoppingItemDao().nextPosition(),
-            ),
-        )
+        val merge = db.shoppingItemDao().getAll().firstNotNullOfOrNull { row ->
+            if (row.checked) null
+            else combineShoppingLine(row.label, trimmed)?.let { row.id to it }
+        }
+        if (merge != null) {
+            db.shoppingItemDao().setLabel(merge.first, merge.second)
+        } else {
+            db.shoppingItemDao().insert(
+                ShoppingItemEntity(
+                    id = UUID.randomUUID().toString(),
+                    label = trimmed,
+                    checked = false,
+                    position = db.shoppingItemDao().nextPosition(),
+                ),
+            )
+        }
     }
 
     suspend fun toggleItem(id: String) {
