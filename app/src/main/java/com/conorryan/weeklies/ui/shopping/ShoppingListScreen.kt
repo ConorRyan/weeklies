@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -150,6 +151,13 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
 
         var newLabel by remember { mutableStateOf("") }
         var fieldFocused by remember { mutableStateOf(false) }
+        val submitNewLabel = {
+            val trimmed = newLabel.trim()
+            if (trimmed.isNotEmpty()) {
+                scope.launch { graph.shoppingRepository.addItem(trimmed) }
+                newLabel = ""
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -166,6 +174,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { submitNewLabel() }),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier
@@ -197,13 +206,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 modifier = Modifier.weight(1f),
             )
             IconButton(
-                onClick = {
-                    val trimmed = newLabel.trim()
-                    if (trimmed.isNotEmpty()) {
-                        scope.launch { graph.shoppingRepository.addItem(trimmed) }
-                        newLabel = ""
-                    }
-                },
+                onClick = { submitNewLabel() },
             ) {
                 Icon(
                     Icons.Filled.Add,
