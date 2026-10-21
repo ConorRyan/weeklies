@@ -12,11 +12,11 @@ licenseReport {
 }
 
 android {
-    namespace = "com.conorryan.weeklies"
+    namespace = "io.github.conorryan.weeklies"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.conorryan.weeklies"
+        applicationId = "io.github.conorryan.weeklies"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
