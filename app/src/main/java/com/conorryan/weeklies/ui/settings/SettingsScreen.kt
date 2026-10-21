@@ -59,7 +59,7 @@ fun SectionHeading(text: String, first: Boolean = false) {
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-        modifier = Modifier.padding(top = if (first) 24.dp else 28.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 24.dp else 28.dp, bottom = 4.dp),
     )
 }
 
@@ -142,8 +142,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .verticalScroll(rememberScrollState()),
     ) {
         TabHeader("Settings", Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
 
@@ -151,7 +150,7 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -172,7 +171,7 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -198,12 +197,12 @@ fun SettingsScreen(
             } else {
                 portionsText = settings.portionsPerDay.toString()
             }
-        }) { Text("Apply") }
+        }, modifier = Modifier.padding(horizontal = 16.dp)) { Text("Apply") }
 
         SectionHeading("Recipe import")
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -238,7 +237,7 @@ fun SettingsScreen(
         SectionHeading("Data")
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             TextButton(
                 onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
@@ -253,7 +252,7 @@ fun SettingsScreen(
         }
 
         SectionHeading("Support")
-        TextButton(onClick = onOpenHelp, modifier = Modifier.padding(vertical = 8.dp)) {
+        TextButton(onClick = onOpenHelp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text("Help")
         }
     }
