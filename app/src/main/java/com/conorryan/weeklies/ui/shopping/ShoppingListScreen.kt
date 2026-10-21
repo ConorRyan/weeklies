@@ -1,14 +1,20 @@
 package com.conorryan.weeklies.ui.shopping
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,7 +24,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +33,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
@@ -108,8 +115,8 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 label = "Remove checked",
                 onClick = { scope.launch { graph.shoppingRepository.removeCheckedItems() } },
                 enabled = hasChecked,
-                borderColor = androidx.compose.ui.graphics.Color(0xFFC62828),
-                textColor = androidx.compose.ui.graphics.Color(0xFFC62828),
+                borderColor = MaterialTheme.colorScheme.error,
+                textColor = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -118,16 +125,15 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 2.dp),
+                    .clickable { scope.launch { graph.shoppingRepository.toggleItem(item.id) } }
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Checkbox(
                     checked = item.checked,
-                    onCheckedChange = {
-                        scope.launch { graph.shoppingRepository.toggleItem(item.id) }
-                    },
-                    modifier = Modifier.size(32.dp),
+                    onCheckedChange = null,
+                    modifier = Modifier.size(24.dp),
                 )
                 Text(
                     item.label,
@@ -143,19 +149,51 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
         }
 
         var newLabel by remember { mutableStateOf("") }
+        var fieldFocused by remember { mutableStateOf(false) }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            OutlinedTextField(
+            BasicTextField(
                 value = newLabel,
                 onValueChange = { newLabel = it },
-                placeholder = { Text("Item") },
                 singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onBackground,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .onFocusChanged { fieldFocused = it.isFocused }
+                            .border(
+                                width = 1.dp,
+                                color = if (fieldFocused) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                                shape = RoundedCornerShape(4.dp),
+                            )
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (newLabel.isEmpty()) {
+                            Text(
+                                "Item",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
                 modifier = Modifier.weight(1f),
             )
             IconButton(
@@ -170,8 +208,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 Icon(
                     Icons.Filled.Add,
                     contentDescription = "Add item",
-                    tint = headerColorFor(HeaderColor.SHOPPING),
-                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }

@@ -79,15 +79,15 @@ fun PlanScreen(
                     .fillMaxWidth()
                     .clickable { pickerDay = day }
                     .background(
-                        if (isToday) headerColorFor(HeaderColor.PLAN).copy(alpha = 0.14f)
+                        if (isToday) headerColorFor(HeaderColor.PLAN).copy(alpha = 0.12f)
                         else androidx.compose.ui.graphics.Color.Transparent,
                     )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     day.label,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.align(Alignment.CenterVertically),
                 )
@@ -98,7 +98,7 @@ fun PlanScreen(
                     } else {
                         MaterialTheme.colorScheme.onBackground
                     },
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     modifier = Modifier

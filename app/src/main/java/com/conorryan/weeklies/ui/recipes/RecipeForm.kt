@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
@@ -25,8 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.conorryan.weeklies.data.model.NewRecipe
-import com.conorryan.weeklies.ui.theme.HeaderColor
-import com.conorryan.weeklies.ui.theme.headerColorFor
 
 /**
  * Shared recipe entry form for new, edit, and import-review flows.
@@ -87,8 +84,7 @@ fun RecipeForm(
                     Icon(
                         Icons.Filled.Remove,
                         contentDescription = "Remove ingredient",
-                        tint = headerColorFor(HeaderColor.RECIPES),
-                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

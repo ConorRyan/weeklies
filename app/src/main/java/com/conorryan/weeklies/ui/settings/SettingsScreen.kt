@@ -59,7 +59,7 @@ fun SectionHeading(text: String, first: Boolean = false) {
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 24.dp else 28.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 16.dp else 20.dp, bottom = 2.dp),
     )
 }
 
