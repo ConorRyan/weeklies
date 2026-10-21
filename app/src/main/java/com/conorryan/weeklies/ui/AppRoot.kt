@@ -115,12 +115,19 @@ private fun PersistentTabHost(
 
 @Composable
 fun WeekliesApp(graph: AppGraph) {
-    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(
+    val initialSettings = androidx.compose.ui.platform.LocalContext.current.let { context ->
+        val nightMode = context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK
         com.conorryan.weeklies.data.model.AppSettings(
-            colorScheme = com.conorryan.weeklies.data.model.AppColorScheme.DARK,
+            colorScheme = if (nightMode == android.content.res.Configuration.UI_MODE_NIGHT_NO) {
+                com.conorryan.weeklies.data.model.AppColorScheme.LIGHT
+            } else {
+                com.conorryan.weeklies.data.model.AppColorScheme.DARK
+            },
             portionsPerDay = 2,
-        ),
-    )
+        )
+    }
+    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(initialSettings)
     val toastBus = remember { ToastBus() }
 
     WeekliesTheme(colorScheme = settings.colorScheme) {

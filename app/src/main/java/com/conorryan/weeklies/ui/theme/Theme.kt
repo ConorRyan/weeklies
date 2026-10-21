@@ -1,10 +1,11 @@
 package com.conorryan.weeklies.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.conorryan.weeklies.data.model.AppColorScheme
 
@@ -43,28 +44,30 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant = Color(0xFF9BA1A6),
 )
 
+/** Resolved dark/light state of the active theme, as the RN hook useAppColorScheme provided. */
+val LocalIsDarkTheme = staticCompositionLocalOf { true }
+
 @Composable
 fun WeekliesTheme(
     colorScheme: AppColorScheme,
     content: @Composable () -> Unit,
 ) {
-    val dark = when (colorScheme) {
-        AppColorScheme.DARK -> true
-        AppColorScheme.LIGHT -> false
-    } || isSystemInDarkTheme()
-    MaterialTheme(
-        colorScheme = if (dark) DarkColors else LightColors,
-        content = content,
-    )
+    val dark = colorScheme == AppColorScheme.DARK
+    CompositionLocalProvider(LocalIsDarkTheme provides dark) {
+        MaterialTheme(
+            colorScheme = if (dark) DarkColors else LightColors,
+            content = content,
+        )
+    }
 }
 
 /** Header colors follow the active theme like the RN per-tab headers did. */
 @Composable
 fun headerColorFor(header: HeaderColor): Color = when (header) {
-    HeaderColor.PLAN -> if (isSystemInDarkTheme()) PlanHeaderBlueDark else PlanHeaderBlue
-    HeaderColor.RECIPES -> if (isSystemInDarkTheme()) RecipesHeaderRedDark else RecipesHeaderRed
-    HeaderColor.SHOPPING -> if (isSystemInDarkTheme()) ShoppingHeaderGreenDark else ShoppingHeaderGreen
-    HeaderColor.SETTINGS -> if (isSystemInDarkTheme()) SettingsHeaderPurpleDark else SettingsHeaderPurple
+    HeaderColor.PLAN -> if (LocalIsDarkTheme.current) PlanHeaderBlueDark else PlanHeaderBlue
+    HeaderColor.RECIPES -> if (LocalIsDarkTheme.current) RecipesHeaderRedDark else RecipesHeaderRed
+    HeaderColor.SHOPPING -> if (LocalIsDarkTheme.current) ShoppingHeaderGreenDark else ShoppingHeaderGreen
+    HeaderColor.SETTINGS -> if (LocalIsDarkTheme.current) SettingsHeaderPurpleDark else SettingsHeaderPurple
 }
 
 enum class HeaderColor { PLAN, RECIPES, SHOPPING, SETTINGS }

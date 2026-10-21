@@ -1,6 +1,7 @@
 package com.conorryan.weeklies.data.settings
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -79,11 +80,21 @@ class SettingsStore(private val context: Context) {
             ?: AppSettings.DEFAULT_PORTIONS_PER_DAY,
     )
 
+    /**
+     * Mirrors the RN initialFromOs(): light only when the OS reports light,
+     * dark otherwise (including unknown).
+     */
+    private fun defaultColorScheme(): AppColorScheme =
+        if (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            == Configuration.UI_MODE_NIGHT_NO
+        ) {
+            AppColorScheme.LIGHT
+        } else {
+            AppColorScheme.DARK
+        }
+
     companion object {
         const val SCHEMA_VERSION = 1
-
-        /** Dark mode is the safe default before anything has been stored. */
-        fun defaultColorScheme(): AppColorScheme = AppColorScheme.DARK
     }
 }
 
