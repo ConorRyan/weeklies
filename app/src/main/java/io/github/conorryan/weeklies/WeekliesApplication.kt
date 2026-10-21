@@ -11,6 +11,7 @@ import io.github.conorryan.weeklies.data.db.AppDatabase
 import io.github.conorryan.weeklies.data.import.MistralClient
 import io.github.conorryan.weeklies.data.import.OkHttpTransport
 import io.github.conorryan.weeklies.data.import.PageFetcher
+import io.github.conorryan.weeklies.data.import.RecipeCleaner
 import io.github.conorryan.weeklies.data.import.RecipeImporter
 import io.github.conorryan.weeklies.data.repo.PlanRepository
 import io.github.conorryan.weeklies.data.repo.RecipeRepository
@@ -71,6 +72,9 @@ class AppGraph(
         val transport = OkHttpTransport()
         RecipeImporter(PageFetcher(transport), MistralClient(transport))
     }
+
+    /** AI cleanup of a saved recipe's ingredient lines. */
+    val recipeCleaner: RecipeCleaner by lazy { RecipeCleaner(OkHttpTransport()) }
 }
 
 class WeekliesApplication : Application() {

@@ -174,6 +174,9 @@ object ImportConstants {
     const val MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions"
     const val MISTRAL_RECIPE_MODEL = "mistral-small-latest"
 
+    /** One-off cleanup gets the more careful model; import stays on small. */
+    const val MISTRAL_CLEANUP_MODEL = "mistral-medium-latest"
+
     /** Stored recipes are always normalized to this serving count. */
     const val RECIPE_IMPORT_TARGET_SERVINGS = 1
 

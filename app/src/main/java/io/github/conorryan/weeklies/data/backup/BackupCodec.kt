@@ -81,6 +81,9 @@ object BackupCodec {
                         put("id", recipe.id)
                         put("name", recipe.name)
                         put("ingredients", JsonArray(recipe.ingredients.map { JsonPrimitive(it) }))
+                        if (recipe.instructions.isNotEmpty()) {
+                            put("instructions", recipe.instructions)
+                        }
                     })
                 }
             })
@@ -152,7 +155,8 @@ object BackupCodec {
         val name = obj["name"]?.jsonPrimitive?.contentOrNull() ?: return null
         val ingredientsArray = obj["ingredients"] as? JsonArray ?: return null
         val ingredients = ingredientsArray.mapNotNull(::ingredientElementToLine)
-        return Recipe(id = id, name = name, ingredients = ingredients)
+        val instructions = obj["instructions"]?.jsonPrimitive?.contentOrNull()?.trim() ?: ""
+        return Recipe(id = id, name = name, ingredients = ingredients, instructions = instructions)
     }
 
     fun sanitizeItemsForImport(raw: JsonElement?): List<ShoppingItem> {

@@ -69,6 +69,45 @@ class BackupCodecTest {
     }
 
     @Test
+    fun roundTripsRecipeInstructions() {
+        val json = BackupCodec.buildBackupJson(
+            AppSettings(AppColorScheme.LIGHT, 3),
+            sampleSnapshot().copy(
+                recipes = listOf(
+                    Recipe(id = "r1", name = "Pasta", ingredients = listOf("salt"), instructions = "Mix.\n\nBake."),
+                ),
+            ),
+            "2024-01-01T00:00:00.000Z",
+        )
+        val imported = BackupCodec.parseBackup(json, defaults)
+        assertEquals("Mix.\n\nBake.", imported.recipes[0].instructions)
+    }
+
+    @Test
+    fun omitsInstructionsFromBackupJsonWhenEmpty() {
+        val json = BackupCodec.buildBackupJson(
+            AppSettings(AppColorScheme.LIGHT, 3),
+            sampleSnapshot(),
+            "2024-01-01T00:00:00.000Z",
+        )
+        val root = Json.parseToJsonElement(json) as kotlinx.serialization.json.JsonObject
+        val recipe = (root["recipes"] as kotlinx.serialization.json.JsonArray)[0]
+            as kotlinx.serialization.json.JsonObject
+        assertEquals(null, recipe["instructions"])
+    }
+
+    @Test
+    fun importsLegacyRecipeWithoutInstructions() {
+        val legacy = """
+            {"format":"backup","version":1,"settings":{},"weeklyPlan":{},
+            "recipes":[{"id":"r1","name":"Pasta","ingredients":["salt"]}],
+            "shoppingList":{"items":[]}}
+        """.trimIndent()
+        val imported = BackupCodec.parseBackup(legacy, defaults)
+        assertEquals("", imported.recipes[0].instructions)
+    }
+
+    @Test
     fun rejectsInvalidJson() {
         try {
             BackupCodec.parseBackup("not json", defaults)

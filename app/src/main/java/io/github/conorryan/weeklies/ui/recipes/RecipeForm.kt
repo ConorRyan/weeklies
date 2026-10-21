@@ -42,6 +42,7 @@ fun RecipeForm(
             else add("")
         }
     }
+    var instructions by remember { mutableStateOf(initialRecipe?.instructions ?: "") }
     var error by remember { mutableStateOf("") }
 
     Column(
@@ -90,6 +91,18 @@ fun RecipeForm(
             }
         }
 
+        Text(
+            "Instructions",
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        OutlinedTextField(
+            value = instructions,
+            onValueChange = { instructions = it },
+            placeholder = { Text("Steps, notes, timing…") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { ingredients.add("") }) {
                 Text("Add ingredient", fontWeight = FontWeight.SemiBold)
@@ -103,7 +116,13 @@ fun RecipeForm(
                         cleaned.isEmpty() -> error = "Add at least one ingredient."
                         else -> {
                             error = ""
-                            onAddRecipe(NewRecipe(name = trimmedName, ingredients = cleaned))
+                            onAddRecipe(
+                                NewRecipe(
+                                    name = trimmedName,
+                                    ingredients = cleaned,
+                                    instructions = instructions.trim(),
+                                ),
+                            )
                         }
                     }
                 },

@@ -94,6 +94,53 @@ class ScraperParseTest {
         val html = htmlWithJsonLd("""{"@type":"Recipe","name":"A","recipeIngredient":["x"]}""")
         assertEquals("https://example.com/a", parseRecipeHtml(html, url = "  https://example.com/a  ").url)
     }
+
+    @Test
+    fun flattensHowToStepInstructions() {
+        val html = htmlWithJsonLd(
+            """{"@type":"Recipe","name":"Soup","recipeIngredient":["1 onion"],"recipeInstructions":""" +
+                """[{"@type":"HowToStep","text":"Chop the onion."},{"@type":"HowToStep","text":"Simmer 30 <b>minutes</b>."}]}""",
+        )
+        assertEquals(
+            listOf("Chop the onion.", "Simmer 30 minutes."),
+            parseRecipeHtml(html).recipeInstructions,
+        )
+    }
+
+    @Test
+    fun flattensHowToSectionGroups() {
+        val html = htmlWithJsonLd(
+            """{"@type":"Recipe","name":"Cake","recipeIngredient":["flour"],"recipeInstructions":""" +
+                """[{"@type":"HowToSection","name":"Bake","itemListElement":""" +
+                """[{"@type":"HowToStep","text":"Mix."},{"@type":"HowToStep","text":"Bake at 180C."}]}]}""",
+        )
+        assertEquals(listOf("Mix.", "Bake at 180C."), parseRecipeHtml(html).recipeInstructions)
+    }
+
+    @Test
+    fun acceptsPlainStringInstructions() {
+        val html = htmlWithJsonLd(
+            """{"@type":"Recipe","name":"A","recipeIngredient":["x"],"recipeInstructions":"Mix everything and bake."}""",
+        )
+        assertEquals(listOf("Mix everything and bake."), parseRecipeHtml(html).recipeInstructions)
+    }
+
+    @Test
+    fun usesStepNameWhenTextIsMissing() {
+        val html = htmlWithJsonLd(
+            """{"@type":"Recipe","name":"A","recipeIngredient":["x"],"recipeInstructions":""" +
+                """[{"@type":"HowToStep","name":"Rest the dough"}]}""",
+        )
+        assertEquals(listOf("Rest the dough"), parseRecipeHtml(html).recipeInstructions)
+    }
+
+    @Test
+    fun recipeStaysValidWithoutInstructions() {
+        val html = htmlWithJsonLd("""{"@type":"Recipe","name":"A","recipeIngredient":["x"]}""")
+        val scraped = parseRecipeHtml(html)
+        assertEquals(null, scraped.recipeInstructions)
+        assertEquals("A", scraped.name)
+    }
 }
 
 class ScraperToRecipeTest {
@@ -191,5 +238,32 @@ class ScraperToRecipeTest {
             ),
         )
         assertTrue(result != null)
+    }
+
+    @Test
+    fun joinsInstructionsIntoOneBlob() {
+        val result = scrapedRecipeToNewRecipe(
+            ScrapedRecipeData(
+                url = null,
+                name = "Pasta",
+                recipeYield = null,
+                recipeIngredients = listOf("2 cups flour"),
+                recipeInstructions = listOf("Mix.", "Bake."),
+            ),
+        )
+        assertEquals("Mix.\n\nBake.", result?.instructions)
+    }
+
+    @Test
+    fun defaultsInstructionsToEmptyBlob() {
+        val result = scrapedRecipeToNewRecipe(
+            ScrapedRecipeData(
+                url = null,
+                name = "Pasta",
+                recipeYield = null,
+                recipeIngredients = listOf("2 cups flour"),
+            ),
+        )
+        assertEquals("", result?.instructions)
     }
 }

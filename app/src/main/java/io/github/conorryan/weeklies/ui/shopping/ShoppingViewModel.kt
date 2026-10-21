@@ -9,6 +9,7 @@ import io.github.conorryan.weeklies.data.model.AppSettings
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.ShoppingItem
 import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.data.shopping.stripIngredientNotes
 import io.github.conorryan.weeklies.ui.ToastBus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -72,9 +73,9 @@ class ShoppingViewModel(
             } else {
                 val factor = portions.toDouble()
                 for (line in recipe.ingredients) {
-                    val trimmed = line.trim()
-                    if (trimmed.isEmpty()) continue
-                    graph.shoppingRepository.addItem(scaleIngredientLine(trimmed, factor))
+                    val cleaned = stripIngredientNotes(line)
+                    if (cleaned.isEmpty()) continue
+                    graph.shoppingRepository.addItem(scaleIngredientLine(cleaned, factor))
                 }
             }
         }

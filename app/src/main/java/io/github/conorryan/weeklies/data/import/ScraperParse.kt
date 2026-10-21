@@ -10,6 +10,7 @@ data class ScrapedRecipeData(
     val name: String,
     val recipeYield: String?,
     val recipeIngredients: List<String>,
+    val recipeInstructions: List<String>? = null,
 )
 
 private fun cleanIngredientLine(line: String): String {
@@ -54,12 +55,49 @@ private fun transformIngredients(value: JsonElement?): List<String>? {
     return lines.ifEmpty { null }
 }
 
+/**
+ * Flattens recipeInstructions, which may be a plain string, an array of
+ * strings or HowToStep objects, or nested HowToSection/ItemList groups
+ * containing them.
+ */
+private fun collectStepText(value: JsonElement?, out: MutableList<String>) {
+    when (value) {
+        is JsonPrimitive -> {
+            val cleaned = cleanIngredientLine(value.content)
+            if (cleaned.isNotEmpty()) out.add(cleaned)
+        }
+        is JsonObject -> {
+            val itemList = value["itemListElement"]
+            if (itemList != null) {
+                collectStepText(itemList, out)
+                return
+            }
+            val text = (value["text"] as? JsonPrimitive)?.content
+                ?: (value["name"] as? JsonPrimitive)?.content
+            val cleaned = text?.let { cleanIngredientLine(it) }
+            if (!cleaned.isNullOrEmpty()) out.add(cleaned)
+        }
+        is JsonArray -> for (item in value) collectStepText(item, out)
+        else -> {}
+    }
+}
+
+private fun transformInstructions(value: JsonElement?): List<String>? {
+    if (value == null) return null
+    val steps = mutableListOf<String>()
+    collectStepText(value, steps)
+    return steps.ifEmpty { null }
+}
+
 private fun buildScrapedRecipeData(props: JsonObject, url: String?): ScrapedRecipeData? {
     val name = firstString(props["name"])?.trim()
     val recipeYield = firstString(props["recipeYield"]) ?: firstString(props["yield"])
     val recipeIngredients = transformIngredients(
         props["recipeIngredient"] ?: props["recipeIngredients"] ?: props["ingredients"]
             ?: props["ingredient"],
+    )
+    val recipeInstructions = transformInstructions(
+        props["recipeInstructions"] ?: props["instructions"] ?: props["steps"],
     )
 
     if (name.isNullOrEmpty() || recipeIngredients.isNullOrEmpty()) return null
@@ -69,6 +107,7 @@ private fun buildScrapedRecipeData(props: JsonObject, url: String?): ScrapedReci
         name = name,
         recipeYield = recipeYield,
         recipeIngredients = recipeIngredients,
+        recipeInstructions = recipeInstructions,
     )
 }
 

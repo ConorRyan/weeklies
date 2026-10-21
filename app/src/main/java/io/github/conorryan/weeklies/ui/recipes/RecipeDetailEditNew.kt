@@ -27,7 +27,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.data.import.CleanedIngredients
+import io.github.conorryan.weeklies.data.import.RecipeImportErrorDisplay
+import io.github.conorryan.weeklies.data.import.RecipeImportErrors
+import io.github.conorryan.weeklies.data.import.isUnchangedPairing
 import io.github.conorryan.weeklies.data.import.isValidServings
+import io.github.conorryan.weeklies.data.import.pairCleanupForReview
 import io.github.conorryan.weeklies.data.import.rescaleToSinglePortion
 import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.data.model.Recipe
@@ -42,9 +47,36 @@ fun RecipeDetailScreen(
     onEdit: (String) -> Unit,
 ) {
     val recipe by graph.recipeRepository.observeRecipe(recipeId).collectAsStateWithLifecycle(null)
+    val apiKey by graph.secretsStore.mistralApiKey.collectAsStateWithLifecycle("")
     val current = recipe
     val scope = rememberCoroutineScope()
     var adjustPortionsOpen by remember { mutableStateOf(false) }
+    var cleanupBusy by remember { mutableStateOf(false) }
+    var cleanupPreview by remember { mutableStateOf<CleanedIngredients?>(null) }
+    var cleanupError by remember { mutableStateOf<RecipeImportErrorDisplay?>(null) }
+
+    val runCleanup: (Recipe) -> Unit = { target ->
+        if (apiKey.trim().isEmpty()) {
+            cleanupError = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())
+        } else {
+            cleanupBusy = true
+            scope.launch {
+                try {
+                    cleanupPreview = graph.recipeCleaner.cleanIngredients(
+                        apiKey.trim(),
+                        target.name,
+                        target.ingredients,
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // canceled; nothing to show
+                } catch (e: Exception) {
+                    cleanupError = RecipeImportErrors.format(e)
+                } finally {
+                    cleanupBusy = false
+                }
+            }
+        }
+    }
 
     ModalScreen(title = current?.name ?: "Recipe", onBack = onBack) {
         if (current != null) {
@@ -53,6 +85,10 @@ fun RecipeDetailScreen(
                 Row {
                     TextButton(onClick = { onEdit(current.id) }) { Text("Edit recipe") }
                     TextButton(onClick = { adjustPortionsOpen = true }) { Text("Adjust portions") }
+                    TextButton(
+                        onClick = { runCleanup(current) },
+                        enabled = !cleanupBusy,
+                    ) { Text(if (cleanupBusy) "Cleaning up…" else "Clean up (AI)") }
                 }
                 Text(
                     "Ingredients (single portion)",
@@ -61,6 +97,14 @@ fun RecipeDetailScreen(
                 )
                 for (line in current.ingredients) {
                     Text("- $line", style = MaterialTheme.typography.bodyLarge)
+                }
+                if (current.instructions.isNotEmpty()) {
+                    Text(
+                        "Instructions",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(current.instructions, style = MaterialTheme.typography.bodyLarge)
                 }
                 TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
                     Text("Back to recipes")
@@ -73,12 +117,108 @@ fun RecipeDetailScreen(
                         scope.launch {
                             graph.recipeRepository.updateRecipe(
                                 current.id,
-                                NewRecipe(name = current.name, ingredients = scaled),
+                                NewRecipe(
+                                    name = current.name,
+                                    ingredients = scaled,
+                                    instructions = current.instructions,
+                                ),
                             )
                         }
                         adjustPortionsOpen = false
                     },
                     onDismiss = { adjustPortionsOpen = false },
+                )
+            }
+
+            val preview = cleanupPreview
+            if (preview != null) {
+                AlertDialog(
+                    onDismissRequest = { cleanupPreview = null },
+                    title = { Text("Apply cleanup?") },
+                    text = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .heightIn(max = 360.dp)
+                                .verticalScroll(rememberScrollState()),
+                        ) {
+                            val pairings = pairCleanupForReview(current.ingredients, preview)
+                            val unchanged = pairings.count { isUnchangedPairing(it) }
+                            if (unchanged > 0) {
+                                Text(
+                                    "$unchanged ingredient${if (unchanged == 1) "" else "s"} unchanged",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            for (pair in pairings.filterNot { isUnchangedPairing(it) }) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    for (line in pair.before) {
+                                        Text(
+                                            line,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                    for (line in pair.after) {
+                                        Text("→ $line")
+                                    }
+                                    if (pair.before.size > 1 && pair.after.size == 1) {
+                                        Text(
+                                            "merged",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    } else if (pair.after.size > 1) {
+                                        Text(
+                                            "split",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    graph.recipeRepository.updateRecipe(
+                                        current.id,
+                                        NewRecipe(
+                                            name = current.name,
+                                            ingredients = preview.lines,
+                                            instructions = current.instructions,
+                                        ),
+                                    )
+                                }
+                                cleanupPreview = null
+                            },
+                        ) { Text("Apply") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { cleanupPreview = null }) { Text("Cancel") }
+                    },
+                )
+            }
+
+            val cleanupErrorDisplay = cleanupError
+            if (cleanupErrorDisplay != null) {
+                AlertDialog(
+                    onDismissRequest = { cleanupError = null },
+                    title = { Text(cleanupErrorDisplay.title) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(cleanupErrorDisplay.message)
+                            if (cleanupErrorDisplay.hint != null) {
+                                Text(cleanupErrorDisplay.hint)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { cleanupError = null }) { Text("Close") }
+                    },
                 )
             }
         } else {
@@ -175,6 +315,7 @@ fun RecipeEditScreen(
                 initialRecipe = io.github.conorryan.weeklies.data.model.NewRecipe(
                     name = current.name,
                     ingredients = current.ingredients,
+                    instructions = current.instructions,
                 ),
             ) { next ->
                 scope.launch { graph.recipeRepository.updateRecipe(current.id, next) }

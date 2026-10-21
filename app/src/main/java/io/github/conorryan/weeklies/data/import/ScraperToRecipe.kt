@@ -24,6 +24,12 @@ fun scrapedRecipeToNewRecipe(
         .filter { it.isNotEmpty() }
     if (ingredients.isEmpty()) return null
 
+    val instructions = data.recipeInstructions
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?.joinToString("\n\n")
+        ?: ""
+
     val recipeServings = parseRecipeYield(data.recipeYield)
     if (recipeServings != null && isValidServings(targetServings.toDouble())) {
         return NewRecipe(
@@ -33,8 +39,9 @@ fun scrapedRecipeToNewRecipe(
                 recipeServings.toDouble(),
                 targetServings.toDouble(),
             ),
+            instructions = instructions,
         )
     }
 
-    return NewRecipe(name = name, ingredients = ingredients)
+    return NewRecipe(name = name, ingredients = ingredients, instructions = instructions)
 }

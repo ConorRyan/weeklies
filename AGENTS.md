@@ -49,7 +49,9 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   `SettingsStore`, `SecretsStore`, three repositories, `BackupManager`, and a
   lazy `RecipeImporter`. No DI framework; screens receive `graph`.
 - **Data layer** (`data/`) — the only code that touches persistence:
-  - `db/` — Room entities, DAOs, `AppDatabase` (recipes, weekly plan, shopping list).
+  - `db/` — Room entities, DAOs, `AppDatabase` (recipes, weekly plan, shopping
+    list). Schema v2 added `recipes.instructions` (one text blob); migrations
+    live in `AppDatabase` and are covered by a Robolectric test.
   - `model/` — pure domain models (`Recipe`, `ShoppingItem`, `Weekday`, `AppSettings`).
   - `repo/` — `RecipeRepository`, `PlanRepository`, `ShoppingRepository`: the single
     door from UI to the database. `Flow`s for observation, suspend functions for
@@ -88,7 +90,9 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
 ### Notable invariants
 
 - Backup JSON must stay compatible with the previous React Native format
-  (`BackupCodec`); backup import replaces everything — no merge.
+  (`BackupCodec`); backup import replaces everything — no merge. Recipes may
+  carry an optional `instructions` string; it is omitted when empty so
+  RN-era backups and recipes stay byte-identical.
 - The SAF backup folder URI/name, auto-backup toggle, and last-backup timestamp
   are device-local settings in `SettingsStore` outside `AppSettings`: they never
   appear in backup JSON and survive backup imports.
@@ -101,6 +105,9 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   scales lines by **portions per day** when adding today's recipe.
 - Shopping-line merging only combines a new line with an existing unchecked
   line whose remaining text matches ("100g pasta" + "100g pasta" -> "200g pasta").
+- Preparation notes in parentheses are stripped (`stripIngredientNotes`) when a
+  recipe's ingredients are added to the shopping list, so "250 g mushrooms
+  (trimmed)" is bought as "250 g mushrooms" and merges with it.
 - UI never touches DAOs directly — repositories are the only door.
 - `PersistentTabHost` keeps all four tab screens composed (state stays warm);
   only the active tab is measured/drawn. A tab route exists in two places —
