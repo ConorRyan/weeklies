@@ -5,18 +5,23 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.data.import.scaleIngredientLine
+import io.github.conorryan.weeklies.data.model.AppSettings
+import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.ShoppingItem
 import io.github.conorryan.weeklies.data.model.Weekday
 import io.github.conorryan.weeklies.ui.ToastBus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ShoppingUiState(
     val items: List<ShoppingItem> = emptyList(),
     val hasChecked: Boolean = false,
+    val recipes: List<Recipe> = emptyList(),
+    val todayRecipeId: String? = null,
+    val defaultPortions: Int = AppSettings.DEFAULT_PORTIONS_PER_DAY,
 )
 
 class ShoppingViewModel(
@@ -24,9 +29,20 @@ class ShoppingViewModel(
     private val toastBus: ToastBus,
 ) : ViewModel() {
 
-    val state: StateFlow<ShoppingUiState> = graph.shoppingRepository.items
-        .map { items -> ShoppingUiState(items = items, hasChecked = items.any { it.checked }) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShoppingUiState())
+    val state: StateFlow<ShoppingUiState> = combine(
+        graph.shoppingRepository.items,
+        graph.recipeRepository.recipes,
+        graph.planRepository.byDay,
+        graph.settingsStore.settings,
+    ) { items, recipes, byDay, settings ->
+        ShoppingUiState(
+            items = items,
+            hasChecked = items.any { it.checked },
+            recipes = recipes,
+            todayRecipeId = byDay[Weekday.today()],
+            defaultPortions = settings.portionsPerDay,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShoppingUiState())
 
     fun tick(id: String) {
         viewModelScope.launch { graph.shoppingRepository.toggleItem(id) }
@@ -44,30 +60,21 @@ class ShoppingViewModel(
         viewModelScope.launch { graph.shoppingRepository.removeCheckedItems() }
     }
 
-    /** Resolves today's planned recipe and adds its ingredients, scaled to portions per day. */
-    fun addTodaysIngredients() {
+    /** Adds the recipe's ingredients, scaled to [portions]; toasts if the recipe is gone. */
+    fun addRecipeIngredients(recipeId: String, portions: Int) {
         viewModelScope.launch {
-            val recipeId = graph.planRepository.snapshot()[Weekday.today()]
-            when (recipeId) {
-                null -> toastBus.info(
-                    "No recipe today",
-                    "Assign a recipe to today on the Weeklies tab first.",
+            val recipe = graph.recipeRepository.snapshot().firstOrNull { it.id == recipeId }
+            if (recipe == null) {
+                toastBus.info(
+                    "Recipe missing",
+                    "The recipe was removed. Update Weeklies or Recipes.",
                 )
-                else -> {
-                    val recipe = graph.recipeRepository.snapshot().firstOrNull { it.id == recipeId }
-                    if (recipe == null) {
-                        toastBus.info(
-                            "Recipe missing",
-                            "The planned recipe was removed. Update Weeklies or Recipes.",
-                        )
-                    } else {
-                        val portions = graph.settingsStore.current().portionsPerDay.toDouble()
-                        for (line in recipe.ingredients) {
-                            val trimmed = line.trim()
-                            if (trimmed.isEmpty()) continue
-                            graph.shoppingRepository.addItem(scaleIngredientLine(trimmed, portions))
-                        }
-                    }
+            } else {
+                val factor = portions.toDouble()
+                for (line in recipe.ingredients) {
+                    val trimmed = line.trim()
+                    if (trimmed.isEmpty()) continue
+                    graph.shoppingRepository.addItem(scaleIngredientLine(trimmed, factor))
                 }
             }
         }

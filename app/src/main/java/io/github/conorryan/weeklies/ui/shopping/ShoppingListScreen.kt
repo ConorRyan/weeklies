@@ -24,12 +24,19 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,11 +50,15 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.data.model.isValidPortionsPerDay
 import io.github.conorryan.weeklies.ui.BottomAction
 import io.github.conorryan.weeklies.ui.BottomActionBar
 import io.github.conorryan.weeklies.ui.TabHeader
@@ -55,6 +66,7 @@ import io.github.conorryan.weeklies.ui.ToastBus
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
     val vm: ShoppingViewModel = viewModel(
@@ -63,6 +75,9 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
     val state by vm.state.collectAsStateWithLifecycle()
 
     val scrollState = rememberScrollState()
+    var pickerOpen by remember { mutableStateOf(false) }
+    var portionsFor by remember { mutableStateOf<Recipe?>(null) }
+    val pickerSheetState = rememberModalBottomSheetState()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -242,7 +257,26 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 BottomAction(
                     icon = Icons.Filled.AddShoppingCart,
                     label = "Add today's recipe",
-                    onClick = { vm.addTodaysIngredients() },
+                    onClick = {
+                        val id = state.todayRecipeId
+                        val recipe = state.recipes.firstOrNull { it.id == id }
+                        when {
+                            id == null -> toastBus.info(
+                                "No recipe today",
+                                "Assign a recipe to today on the Weeklies tab first.",
+                            )
+                            recipe == null -> toastBus.info(
+                                "Recipe missing",
+                                "The planned recipe was removed. Update Weeklies or Recipes.",
+                            )
+                            else -> portionsFor = recipe
+                        }
+                    },
+                ),
+                BottomAction(
+                    icon = Icons.Filled.RestaurantMenu,
+                    label = "Add recipe",
+                    onClick = { pickerOpen = true },
                 ),
                 BottomAction(
                     icon = Icons.Filled.Delete,
@@ -253,5 +287,99 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 ),
             ),
         )
+    }
+
+    val portionsTarget = portionsFor
+    if (portionsTarget != null) {
+        var portionsText by remember { mutableStateOf(state.defaultPortions.toString()) }
+        val portions = portionsText.trim().toIntOrNull()
+        val portionsValid = portions != null && isValidPortionsPerDay(portions)
+        AlertDialog(
+            onDismissRequest = { portionsFor = null },
+            title = { Text(portionsTarget.name) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("How many portions? (Settings default: ${state.defaultPortions})")
+                    OutlinedTextField(
+                        value = portionsText,
+                        onValueChange = { portionsText = it },
+                        label = { Text("Portions") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        portionsFor = null
+                        if (portions != null) vm.addRecipeIngredients(portionsTarget.id, portions)
+                    },
+                    enabled = portionsValid,
+                ) { Text("Add") }
+            },
+            dismissButton = {
+                TextButton(onClick = { portionsFor = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (pickerOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { pickerOpen = false },
+            sheetState = pickerSheetState,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Add recipe", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Cancel",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { pickerOpen = false },
+                )
+            }
+
+            val others = state.recipes.filter { it.id != state.todayRecipeId }
+            if (others.isEmpty()) {
+                Column(
+                    Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        if (state.recipes.isEmpty()) {
+                            "Add recipes first, then pick one here."
+                        } else {
+                            "No other recipes yet."
+                        },
+                    )
+                }
+            } else {
+                for (item in others) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                pickerOpen = false
+                                portionsFor = item
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Text(item.name, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${item.ingredients.size} ingredient${if (item.ingredients.size == 1) "" else "s"}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+            Box(Modifier.padding(bottom = 32.dp))
+        }
     }
 }
