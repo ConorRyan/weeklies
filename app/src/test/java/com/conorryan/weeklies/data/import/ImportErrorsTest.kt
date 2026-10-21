@@ -47,10 +47,9 @@ class ImportErrorsTest {
     }
 
     @Test
-    fun weekdayMappingMatchesJsDayIndex() {
-        assertEquals(Weekday.SUN, Weekday.fromJsDayIndex(0))
-        assertEquals(Weekday.MON, Weekday.fromJsDayIndex(1))
-        assertEquals(Weekday.SAT, Weekday.fromJsDayIndex(6))
-        assertEquals(Weekday.MON, Weekday.fromJsDayIndex(9))
+    fun weekdayMappingMatchesJavaDayOfWeek() {
+        java.time.DayOfWeek.entries.forEach { dow ->
+            assertEquals(dow.name.take(3).lowercase(), Weekday.fromDayOfWeek(dow).key)
+        }
     }
 }

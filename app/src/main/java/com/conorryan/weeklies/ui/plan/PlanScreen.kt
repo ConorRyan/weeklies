@@ -22,21 +22,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.conorryan.weeklies.AppGraph
 import com.conorryan.weeklies.data.model.Weekday
-import com.conorryan.weeklies.data.model.emptyByDay
 import com.conorryan.weeklies.ui.TabHeader
 import com.conorryan.weeklies.ui.theme.HeaderColor
 import com.conorryan.weeklies.ui.theme.headerColorFor
-import kotlinx.coroutines.launch
-import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,11 +41,10 @@ fun PlanScreen(
     graph: AppGraph,
     onGoToRecipes: () -> Unit,
 ) {
-    val recipes by graph.recipeRepository.recipes.collectAsStateWithLifecycle(emptyList())
-    val byDay by graph.planRepository.byDay.collectAsStateWithLifecycle(emptyByDay())
+    val vm: PlanViewModel = viewModel(factory = PlanViewModel.Factory(graph))
+    val state by vm.state.collectAsStateWithLifecycle()
+    val byDay = state.byDay
     var pickerDay by remember { mutableStateOf<Weekday?>(null) }
-    val today = remember { Weekday.fromDate(Date()) }
-    val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
     Column(
@@ -66,13 +62,13 @@ fun PlanScreen(
 
         for (day in Weekday.entries) {
             val recipeId = byDay[day]
-            val recipe = recipeId?.let { id -> recipes.firstOrNull { it.id == id } }
+            val recipe = recipeId?.let { id -> state.recipes.firstOrNull { it.id == id } }
             val line = when {
                 recipeId == null -> "Choose recipe"
                 recipe == null -> "Recipe removed"
                 else -> recipe.name
             }
-            val isToday = day == today
+            val isToday = day == state.today
 
             Row(
                 modifier = Modifier
@@ -139,14 +135,14 @@ fun PlanScreen(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .clickable {
-                            scope.launch { graph.planRepository.setDayRecipe(day, null) }
+                            vm.setDayRecipe(day, null)
                             pickerDay = null
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
 
-            if (recipes.isEmpty()) {
+            if (state.recipes.isEmpty()) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Add recipes first, then pick one for each day.")
                     Text(
@@ -160,12 +156,12 @@ fun PlanScreen(
                     )
                 }
             } else {
-                for (item in recipes) {
+                for (item in state.recipes) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                scope.launch { graph.planRepository.setDayRecipe(day, item.id) }
+                                vm.setDayRecipe(day, item.id)
                                 pickerDay = null
                             }
                             .padding(horizontal = 16.dp, vertical = 12.dp),

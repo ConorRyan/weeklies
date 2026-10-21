@@ -13,6 +13,9 @@ interface RecipeDao {
     @Query("SELECT * FROM recipes ORDER BY rowid")
     fun observeAll(): Flow<List<RecipeEntity>>
 
+    @Query("SELECT * FROM recipes WHERE id = :id")
+    fun observeById(id: String): Flow<RecipeEntity?>
+
     @Query("SELECT * FROM recipes ORDER BY rowid")
     suspend fun getAll(): List<RecipeEntity>
 
@@ -73,11 +76,8 @@ interface ShoppingItemDao {
     @Insert
     suspend fun insert(item: ShoppingItemEntity)
 
-    @Query("UPDATE shopping_items SET checked = :checked WHERE id = :id")
-    suspend fun setChecked(id: String, checked: Boolean)
-
-    @Query("DELETE FROM shopping_items WHERE id = :id")
-    suspend fun delete(id: String)
+    @Query("UPDATE shopping_items SET checked = NOT checked WHERE id = :id")
+    suspend fun toggle(id: String)
 
     @Query("DELETE FROM shopping_items WHERE checked = 1")
     suspend fun deleteChecked()
@@ -85,9 +85,10 @@ interface ShoppingItemDao {
     @Query("DELETE FROM shopping_items")
     suspend fun deleteAll()
 
+    /** Caller supplies positions; only [insert] is used here. */
     @Transaction
     suspend fun replaceAll(items: List<ShoppingItemEntity>) {
         deleteAll()
-        items.forEachIndexed { index, item -> insert(item.copy(position = index.toLong())) }
+        items.forEach { insert(it) }
     }
 }

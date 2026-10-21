@@ -24,6 +24,8 @@ class RecipeRepository(private val db: AppDatabase) {
         rows.map { it.toModel() }
     }
 
+    fun observeRecipe(id: String): Flow<Recipe?> = db.recipeDao().observeById(id).map { it?.toModel() }
+
     suspend fun snapshot(): List<Recipe> = db.recipeDao().getAll().map { it.toModel() }
 
     suspend fun addRecipe(recipe: NewRecipe): Recipe {
@@ -45,7 +47,12 @@ class RecipeRepository(private val db: AppDatabase) {
 
     suspend fun removeRecipe(id: String) = db.recipeDao().delete(id)
 
-    suspend fun getById(id: String): Recipe? = db.recipeDao().getById(id)?.toModel()
+    /** Replaces the whole recipe list. */
+    suspend fun replaceAll(recipes: List<Recipe>) {
+        db.recipeDao().replaceAll(recipes.map { it.toEntity() })
+    }
+
+    private fun Recipe.toEntity() = RecipeEntity(id = id, name = name, ingredients = ingredients)
 }
 
 class PlanRepository(private val db: AppDatabase) {
@@ -104,24 +111,22 @@ class ShoppingRepository(private val db: AppDatabase) {
     }
 
     suspend fun toggleItem(id: String) {
-        val all = db.shoppingItemDao().getAll()
-        val item = all.firstOrNull { it.id == id } ?: return
-        db.shoppingItemDao().setChecked(id, !item.checked)
+        db.shoppingItemDao().toggle(id)
     }
-
-    suspend fun removeItem(id: String) = db.shoppingItemDao().delete(id)
 
     suspend fun removeCheckedItems() = db.shoppingItemDao().deleteChecked()
 
-    /** Replaces the whole list; order follows the given list. */
+    /** Replaces the whole list; order and positions follow the given list. */
     suspend fun replaceAll(items: List<ShoppingItem>) {
-        db.shoppingItemDao().replaceAll(items.map { it.toEntity() })
+        db.shoppingItemDao().replaceAll(
+            items.mapIndexed { index, item -> item.toEntity(index.toLong()) },
+        )
     }
 
-    private fun ShoppingItem.toEntity() = ShoppingItemEntity(
+    private fun ShoppingItem.toEntity(position: Long) = ShoppingItemEntity(
         id = id,
         label = label,
         checked = checked,
-        position = 0,
+        position = position,
     )
 }

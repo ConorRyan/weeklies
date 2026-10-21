@@ -26,7 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,15 +35,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.conorryan.weeklies.AppGraph
-import com.conorryan.weeklies.data.backup.BackupErrors
 import com.conorryan.weeklies.data.model.AppColorScheme
-import com.conorryan.weeklies.data.model.isValidPortionsPerDay
 import com.conorryan.weeklies.ui.TabHeader
 import com.conorryan.weeklies.ui.ToastBus
 import com.conorryan.weeklies.ui.theme.HeaderColor
 import com.conorryan.weeklies.ui.theme.headerColorFor
-import kotlinx.coroutines.launch
 
 private const val PORTIONS_INFO_TEXT =
     "Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients."
@@ -69,47 +66,26 @@ fun SettingsScreen(
     toastBus: ToastBus,
     onOpenHelp: () -> Unit,
 ) {
-    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(
-        com.conorryan.weeklies.data.model.AppSettings(
-            colorScheme = com.conorryan.weeklies.data.model.AppColorScheme.DARK,
-            portionsPerDay = 2,
-        ),
-    )
-    val apiKey by graph.secretsStore.mistralApiKey.collectAsStateWithLifecycle("")
-    val scope = rememberCoroutineScope()
+    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(graph, toastBus))
+    val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var backupBusy by remember { mutableStateOf(false) }
-    var portionsText by remember { mutableStateOf(settings.portionsPerDay.toString()) }
+    var portionsText by remember { mutableStateOf(state.settings.portionsPerDay.toString()) }
     var keyText by remember { mutableStateOf("") }
     var portionsInfoOpen by remember { mutableStateOf(false) }
     var keyInfoOpen by remember { mutableStateOf(false) }
 
     // Keep inputs in sync when values change elsewhere (e.g. after backup import).
-    LaunchedEffect(settings.portionsPerDay) { portionsText = settings.portionsPerDay.toString() }
-    LaunchedEffect(apiKey) { keyText = apiKey }
+    LaunchedEffect(state.settings.portionsPerDay) { portionsText = state.settings.portionsPerDay.toString() }
+    LaunchedEffect(state.apiKey) { keyText = state.apiKey }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
-        if (uri == null) {
-            toastBus.info("Export canceled")
-        } else {
-            scope.launch {
-                backupBusy = true
-                try {
-                    val json = graph.backupManager.buildBackupJson()
-                    context.contentResolver.openOutputStream(uri)?.use { out ->
-                        out.write(json.toByteArray(Charsets.UTF_8))
-                    } ?: error("Could not open file for writing")
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) {
-                        toastBus.info("Export canceled")
-                    } else {
-                        toastBus.error("Export failed", BackupErrors.formatBackupError(e, BackupErrors.Kind.EXPORT))
-                    }
-                } finally {
-                    backupBusy = false
-                }
+        when (uri) {
+            null -> toastBus.info("Export canceled")
+            else -> vm.exportBackup {
+                context.contentResolver.openOutputStream(uri)
+                    ?: error("Could not open file for writing")
             }
         }
     }
@@ -117,24 +93,11 @@ fun SettingsScreen(
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        if (uri == null) {
-            toastBus.info("Import canceled")
-        } else {
-            scope.launch {
-                backupBusy = true
-                try {
-                    val text = context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
-                        ?: error("Could not read that file")
-                    graph.backupManager.applyBackupImport(text)
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) {
-                        toastBus.info("Import canceled")
-                    } else {
-                        toastBus.error("Import failed", BackupErrors.formatBackupError(e, BackupErrors.Kind.IMPORT))
-                    }
-                } finally {
-                    backupBusy = false
-                }
+        when (uri) {
+            null -> toastBus.info("Import canceled")
+            else -> vm.importBackup {
+                context.contentResolver.openInputStream(uri)
+                    ?: error("Could not read that file")
             }
         }
     }
@@ -156,14 +119,8 @@ fun SettingsScreen(
         ) {
             Text("Dark mode", style = MaterialTheme.typography.bodyLarge)
             Switch(
-                checked = settings.colorScheme == AppColorScheme.DARK,
-                onCheckedChange = { on ->
-                    scope.launch {
-                        graph.settingsStore.setColorScheme(
-                            if (on) AppColorScheme.DARK else AppColorScheme.LIGHT,
-                        )
-                    }
-                },
+                checked = state.settings.colorScheme == AppColorScheme.DARK,
+                onCheckedChange = { on -> vm.setColorScheme(on) },
             )
         }
 
@@ -190,12 +147,8 @@ fun SettingsScreen(
             )
         }
         TextButton(onClick = {
-            val n = portionsText.trim().toDoubleOrNull()
-            if (n != null && isValidPortionsPerDay(n)) {
-                scope.launch { graph.settingsStore.setPortionsPerDay(n.toInt()) }
-                portionsText = n.toInt().toString()
-            } else {
-                portionsText = settings.portionsPerDay.toString()
+            if (!vm.applyPortions(portionsText)) {
+                portionsText = state.settings.portionsPerDay.toString()
             }
         }, modifier = Modifier.padding(horizontal = 16.dp)) { Text("Apply") }
 
@@ -223,12 +176,10 @@ fun SettingsScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = {
-                scope.launch { graph.secretsStore.setMistralApiKey(keyText.trim()) }
-            }) { Text("Save key") }
-            if (apiKey.trim().isNotEmpty()) {
+            TextButton(onClick = { vm.saveApiKey(keyText) }) { Text("Save key") }
+            if (state.apiKey.trim().isNotEmpty()) {
                 TextButton(onClick = {
-                    scope.launch { graph.secretsStore.clearMistralApiKey() }
+                    vm.clearApiKey()
                     keyText = ""
                 }) { Text("Clear key") }
             }
@@ -241,11 +192,11 @@ fun SettingsScreen(
         ) {
             TextButton(
                 onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
-                enabled = !backupBusy,
+                enabled = !state.backupBusy,
             ) { Text("Export…") }
             TextButton(
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
-                enabled = !backupBusy,
+                enabled = !state.backupBusy,
             ) {
                 Text("Import… (WARNING: replaces all data)")
             }

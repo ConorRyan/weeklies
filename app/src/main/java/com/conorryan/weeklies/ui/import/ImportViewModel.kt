@@ -5,9 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.conorryan.weeklies.AppGraph
 import com.conorryan.weeklies.data.import.RecipeImportErrorDisplay
-import com.conorryan.weeklies.data.import.RecipeImportException
 import com.conorryan.weeklies.data.import.RecipeImportErrors
-import com.conorryan.weeklies.data.import.isValidRecipeUrl
 import com.conorryan.weeklies.data.model.NewRecipe
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,33 +43,25 @@ class ImportViewModel(private val graph: AppGraph) : ViewModel() {
     }
 
     fun runScraperImport() {
-        val url = state.value.url.trim()
-        val inputError = when {
-            url.isEmpty() -> RecipeImportErrors.missingUrl()
-            !isValidRecipeUrl(url) -> RecipeImportErrors.invalidUrl()
-            else -> null
-        }
-        if (inputError != null) {
-            _state.update { it.copy(error = RecipeImportErrors.format(inputError)) }
+        // URL shape is validated by the import pipeline (PageFetcher); only the
+        // empty case gets its own copy here for instant feedback.
+        if (state.value.url.isBlank()) {
+            _state.update { it.copy(error = RecipeImportErrors.format(RecipeImportErrors.missingUrl())) }
             return
         }
-        run { graph.recipeImporter.importRecipeFromUrlWithScraper(url) }
+        run { graph.recipeImporter.importRecipeFromUrlWithScraper(state.value.url.trim()) }
     }
 
     fun runAiImport(apiKey: String) {
-        val key = apiKey.trim()
-        val url = state.value.url.trim()
-        val inputError = when {
-            key.isEmpty() -> RecipeImportErrors.mistralKeyMissing()
-            url.isEmpty() -> RecipeImportErrors.missingUrl()
-            !isValidRecipeUrl(url) -> RecipeImportErrors.invalidUrl()
-            else -> null
-        }
-        if (inputError != null) {
-            _state.update { it.copy(error = RecipeImportErrors.format(inputError)) }
+        if (apiKey.isBlank()) {
+            _state.update { it.copy(error = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())) }
             return
         }
-        run { graph.recipeImporter.importRecipeFromUrlWithMistral(url, key) }
+        if (state.value.url.isBlank()) {
+            _state.update { it.copy(error = RecipeImportErrors.format(RecipeImportErrors.missingUrl())) }
+            return
+        }
+        run { graph.recipeImporter.importRecipeFromUrlWithMistral(state.value.url.trim(), apiKey.trim()) }
     }
 
     fun saveRecipe(recipe: NewRecipe) {

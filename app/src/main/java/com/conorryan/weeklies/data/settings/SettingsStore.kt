@@ -49,6 +49,13 @@ class SettingsStore(private val context: Context) {
         )
     }
 
+    /** First-frame value for collecting [settings]: defaults with the OS color-scheme fallback applied. */
+    val defaults: AppSettings
+        get() = AppSettings(
+            colorScheme = defaultColorScheme(),
+            portionsPerDay = AppSettings.DEFAULT_PORTIONS_PER_DAY,
+        )
+
     /** Current settings snapshot, applying defaults for anything missing. */
     suspend fun current(): AppSettings = withDefaults(context.settingsDataStore.data.first())
 

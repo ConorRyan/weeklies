@@ -121,24 +121,6 @@ class ParseRecipeTest {
         assertEquals("Soup", (result as MistralParseOutcome.Recipe).payload.name)
     }
 
-    @Test
-    fun parsesFixtureResponseJson() {
-        val raw = fixtureText("mistral-response.json")
-        val response = Json.parseToJsonElement(raw).let { it as kotlinx.serialization.json.JsonObject }
-        val content = (((response["choices"] as kotlinx.serialization.json.JsonArray)
-            .first() as kotlinx.serialization.json.JsonObject)
-            .get("message") as kotlinx.serialization.json.JsonObject)
-            .get("content")!!.let { (it as kotlinx.serialization.json.JsonPrimitive).content }
-        val payload = parseMistralContentJson(content)
-        assertTrue(payload != null)
-        assertTrue(payload!!.ingredients.isNotEmpty())
-    }
-
-    @Test
-    fun returnsNullForInvalidJson() {
-        assertNull(parseMistralContentJson(fixtureText("mistral-bad-json.txt")))
-    }
-
     private fun fixtureText(name: String): String =
         object {}.javaClass.getResource("/recipe-import/$name")!!.readText()
 }

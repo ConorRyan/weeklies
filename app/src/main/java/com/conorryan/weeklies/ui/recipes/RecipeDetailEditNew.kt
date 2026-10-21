@@ -25,20 +25,20 @@ fun RecipeDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
 ) {
-    val recipes by graph.recipeRepository.recipes.collectAsStateWithLifecycle(emptyList())
-    val recipe = recipes.firstOrNull { it.id == recipeId }
+    val recipe by graph.recipeRepository.observeRecipe(recipeId).collectAsStateWithLifecycle(null)
+    val current = recipe
 
-    ModalScreen(title = recipe?.name ?: "Recipe", onBack = onBack) {
-        if (recipe != null) {
+    ModalScreen(title = current?.name ?: "Recipe", onBack = onBack) {
+        if (current != null) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(recipe.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { onEdit(recipe.id) }) { Text("Edit recipe") }
+                Text(current.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                TextButton(onClick = { onEdit(current.id) }) { Text("Edit recipe") }
                 Text(
                     "Ingredients (single portion)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
-                for (line in recipe.ingredients) {
+                for (line in current.ingredients) {
                     Text("- $line", style = MaterialTheme.typography.bodyLarge)
                 }
                 TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
@@ -64,19 +64,19 @@ fun RecipeEditScreen(
     recipeId: String,
     onBack: () -> Unit,
 ) {
-    val recipes by graph.recipeRepository.recipes.collectAsStateWithLifecycle(emptyList())
-    val recipe = recipes.firstOrNull { it.id == recipeId }
+    val recipe by graph.recipeRepository.observeRecipe(recipeId).collectAsStateWithLifecycle(null)
+    val current = recipe
     val scope = rememberCoroutineScope()
 
-    ModalScreen(title = if (recipe != null) "Edit recipe" else "New recipe", onBack = onBack) {
-        if (recipe != null) {
+    ModalScreen(title = if (current != null) "Edit recipe" else "New recipe", onBack = onBack) {
+        if (current != null) {
             RecipeForm(
                 initialRecipe = com.conorryan.weeklies.data.model.NewRecipe(
-                    name = recipe.name,
-                    ingredients = recipe.ingredients,
+                    name = current.name,
+                    ingredients = current.ingredients,
                 ),
             ) { next ->
-                scope.launch { graph.recipeRepository.updateRecipe(recipe.id, next) }
+                scope.launch { graph.recipeRepository.updateRecipe(current.id, next) }
                 onBack()
             }
         } else {

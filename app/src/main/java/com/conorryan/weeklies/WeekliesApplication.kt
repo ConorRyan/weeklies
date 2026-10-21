@@ -20,7 +20,7 @@ class AppGraph(db: AppDatabase, settingsStore: SettingsStore, secretsStore: Secr
     val shoppingRepository = ShoppingRepository(db)
     val settingsStore = settingsStore
     val secretsStore = secretsStore
-    val backupManager = BackupManager(db, settingsStore)
+    val backupManager = BackupManager(db, recipeRepository, planRepository, shoppingRepository, settingsStore)
 
     val recipeImporter: RecipeImporter by lazy {
         val transport = OkHttpTransport()

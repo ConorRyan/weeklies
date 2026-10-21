@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -116,19 +117,7 @@ private fun PersistentTabHost(
 
 @Composable
 fun WeekliesApp(graph: AppGraph) {
-    val initialSettings = androidx.compose.ui.platform.LocalContext.current.let { context ->
-        val nightMode = context.resources.configuration.uiMode and
-            android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        com.conorryan.weeklies.data.model.AppSettings(
-            colorScheme = if (nightMode == android.content.res.Configuration.UI_MODE_NIGHT_NO) {
-                com.conorryan.weeklies.data.model.AppColorScheme.LIGHT
-            } else {
-                com.conorryan.weeklies.data.model.AppColorScheme.DARK
-            },
-            portionsPerDay = 2,
-        )
-    }
-    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(initialSettings)
+    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(graph.settingsStore.defaults)
     val toastBus = remember { ToastBus() }
 
     WeekliesTheme(colorScheme = settings.colorScheme) {
@@ -137,11 +126,13 @@ fun WeekliesApp(graph: AppGraph) {
         val currentRoute = backStackEntry?.destination?.route
         val snackbarHostState = remember { SnackbarHostState() }
         val haptics = LocalHapticFeedback.current
+        var toastIsError by remember { mutableStateOf(false) }
 
         LaunchedEffect(toastBus) {
             toastBus.current
                 .onEach { event ->
                     if (event != null) {
+                        toastIsError = event.isError
                         snackbarHostState.showSnackbar(
                             message = if (event.message != null) {
                                 "${event.title}: ${event.message}"
@@ -157,7 +148,23 @@ fun WeekliesApp(graph: AppGraph) {
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {
+                SnackbarHost(snackbarHostState) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = if (toastIsError) {
+                            MaterialTheme.colorScheme.errorContainer
+                        } else {
+                            MaterialTheme.colorScheme.inverseSurface
+                        },
+                        contentColor = if (toastIsError) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        },
+                    )
+                }
+            },
             bottomBar = {
                 NavigationBar {
                     for (tab in TABS) {
@@ -174,11 +181,9 @@ fun WeekliesApp(graph: AppGraph) {
                 }
             },
         ) { padding ->
-            var activeTabRoute by rememberSaveable {
-                mutableStateOf(
-                    TABS.firstOrNull { it.route == currentRoute }?.route ?: Routes.PLAN,
-                )
-            }
+            // Mirrors the last tab route seen on the back stack; resynced from
+            // currentRoute so process-death restore and tab navigation agree.
+            var activeTabRoute by rememberSaveable { mutableStateOf(Routes.PLAN) }
             LaunchedEffect(currentRoute) {
                 val route = currentRoute ?: return@LaunchedEffect
                 if (TABS.any { it.route == route }) {

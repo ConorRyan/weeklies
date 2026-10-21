@@ -2,22 +2,24 @@ package com.conorryan.weeklies.data.backup
 
 import androidx.room.withTransaction
 import com.conorryan.weeklies.data.db.AppDatabase
-import com.conorryan.weeklies.data.db.PlanEntryEntity
-import com.conorryan.weeklies.data.db.RecipeEntity
-import com.conorryan.weeklies.data.db.ShoppingItemEntity
-import com.conorryan.weeklies.data.model.Recipe
-import com.conorryan.weeklies.data.model.ShoppingItem
-import com.conorryan.weeklies.data.model.Weekday
-import com.conorryan.weeklies.data.model.emptyByDay
 import com.conorryan.weeklies.data.settings.SettingsStore
+import com.conorryan.weeklies.data.repo.PlanRepository
+import com.conorryan.weeklies.data.repo.RecipeRepository
+import com.conorryan.weeklies.data.repo.ShoppingRepository
 import java.time.Instant
 
 /**
- * Builds backups from the database and applies imported backups, replacing
+ * Builds backups from the repositories and applies imported backups, replacing
  * everything currently stored (no merge), mirroring the RN app's behavior.
+ *
+ * All reads and writes go through the repositories; the database handle is kept
+ * only to scope the restore transaction across all three replacements.
  */
 class BackupManager(
     private val db: AppDatabase,
+    private val recipeRepository: RecipeRepository,
+    private val planRepository: PlanRepository,
+    private val shoppingRepository: ShoppingRepository,
     private val settingsStore: SettingsStore,
 ) {
 
@@ -25,9 +27,9 @@ class BackupManager(
 
     suspend fun buildBackupJson(): String {
         val snapshot = BackupSnapshot(
-            byDay = snapshotByDay(),
-            recipes = db.recipeDao().getAll().map { it.toModel() },
-            items = db.shoppingItemDao().getAll().map { it.toModel() },
+            byDay = planRepository.snapshot(),
+            recipes = recipeRepository.snapshot(),
+            items = shoppingRepository.snapshot(),
         )
         val settings = settingsStore.current()
         return BackupCodec.buildBackupJson(settings, snapshot, Instant.now().toString())
@@ -39,40 +41,12 @@ class BackupManager(
         val imported = BackupCodec.parseBackup(rawJson, defaults)
 
         db.withTransaction {
-            db.recipeDao().replaceAll(imported.recipes.map { it.toEntity() })
-            db.shoppingItemDao().replaceAll(
-                imported.items.mapIndexed { index, item -> item.toEntity(index.toLong()) },
-            )
-            db.planDao().replaceAll(
-                imported.byDay.map { (day, recipeId) ->
-                    PlanEntryEntity(weekday = day.key, recipeId = recipeId)
-                },
-            )
+            recipeRepository.replaceAll(imported.recipes)
+            shoppingRepository.replaceAll(imported.items)
+            planRepository.replaceAll(imported.byDay)
         }
         settingsStore.replace(imported.settings)
     }
-
-    private suspend fun snapshotByDay(): Map<Weekday, String?> {
-        val next = emptyByDay().toMutableMap()
-        for (row in db.planDao().getAll()) {
-            val day = Weekday.fromKey(row.weekday) ?: continue
-            next[day] = row.recipeId
-        }
-        return next.toMap()
-    }
-
-    private fun RecipeEntity.toModel() = Recipe(id = id, name = name, ingredients = ingredients)
-
-    private fun ShoppingItemEntity.toModel() = ShoppingItem(id = id, label = label, checked = checked)
-
-    private fun Recipe.toEntity() = RecipeEntity(id = id, name = name, ingredients = ingredients)
-
-    private fun ShoppingItem.toEntity(position: Long) = ShoppingItemEntity(
-        id = id,
-        label = label,
-        checked = checked,
-        position = position,
-    )
 }
 
 /** Short, user-facing copy for backup failure toasts (no stack traces). */

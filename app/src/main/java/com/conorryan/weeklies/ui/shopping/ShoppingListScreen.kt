@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -32,42 +31,29 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.conorryan.weeklies.AppGraph
-import com.conorryan.weeklies.data.import.scaleIngredientLine
-import com.conorryan.weeklies.data.model.Weekday
 import com.conorryan.weeklies.ui.ActionButton
 import com.conorryan.weeklies.ui.TabHeader
 import com.conorryan.weeklies.ui.ToastBus
 import com.conorryan.weeklies.ui.theme.HeaderColor
 import com.conorryan.weeklies.ui.theme.headerColorFor
-import kotlinx.coroutines.launch
-import java.util.Date
 
 @Composable
 fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
-    val items by graph.shoppingRepository.items.collectAsStateWithLifecycle(emptyList())
-    val recipes by graph.recipeRepository.recipes.collectAsStateWithLifecycle(emptyList())
-    val byDay by graph.planRepository.byDay.collectAsStateWithLifecycle(com.conorryan.weeklies.data.model.emptyByDay())
-    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(
-        com.conorryan.weeklies.data.model.AppSettings(
-            colorScheme = com.conorryan.weeklies.data.model.AppColorScheme.DARK,
-            portionsPerDay = 2,
-        ),
+    val vm: ShoppingViewModel = viewModel(
+        factory = ShoppingViewModel.Factory(graph, toastBus),
     )
-    val scope = rememberCoroutineScope()
-    val hasChecked = items.any { it.checked }
+    val state by vm.state.collectAsStateWithLifecycle()
 
     val scrollState = rememberScrollState()
     Column(
@@ -86,52 +72,24 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
         ) {
             ActionButton(
                 label = "Add today's recipe",
-                onClick = {
-                    val day = Weekday.fromDate(Date())
-                    val recipeId = byDay[day]
-                    when {
-                        recipeId == null -> toastBus.info(
-                            "No recipe today",
-                            "Assign a recipe to today on the Weeklies tab first.",
-                        )
-                        else -> {
-                            val recipe = recipes.firstOrNull { it.id == recipeId }
-                            if (recipe == null) {
-                                toastBus.info(
-                                    "Recipe missing",
-                                    "The planned recipe was removed. Update Weeklies or Recipes.",
-                                )
-                            } else {
-                                scope.launch {
-                                    for (line in recipe.ingredients) {
-                                        val trimmed = line.trim()
-                                        if (trimmed.isEmpty()) continue
-                                        graph.shoppingRepository.addItem(
-                                            scaleIngredientLine(trimmed, settings.portionsPerDay.toDouble()),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
+                onClick = { vm.addTodaysIngredients() },
                 modifier = Modifier.weight(1f),
             )
             ActionButton(
                 label = "Remove checked",
-                onClick = { scope.launch { graph.shoppingRepository.removeCheckedItems() } },
-                enabled = hasChecked,
+                onClick = { vm.removeChecked() },
+                enabled = state.hasChecked,
                 borderColor = MaterialTheme.colorScheme.error,
                 textColor = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
         }
 
-        for (item in items) {
+        for (item in state.items) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { scope.launch { graph.shoppingRepository.toggleItem(item.id) } }
+                    .clickable { vm.tick(item.id) }
                     .padding(horizontal = 12.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -167,7 +125,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
         val submitNewLabel = {
             val trimmed = newLabel.trim()
             if (trimmed.isNotEmpty()) {
-                scope.launch { graph.shoppingRepository.addItem(trimmed) }
+                vm.addItem(trimmed)
                 newLabel = ""
             }
         }
@@ -186,7 +144,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                     color = MaterialTheme.colorScheme.onBackground,
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submitNewLabel() }),
                 decorationBox = { innerTextField ->
                     Box(

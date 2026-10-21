@@ -190,8 +190,7 @@ class RecipeImporterTest {
 
     @Test
     fun importsRecipeFromHtmlFixture() = runTest {
-        val recipe = importer(FakeTransport())
-            .importRecipeFromHtmlWithScraper(fixture("allrecipes-with-jsonld.html"))
+        val recipe = Scraper.extractRecipe(fixture("allrecipes-with-jsonld.html"))
         assertEquals("Tomato Pasta", recipe.name)
         // recipeYield "2 servings" scaled to one portion: 400g -> 200 g.
         assertEquals(listOf("200 g pasta", "1 tomatoes"), recipe.ingredients)
@@ -200,7 +199,7 @@ class RecipeImporterTest {
     @Test
     fun throwsEmptyContentForBlankHtml() = runTest {
         try {
-            importer(FakeTransport()).importRecipeFromHtmlWithScraper("   ")
+            Scraper.extractRecipe("   ")
             fail("expected emptyContent")
         } catch (e: RecipeImportException) {
             assertEquals(RecipeImportErrorCode.EMPTY_CONTENT, e.code)
@@ -211,7 +210,7 @@ class RecipeImporterTest {
     fun throwsIncompleteRecipeWhenYieldMarkupIsUnusable() = runTest {
         val html = """<script type="application/ld+json">{"@type":"Recipe","name":"No ingredients"}</script>"""
         try {
-            importer(FakeTransport()).importRecipeFromHtmlWithScraper(html)
+            Scraper.extractRecipe(html)
             fail("expected noRecipeData")
         } catch (e: RecipeImportException) {
             assertEquals(RecipeImportErrorCode.NO_RECIPE_DATA, e.code)

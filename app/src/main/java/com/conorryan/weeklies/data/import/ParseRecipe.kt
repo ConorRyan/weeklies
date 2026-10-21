@@ -103,12 +103,3 @@ fun parseMistralResponse(content: String): MistralParseOutcome? {
     val payload = parseMistralRecipePayload(data) ?: return null
     return MistralParseOutcome.Recipe(payload)
 }
-
-fun parseMistralContentJson(content: String): MistralRecipePayload? {
-    val data = try {
-        Json.parseToJsonElement(content)
-    } catch (e: Exception) {
-        return null
-    }
-    return parseMistralRecipePayload(data)
-}
