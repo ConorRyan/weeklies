@@ -38,6 +38,42 @@ class ParseRecipeTest {
     }
 
     @Test
+    fun rescalesMultiPortionAmountsToSinglePortion() {
+        assertEquals(
+            listOf("100 g pasta"),
+            rescaleToSinglePortion(listOf("400 g pasta"), 4.0),
+        )
+    }
+
+    @Test
+    fun rescaleMultipliesFractionalPortionAmounts() {
+        assertEquals(
+            listOf("2 cup flour"),
+            rescaleToSinglePortion(listOf("1 cup flour"), 0.5),
+        )
+    }
+
+    @Test
+    fun rescaleReturnsUnchangedForInvalidPortions() {
+        assertEquals(
+            listOf("400 g pasta"),
+            rescaleToSinglePortion(listOf("400 g pasta"), 0.0),
+        )
+        assertEquals(
+            listOf("400 g pasta"),
+            rescaleToSinglePortion(listOf("400 g pasta"), Double.NaN),
+        )
+    }
+
+    @Test
+    fun rescaleHandlesMixedNumbers() {
+        assertEquals(
+            listOf("0.375 cups flour"),
+            rescaleToSinglePortion(listOf("1 1/2 cups flour"), 4.0),
+        )
+    }
+
+    @Test
     fun joinsQuantityAndName() {
         assertEquals("200 g flour", ingredientPartsToLine("200 g", "flour"))
     }

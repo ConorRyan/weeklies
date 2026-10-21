@@ -29,6 +29,13 @@ fun scaleIngredientsToServings(
     return ingredients.map { scaleIngredientLine(it, factor) }
 }
 
+/**
+ * Rescales ingredient lines whose amounts currently make [portions] portions
+ * down (or up) to a single portion; unchanged when [portions] is not usable.
+ */
+fun rescaleToSinglePortion(ingredients: List<String>, portions: Double): List<String> =
+    scaleIngredientsToServings(ingredients, portions, 1.0)
+
 fun ingredientPartsToLine(quantity: String?, name: String): String? {
     val n = name.trim()
     if (n.isEmpty()) return null

@@ -41,8 +41,20 @@ class ScaleIngredientLineTest {
     }
 
     @Test
-    fun scalesMultipleNumericTokens() {
-        assertEquals("2 1 cups flour", scaleIngredientLine("1 1/2 cups flour", 2.0))
+    fun scalesMixedNumbersAsOneQuantity() {
+        assertEquals("3 cups flour", scaleIngredientLine("1 1/2 cups flour", 2.0))
+        assertEquals("0.375 cups flour", scaleIngredientLine("1 1/2 cups flour", 0.25))
+    }
+
+    @Test
+    fun scalesMixedNumbersWithSpacedFractions() {
+        assertEquals("3 cups flour", scaleIngredientLine("1 1 / 2 cups flour", 2.0))
+    }
+
+    @Test
+    fun scalesCommaGroupedThousandsAsOneNumber() {
+        assertEquals("250 g tomatoes", scaleIngredientLine("1,000 g tomatoes", 0.25))
+        assertEquals("5000 g tomatoes", scaleIngredientLine("2,500 g tomatoes", 2.0))
     }
 
     @Test
