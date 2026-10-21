@@ -3,12 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.license.report)
-}
-
-licenseReport {
-    configurations = arrayOf("releaseRuntimeClasspath")
-    outputDir = layout.buildDirectory.dir("reports/dependency-license").get().asFile.absolutePath
 }
 
 android {

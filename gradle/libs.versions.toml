@@ -2,7 +2,6 @@
 agp = "9.2.1"
 kotlin = "2.4.21"
 ksp = "2.3.12"
-licenseReport = "3.1.4"
 coreKtx = "1.19.1"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
@@ -59,4 +58,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-license-report = { id = "com.github.jk1.dependency-license-report", version.ref = "licenseReport" }
