@@ -1,5 +1,7 @@
 package com.conorryan.weeklies.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -134,6 +136,10 @@ fun WeekliesApp(graph: AppGraph) {
                 navController = navController,
                 startDestination = Routes.PLAN,
                 modifier = Modifier.padding(padding),
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
             ) {
                 composable(Routes.PLAN) {
                     PlanScreen(
