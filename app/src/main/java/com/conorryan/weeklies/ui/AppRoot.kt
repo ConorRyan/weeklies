@@ -4,6 +4,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -186,7 +187,12 @@ fun WeekliesApp(graph: AppGraph) {
             }
             val onTabRoute = TABS.any { it.route == currentRoute }
 
-            Box(Modifier.padding(padding).fillMaxSize()) {
+            Box(
+                Modifier
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .fillMaxSize(),
+            ) {
                 PersistentTabHost(activeTabRoute) { route ->
                     when (route) {
                         Routes.PLAN -> PlanScreen(

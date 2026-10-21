@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,11 +28,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -66,10 +69,12 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
     val scope = rememberCoroutineScope()
     val hasChecked = items.any { it.checked }
 
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .imePadding()
+            .verticalScroll(scrollState),
     ) {
         TabHeader("Shopping List", Icons.Filled.ShoppingCart, headerColorFor(HeaderColor.SHOPPING))
 
@@ -151,6 +156,14 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
 
         var newLabel by remember { mutableStateOf("") }
         var fieldFocused by remember { mutableStateOf(false) }
+        LaunchedEffect(fieldFocused) {
+            if (fieldFocused) {
+                // Keep the input above the keyboard: scroll to the bottom now and again
+                // whenever the keyboard opening changes the scroll bounds.
+                snapshotFlow { scrollState.maxValue }
+                    .collect { maxValue -> scrollState.animateScrollTo(maxValue) }
+            }
+        }
         val submitNewLabel = {
             val trimmed = newLabel.trim()
             if (trimmed.isNotEmpty()) {
