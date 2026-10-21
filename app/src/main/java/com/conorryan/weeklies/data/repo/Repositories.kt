@@ -128,6 +128,12 @@ class ShoppingRepository(private val db: AppDatabase) {
         db.shoppingItemDao().toggle(id)
     }
 
+    suspend fun renameItem(id: String, label: String) {
+        val trimmed = label.trim()
+        if (trimmed.isEmpty()) return
+        db.shoppingItemDao().setLabel(id, trimmed)
+    }
+
     suspend fun removeCheckedItems() = db.shoppingItemDao().deleteChecked()
 
     /** Replaces the whole list; order and positions follow the given list. */

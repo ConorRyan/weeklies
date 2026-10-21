@@ -20,6 +20,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -35,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextDecoration
@@ -85,11 +89,25 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             )
         }
 
+        var editTargetId by remember { mutableStateOf<String?>(null) }
+        var editLabel by remember { mutableStateOf("") }
+        var editFieldFocused by remember { mutableStateOf(false) }
+        val commitEdit = {
+            val target = editTargetId
+            if (target != null) {
+                val trimmed = editLabel.trim()
+                if (trimmed.isNotEmpty()) {
+                    vm.renameItem(target, trimmed)
+                }
+                editTargetId = null
+            }
+        }
         for (item in state.items) {
+            val editing = editTargetId == item.id
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { vm.tick(item.id) }
+                    .clickable(enabled = !editing) { vm.tick(item.id) }
                     .padding(horizontal = 12.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -99,16 +117,60 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                     onCheckedChange = null,
                     modifier = Modifier.size(24.dp),
                 )
-                Text(
-                    item.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textDecoration = if (item.checked) TextDecoration.LineThrough else null,
-                    color = if (item.checked) {
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
+                if (editing) {
+                    val focusRequester = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+                    BasicTextField(
+                        value = editLabel,
+                        onValueChange = { editLabel = it },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onBackground,
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { commitEdit() }),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { focusState ->
+                                val wasFocused = editFieldFocused
+                                editFieldFocused = focusState.isFocused
+                                if (wasFocused && !focusState.isFocused) commitEdit()
+                            },
+                    )
+                } else {
+                    Text(
+                        item.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textDecoration = if (item.checked) TextDecoration.LineThrough else null,
+                        color = if (item.checked) {
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        } else {
+                            MaterialTheme.colorScheme.onBackground
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        if (editing) {
+                            commitEdit()
+                        } else {
+                            editLabel = item.label
+                            editFieldFocused = false
+                            editTargetId = item.id
+                        }
                     },
-                )
+                ) {
+                    Icon(
+                        if (editing) Icons.Filled.Check else Icons.Filled.Edit,
+                        contentDescription = if (editing) "Done editing" else "Edit item",
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    )
+                }
             }
         }
 

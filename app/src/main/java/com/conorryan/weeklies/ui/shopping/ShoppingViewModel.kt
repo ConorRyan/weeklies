@@ -36,6 +36,10 @@ class ShoppingViewModel(
         viewModelScope.launch { graph.shoppingRepository.addItem(label) }
     }
 
+    fun renameItem(id: String, label: String) {
+        viewModelScope.launch { graph.shoppingRepository.renameItem(id, label) }
+    }
+
     fun removeChecked() {
         viewModelScope.launch { graph.shoppingRepository.removeCheckedItems() }
     }
