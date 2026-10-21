@@ -39,6 +39,8 @@ ViewModels ──state──► Compose screens ──feedback──► ToastBus
         └── suspend mutations ──► Repositories ──► AppDatabase / DataStore
 
 BackupManager   export: repos + settings → one JSON file; import: JSON → replaces everything
+FolderBackups   BackupManager → timestamped JSON in the user-picked SAF folder (newest 3 kept)
+AutoBackup      repos' flows → debounced FolderBackups write after data changes while enabled
 RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistral → recipe
 ```
 
@@ -56,7 +58,13 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
     and `SecretsStore` (Mistral API key; never included in backups).
   - `backup/` — `BackupCodec` (JSON encode/decode, compatible with the previous
     React Native format) and `BackupManager` (export all data to one JSON file;
-    import replaces everything, no merge).
+    import replaces everything, no merge); `FolderBackups` (off-device backups:
+    writes timestamped JSON into a user-picked SAF folder such as Google Drive
+    or Nextcloud, prunes to the newest 3 — only files this app created, tracked
+    by recorded document IDs, are ever deleted — and holds a persisted tree
+    permission)
+    and `AutoBackup` (debounced write after data changes while enabled,
+    started app-wide from `WeekliesApplication` via `graph.appScope`).
   - `import/` — recipe import subsystem: `PageFetcher`/`Scraper` (OkHttp + Jsoup),
     JSON-LD parsing (`ScraperParse`, `ScraperToRecipe`, `ParseRecipe`,
     `Preprocess`), optional Mistral completion (`MistralClient`, `RecipeImporter`),
@@ -81,6 +89,13 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
 
 - Backup JSON must stay compatible with the previous React Native format
   (`BackupCodec`); backup import replaces everything — no merge.
+- The SAF backup folder URI/name, auto-backup toggle, and last-backup timestamp
+  are device-local settings in `SettingsStore` outside `AppSettings`: they never
+  appear in backup JSON and survive backup imports.
+- Folder-backup pruning deletes only files this app created (document IDs
+  recorded in `SettingsStore`) whose names match the exact pattern
+  `weeklies-backup-YYYY-MM-DD-HHMMSS.json`; files from other programs in the
+  folder are never touched.
 - The Mistral API key (`SecretsStore`) is never included in backups.
 - Recipe import normalizes ingredient amounts to one portion; the shopping list
   scales lines by **portions per day** when adding today's recipe.

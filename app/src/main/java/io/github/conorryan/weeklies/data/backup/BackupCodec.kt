@@ -56,7 +56,7 @@ object BackupCodec {
     private val filenameFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     fun defaultBackupFilename(date: LocalDate = LocalDate.now()): String =
-        "backup-${date.format(filenameFormat)}.json"
+        "weeklies-backup-${date.format(filenameFormat)}.json"
 
     fun buildBackupJson(settings: AppSettings, snapshot: BackupSnapshot, exportedAt: String): String {
         val payload = buildJsonObject {

@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.res.Configuration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.github.conorryan.weeklies.data.model.AppColorScheme
 import io.github.conorryan.weeklies.data.model.AppSettings
@@ -14,6 +16,7 @@ import io.github.conorryan.weeklies.data.model.isValidPortionsPerDay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "weeklies.settings",
@@ -28,6 +31,12 @@ private val PORTIONS_PER_DAY_KEY = intPreferencesKey("portionsPerDay")
 private val SETTINGS_SCHEMA_VERSION_KEY = intPreferencesKey("settingsSchemaVersion")
 
 private val MISTRAL_API_KEY = stringPreferencesKey("mistralApiKey")
+
+private val BACKUP_FOLDER_URI_KEY = stringPreferencesKey("backupFolderUri")
+private val BACKUP_FOLDER_NAME_KEY = stringPreferencesKey("backupFolderName")
+private val AUTO_BACKUP_ENABLED_KEY = booleanPreferencesKey("autoBackupEnabled")
+private val LAST_FOLDER_BACKUP_KEY = stringPreferencesKey("lastFolderBackupAt")
+private val FOLDER_BACKUP_DOCUMENT_IDS_KEY = stringSetPreferencesKey("folderBackupDocumentIds")
 
 /**
  * App settings (color scheme, portions per day), persisted with DataStore.
@@ -66,6 +75,70 @@ class SettingsStore(private val context: Context) {
     suspend fun setPortionsPerDay(portions: Int) {
         if (!isValidPortionsPerDay(portions)) return
         context.settingsDataStore.edit { it[PORTIONS_PER_DAY_KEY] = portions }
+    }
+
+    /**
+     * Configured SAF backup folder. Deliberately outside [AppSettings]: these
+     * values are device-local, never travel inside backup JSON, and survive
+     * backup imports (which only replace color scheme and portions).
+     */
+    val backupFolderUri: Flow<String?> =
+        context.settingsDataStore.data.map { it[BACKUP_FOLDER_URI_KEY] }
+
+    val backupFolderName: Flow<String?> =
+        context.settingsDataStore.data.map { it[BACKUP_FOLDER_NAME_KEY] }
+
+    val autoBackupEnabled: Flow<Boolean> =
+        context.settingsDataStore.data.map { it[AUTO_BACKUP_ENABLED_KEY] ?: false }
+
+    val lastFolderBackupAt: Flow<Instant?> = context.settingsDataStore.data.map { prefs ->
+        prefs[LAST_FOLDER_BACKUP_KEY]?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    }
+
+    suspend fun setBackupFolder(uri: String, name: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[BACKUP_FOLDER_URI_KEY] = uri
+            prefs[BACKUP_FOLDER_NAME_KEY] = name
+            prefs[FOLDER_BACKUP_DOCUMENT_IDS_KEY] = emptySet()
+        }
+    }
+
+    suspend fun clearBackupFolder() {
+        context.settingsDataStore.edit { prefs ->
+            prefs.remove(BACKUP_FOLDER_URI_KEY)
+            prefs.remove(BACKUP_FOLDER_NAME_KEY)
+            prefs.remove(FOLDER_BACKUP_DOCUMENT_IDS_KEY)
+        }
+    }
+
+    /**
+     * SAF document IDs of backups this app created in the current folder.
+     * Pruning may delete only these; anything else in the folder is safe even
+     * if it happens to be named like a backup.
+     */
+    val folderBackupDocumentIds: Flow<Set<String>> =
+        context.settingsDataStore.data.map { it[FOLDER_BACKUP_DOCUMENT_IDS_KEY] ?: emptySet() }
+
+    suspend fun recordFolderBackupDocument(documentId: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[FOLDER_BACKUP_DOCUMENT_IDS_KEY] =
+                (prefs[FOLDER_BACKUP_DOCUMENT_IDS_KEY] ?: emptySet()) + documentId
+        }
+    }
+
+    /** Keeps only [keepIds] as the recorded set. */
+    suspend fun trimFolderBackupDocumentIds(keepIds: Collection<String>) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[FOLDER_BACKUP_DOCUMENT_IDS_KEY] = keepIds.toSet()
+        }
+    }
+
+    suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { it[AUTO_BACKUP_ENABLED_KEY] = enabled }
+    }
+
+    suspend fun recordFolderBackup(at: Instant) {
+        context.settingsDataStore.edit { it[LAST_FOLDER_BACKUP_KEY] = at.toString() }
     }
 
     /** Replaces everything; invalid values fall back to defaults. */

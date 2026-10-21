@@ -89,7 +89,7 @@ fun HelpScreen(
                     "shopping list are stored on this device, where they stay until you remove them in the " +
                     "app or replace them by importing a backup.",
                 "In Settings, open the Data section. Export writes one JSON file (default name like " +
-                    "backup-2026-05-09.json) containing recipes, your weekly plan, the shopping list, and " +
+                    "weeklies-backup-2026-05-09.json) containing recipes, your weekly plan, the shopping list, and " +
                     "settings — including dark mode and portions per day.",
                 "Import replaces all stored data with the contents of that file. Nothing is merged with " +
                     "what you already had — confirm only when you intend to overwrite the app " +
