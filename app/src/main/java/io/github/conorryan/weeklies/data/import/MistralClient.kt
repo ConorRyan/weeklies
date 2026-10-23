@@ -81,23 +81,15 @@ fun buildUserMessage(preprocessed: PreprocessedRecipePage, sourceUrl: String?): 
     return parts.joinToString("\n\n")
 }
 
-fun mapMistralHttpError(status: Int): RecipeImportException {
-    return when {
-        status == 401 -> RecipeImportErrors.mistralAuth()
-        status == 429 -> RecipeImportErrors.mistralRateLimit()
-        status >= 500 -> RecipeImportErrors.mistralUnavailable()
-        else -> RecipeImportErrors.mistralFailed(status)
-    }
-}
-
 /**
  * Calls Mistral's chat completions endpoint with a strict JSON schema and
- * returns a [NewRecipe] normalized to one serving, retrying once when the
- * response is not valid JSON.
+ * returns a [NewRecipe] normalized to one serving. The wire protocol and
+ * retry behavior live in [MistralChat]; this class owns the import prompt,
+ * schema, and response parsing.
  */
-class MistralClient(private val transport: HttpTransport) {
+class MistralClient(transport: HttpTransport) {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val chat = MistralChat(transport)
 
     suspend fun extractRecipe(
         apiKey: String,
@@ -107,84 +99,24 @@ class MistralClient(private val transport: HttpTransport) {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
-        var content = callMistralOnce(key, preprocessed, sourceUrl, retryFixJson = false)
-
-        var result = parseMistralResponse(content)
-        if (result is MistralParseOutcome.NoRecipe) throw RecipeImportErrors.noRecipeData()
-        if (result == null) {
-            content = callMistralOnce(key, preprocessed, sourceUrl, retryFixJson = true)
-            result = parseMistralResponse(content)
-            if (result is MistralParseOutcome.NoRecipe) throw RecipeImportErrors.noRecipeData()
+        val payload = chat.chatForJson(
+            apiKey = key,
+            model = ImportConstants.MISTRAL_RECIPE_MODEL,
+            schemaName = "recipe_extract",
+            systemPrompt = SYSTEM_PROMPT,
+            userContent = buildUserMessage(preprocessed, sourceUrl),
+            schema = RECIPE_JSON_SCHEMA,
+        ) { content ->
+            when (val result = parseMistralResponse(content)) {
+                is MistralParseOutcome.NoRecipe -> throw RecipeImportErrors.noRecipeData()
+                is MistralParseOutcome.Recipe -> result.payload
+                null -> null
+            }
         }
-
-        val payload = (result as? MistralParseOutcome.Recipe)?.payload
-            ?: throw RecipeImportErrors.mistralParse()
 
         return mistralPayloadToNewRecipe(
             payload,
             ImportConstants.RECIPE_IMPORT_TARGET_SERVINGS,
         ) ?: throw RecipeImportErrors.mistralParse()
-    }
-
-    private suspend fun callMistralOnce(
-        apiKey: String,
-        preprocessed: PreprocessedRecipePage,
-        sourceUrl: String?,
-        retryFixJson: Boolean,
-    ): String {
-        val userContent = if (retryFixJson) {
-            "Your previous response was not valid JSON for the schema. " +
-                "Reply with only valid JSON for the recipe schema, no markdown."
-        } else {
-            buildUserMessage(preprocessed, sourceUrl)
-        }
-
-        val requestBody = buildJsonObject {
-            put("model", ImportConstants.MISTRAL_RECIPE_MODEL)
-            put("temperature", 0.1)
-            put("messages", buildJsonArray {
-                add(buildJsonObject {
-                    put("role", "system")
-                    put("content", SYSTEM_PROMPT)
-                })
-                add(buildJsonObject {
-                    put("role", "user")
-                    put("content", userContent)
-                })
-            })
-            put("response_format", buildJsonObject {
-                put("type", "json_schema")
-                put("json_schema", buildJsonObject {
-                    put("name", "recipe_extract")
-                    put("strict", true)
-                    put("schema", RECIPE_JSON_SCHEMA)
-                })
-            })
-        }.toString()
-
-        val response = transport.execute(
-            method = "POST",
-            url = ImportConstants.MISTRAL_CHAT_URL,
-            headers = mapOf(
-                "Authorization" to "Bearer $apiKey",
-                "Content-Type" to "application/json",
-            ),
-            body = requestBody,
-        )
-
-        if (response.status !in 200..299) throw mapMistralHttpError(response.status)
-
-        val body = try {
-            json.parseToJsonElement(response.bodyText) as? JsonObject
-        } catch (e: Exception) {
-            null
-        }
-        val content = (((body?.get("choices") as? JsonArray)
-            ?.firstOrNull() as? JsonObject)
-            ?.get("message") as? JsonObject)
-            ?.get("content")?.let { (it as? JsonPrimitive)?.content }
-
-        if (content.isNullOrBlank()) throw RecipeImportErrors.mistralEmpty()
-        return content
     }
 }

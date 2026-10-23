@@ -394,31 +394,32 @@ fun parseCleanupResponse(content: String): CleanedIngredients? {
 
 /**
  * Calls Mistral to clean up a recipe's ingredient lines: one unit each,
- * metric where convertible, amounts rounded within 5%. Retries once when the
- * response is not valid JSON.
+ * metric where convertible, amounts rounded within 5%. The wire protocol and
+ * retry behavior live in [MistralChat]; this class owns the cleanup prompts,
+ * schemas, and response parsing.
  */
-class RecipeCleaner(private val transport: HttpTransport) {
+class RecipeCleaner(transport: HttpTransport) {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val chat = MistralChat(transport)
 
     suspend fun cleanIngredients(apiKey: String, recipeName: String, ingredients: List<String>): CleanedIngredients {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
-        var content = callOnce(key, CLEANUP_SYSTEM_PROMPT, buildCleanupUserMessage(recipeName, ingredients), CLEANUP_JSON_SCHEMA, retryFixJson = false)
-        var result = parseCleanupResponse(content)
-        if (result == null) {
-            content = callOnce(key, CLEANUP_SYSTEM_PROMPT, buildCleanupUserMessage(recipeName, ingredients), CLEANUP_JSON_SCHEMA, retryFixJson = true)
-            result = parseCleanupResponse(content)
-        }
-
-        return result ?: throw RecipeImportErrors.mistralParse()
+        return chat.chatForJson(
+            apiKey = key,
+            model = ImportConstants.MISTRAL_CLEANUP_MODEL,
+            schemaName = "recipe_cleanup",
+            systemPrompt = CLEANUP_SYSTEM_PROMPT,
+            userContent = buildCleanupUserMessage(recipeName, ingredients),
+            schema = CLEANUP_JSON_SCHEMA,
+            parse = ::parseCleanupResponse,
+        )
     }
 
     /**
      * Calls Mistral to rewrite a recipe's instructions as a concise bulleted
-     * list readable in about two minutes, with the fluff removed. Retries
-     * once when the response is not valid JSON.
+     * list readable in about two minutes, with the fluff removed.
      */
     suspend fun cleanInstructions(
         apiKey: String,
@@ -429,76 +430,14 @@ class RecipeCleaner(private val transport: HttpTransport) {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
-        var content = callOnce(key, INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT, buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions), INSTRUCTIONS_CLEANUP_JSON_SCHEMA, retryFixJson = false)
-        var result = parseInstructionsCleanupResponse(content)
-        if (result == null) {
-            content = callOnce(key, INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT, buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions), INSTRUCTIONS_CLEANUP_JSON_SCHEMA, retryFixJson = true)
-            result = parseInstructionsCleanupResponse(content)
-        }
-
-        return result ?: throw RecipeImportErrors.mistralParse()
-    }
-
-    private suspend fun callOnce(
-        apiKey: String,
-        systemPrompt: String,
-        userContent: String,
-        schema: JsonObject,
-        retryFixJson: Boolean,
-    ): String {
-        val userMessageContent = if (retryFixJson) {
-            "Your previous response was not valid JSON for the schema. " +
-                "Reply with only valid JSON for the cleanup schema, no markdown."
-        } else {
-            userContent
-        }
-
-        val requestBody = buildJsonObject {
-            put("model", ImportConstants.MISTRAL_CLEANUP_MODEL)
-            put("temperature", 0.1)
-            put("messages", buildJsonArray {
-                add(buildJsonObject {
-                    put("role", "system")
-                    put("content", systemPrompt)
-                })
-                add(buildJsonObject {
-                    put("role", "user")
-                    put("content", userMessageContent)
-                })
-            })
-            put("response_format", buildJsonObject {
-                put("type", "json_schema")
-                put("json_schema", buildJsonObject {
-                    put("name", "recipe_cleanup")
-                    put("strict", true)
-                    put("schema", schema)
-                })
-            })
-        }.toString()
-
-        val response = transport.execute(
-            method = "POST",
-            url = ImportConstants.MISTRAL_CHAT_URL,
-            headers = mapOf(
-                "Authorization" to "Bearer $apiKey",
-                "Content-Type" to "application/json",
-            ),
-            body = requestBody,
+        return chat.chatForJson(
+            apiKey = key,
+            model = ImportConstants.MISTRAL_CLEANUP_MODEL,
+            schemaName = "recipe_cleanup",
+            systemPrompt = INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT,
+            userContent = buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions),
+            schema = INSTRUCTIONS_CLEANUP_JSON_SCHEMA,
+            parse = ::parseInstructionsCleanupResponse,
         )
-
-        if (response.status !in 200..299) throw mapMistralHttpError(response.status)
-
-        val body = try {
-            json.parseToJsonElement(response.bodyText) as? JsonObject
-        } catch (e: Exception) {
-            null
-        }
-        val content = (((body?.get("choices") as? JsonArray)
-            ?.firstOrNull() as? JsonObject)
-            ?.get("message") as? JsonObject)
-            ?.get("content")?.let { (it as? JsonPrimitive)?.content }
-
-        if (content.isNullOrBlank()) throw RecipeImportErrors.mistralEmpty()
-        return content
     }
 }
