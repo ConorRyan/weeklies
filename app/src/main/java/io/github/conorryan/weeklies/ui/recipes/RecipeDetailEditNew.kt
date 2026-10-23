@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import io.github.conorryan.weeklies.data.import.isValidServings
 import io.github.conorryan.weeklies.data.import.rescaleToSinglePortion
 import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.ui.ConfirmDialog
 import io.github.conorryan.weeklies.ui.ModalScreen
 import kotlinx.coroutines.launch
 
@@ -128,9 +128,12 @@ private fun AdjustPortionsDialog(
         emptyList()
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(recipe.name) },
+    ConfirmDialog(
+        title = recipe.name,
+        confirmLabel = "Rescale",
+        confirmEnabled = portionsValid,
+        onConfirm = { onRescale(preview) },
+        onDismiss = onDismiss,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -164,12 +167,6 @@ private fun AdjustPortionsDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onRescale(preview) }, enabled = portionsValid) { Text("Rescale") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }

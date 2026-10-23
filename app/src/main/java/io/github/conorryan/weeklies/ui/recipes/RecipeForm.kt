@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,8 +35,16 @@ import io.github.conorryan.weeklies.data.import.RecipeImportErrors
 import io.github.conorryan.weeklies.data.import.isUnchangedPairing
 import io.github.conorryan.weeklies.data.import.pairCleanupForReview
 import io.github.conorryan.weeklies.data.model.NewRecipe
+import io.github.conorryan.weeklies.ui.ConfirmDialog
+import io.github.conorryan.weeklies.ui.InfoDialog
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+
+/** Bold label above a form field. */
+@Composable
+private fun FormLabel(text: String) {
+    Text(text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+}
 
 /**
  * Shared recipe entry form for new, edit, and import-review flows.
@@ -73,28 +80,34 @@ fun RecipeForm(
 
     fun draftIngredients(): List<String> = ingredients.map { it.trim() }.filter { it.isNotEmpty() }
 
+    fun runCleanup(busyTag: String, work: suspend () -> Unit) {
+        if (apiKey.trim().isEmpty()) {
+            cleanupError = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())
+        } else {
+            cleanupBusy = busyTag
+            scope.launch {
+                try {
+                    work()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // canceled; nothing to show
+                } catch (e: Exception) {
+                    cleanupError = RecipeImportErrors.format(e)
+                } finally {
+                    cleanupBusy = null
+                }
+            }
+        }
+    }
+
     val runIngredientCleanup: () -> Unit = {
         val g = graph
         if (g != null) {
-            if (apiKey.trim().isEmpty()) {
-                cleanupError = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())
-            } else {
-                cleanupBusy = "ingredients"
-                scope.launch {
-                    try {
-                        ingredientPreview = g.recipeCleaner.cleanIngredients(
-                            apiKey.trim(),
-                            name.trim(),
-                            draftIngredients(),
-                        )
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        // canceled; nothing to show
-                    } catch (e: Exception) {
-                        cleanupError = RecipeImportErrors.format(e)
-                    } finally {
-                        cleanupBusy = null
-                    }
-                }
+            runCleanup("ingredients") {
+                ingredientPreview = g.recipeCleaner.cleanIngredients(
+                    apiKey.trim(),
+                    name.trim(),
+                    draftIngredients(),
+                )
             }
         }
     }
@@ -102,26 +115,13 @@ fun RecipeForm(
     val runInstructionCleanup: () -> Unit = {
         val g = graph
         if (g != null) {
-            if (apiKey.trim().isEmpty()) {
-                cleanupError = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())
-            } else {
-                cleanupBusy = "instructions"
-                scope.launch {
-                    try {
-                        instructionPreview = g.recipeCleaner.cleanInstructions(
-                            apiKey.trim(),
-                            name.trim(),
-                            draftIngredients(),
-                            instructions.trim(),
-                        )
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        // canceled; nothing to show
-                    } catch (e: Exception) {
-                        cleanupError = RecipeImportErrors.format(e)
-                    } finally {
-                        cleanupBusy = null
-                    }
-                }
+            runCleanup("instructions") {
+                instructionPreview = g.recipeCleaner.cleanInstructions(
+                    apiKey.trim(),
+                    name.trim(),
+                    draftIngredients(),
+                    instructions.trim(),
+                )
             }
         }
     }
@@ -132,7 +132,7 @@ fun RecipeForm(
             .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Name", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+        FormLabel("Name")
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -141,11 +141,7 @@ fun RecipeForm(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Text(
-            "Ingredients",
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        FormLabel("Ingredients")
         for (index in ingredients.indices) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -186,11 +182,7 @@ fun RecipeForm(
             }
         }
 
-        Text(
-            "Instructions",
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        FormLabel("Instructions")
         OutlinedTextField(
             value = instructions,
             onValueChange = { instructions = it },
@@ -239,9 +231,18 @@ fun RecipeForm(
         if (preview != null) {
             val pairings = pairCleanupForReview(draftIngredients(), preview)
             val hasChanges = pairings.any { !isUnchangedPairing(it) }
-            AlertDialog(
-                onDismissRequest = { ingredientPreview = null },
-                title = { Text(if (hasChanges) "Apply cleanup?" else "Nothing to clean up") },
+            ConfirmDialog(
+                title = if (hasChanges) "Apply cleanup?" else "Nothing to clean up",
+                confirmLabel = if (hasChanges) "Apply" else "Close",
+                dismissLabel = if (hasChanges) "Cancel" else null,
+                onConfirm = {
+                    if (hasChanges) {
+                        ingredients.clear()
+                        ingredients.addAll(preview.lines)
+                    }
+                    ingredientPreview = null
+                },
+                onDismiss = { ingredientPreview = null },
                 text = {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -289,33 +290,23 @@ fun RecipeForm(
                         }
                     }
                 },
-                confirmButton = {
-                    if (hasChanges) {
-                        TextButton(
-                            onClick = {
-                                ingredients.clear()
-                                ingredients.addAll(preview.lines)
-                                ingredientPreview = null
-                            },
-                        ) { Text("Apply") }
-                    } else {
-                        TextButton(onClick = { ingredientPreview = null }) { Text("Close") }
-                    }
-                },
-                dismissButton = {
-                    if (hasChanges) {
-                        TextButton(onClick = { ingredientPreview = null }) { Text("Cancel") }
-                    }
-                },
             )
         }
 
         val newInstructions = instructionPreview
         if (newInstructions != null) {
             val hasChanges = newInstructions != instructions.trim()
-            AlertDialog(
-                onDismissRequest = { instructionPreview = null },
-                title = { Text(if (hasChanges) "Apply cleanup?" else "Nothing to clean up") },
+            ConfirmDialog(
+                title = if (hasChanges) "Apply cleanup?" else "Nothing to clean up",
+                confirmLabel = if (hasChanges) "Apply" else "Close",
+                dismissLabel = if (hasChanges) "Cancel" else null,
+                onConfirm = {
+                    if (hasChanges) {
+                        instructions = newInstructions
+                    }
+                    instructionPreview = null
+                },
+                onDismiss = { instructionPreview = null },
                 text = {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -331,31 +322,14 @@ fun RecipeForm(
                         }
                     }
                 },
-                confirmButton = {
-                    if (hasChanges) {
-                        TextButton(
-                            onClick = {
-                                instructions = newInstructions
-                                instructionPreview = null
-                            },
-                        ) { Text("Apply") }
-                    } else {
-                        TextButton(onClick = { instructionPreview = null }) { Text("Close") }
-                    }
-                },
-                dismissButton = {
-                    if (hasChanges) {
-                        TextButton(onClick = { instructionPreview = null }) { Text("Cancel") }
-                    }
-                },
             )
         }
 
         val cleanupErrorDisplay = cleanupError
         if (cleanupErrorDisplay != null) {
-            AlertDialog(
-                onDismissRequest = { cleanupError = null },
-                title = { Text(cleanupErrorDisplay.title) },
+            InfoDialog(
+                title = cleanupErrorDisplay.title,
+                onDismiss = { cleanupError = null },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(cleanupErrorDisplay.message)
@@ -363,9 +337,6 @@ fun RecipeForm(
                             Text(cleanupErrorDisplay.hint)
                         }
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = { cleanupError = null }) { Text("Close") }
                 },
             )
         }

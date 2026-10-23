@@ -19,11 +19,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +39,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.ui.BottomAction
 import io.github.conorryan.weeklies.ui.BottomActionBar
+import io.github.conorryan.weeklies.ui.ConfirmDialog
+import io.github.conorryan.weeklies.ui.InfoDialog
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
@@ -138,9 +138,9 @@ fun RecipesScreen(
 
     if (showRecommendedSites) {
         val context = LocalContext.current
-        AlertDialog(
-            onDismissRequest = { showRecommendedSites = false },
-            title = { Text("Recommended websites") },
+        InfoDialog(
+            title = "Recommended websites",
+            onDismiss = { showRecommendedSites = false },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -159,31 +159,21 @@ fun RecipesScreen(
                     }
                 }
             },
-            confirmButton = {},
-            dismissButton = {
-                OutlinedButton(onClick = { showRecommendedSites = false }) { Text("Close") }
-            },
         )
     }
 
     val target = deleteTarget
     val targetRecipe = recipes.firstOrNull { it.id == target }
     if (target != null && targetRecipe != null) {
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete recipe?") },
+        ConfirmDialog(
+            title = "Delete recipe?",
+            confirmLabel = "Delete",
+            onConfirm = {
+                scope.launch { graph.recipeRepository.removeRecipe(target) }
+                deleteTarget = null
+            },
+            onDismiss = { deleteTarget = null },
             text = { Text("Remove \"${targetRecipe.name}\"? This cannot be undone.") },
-            confirmButton = {
-                OutlinedButton(
-                    onClick = {
-                        scope.launch { graph.recipeRepository.removeRecipe(target) }
-                        deleteTarget = null
-                    },
-                ) { Text("Delete") }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { deleteTarget = null }) { Text("Cancel") }
-            },
         )
     }
 }

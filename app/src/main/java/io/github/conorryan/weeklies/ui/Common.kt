@@ -19,12 +19,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -150,6 +152,81 @@ data class BottomAction(
     val enabled: Boolean = true,
     val destructive: Boolean = false,
 )
+
+/** Alert dialog with a title, an optional body, and a single "Close" button. */
+@Composable
+fun InfoDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    text: @Composable () -> Unit = {},
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        title = { Text(title) },
+        text = text,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
+}
+
+/**
+ * Dialog with confirm and dismiss buttons. Pass [dismissLabel] = null to
+ * show only the confirm button.
+ */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmEnabled: Boolean = true,
+    dismissLabel: String? = "Cancel",
+    text: @Composable () -> Unit = {},
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        title = { Text(title) },
+        text = text,
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(confirmLabel) }
+        },
+        dismissButton = {
+            if (dismissLabel != null) {
+                TextButton(onClick = onDismiss) { Text(dismissLabel) }
+            }
+        },
+    )
+}
+
+/** Title row at the top of a modal bottom sheet: title left, action word right. */
+@Composable
+fun SheetHeader(
+    title: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(
+            actionLabel,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable(onClick = onAction),
+        )
+    }
+}
 
 /**
  * Row of actions pinned to the bottom of a tab screen, directly above the

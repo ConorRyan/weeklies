@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.data.model.AppColorScheme
+import io.github.conorryan.weeklies.ui.InfoDialog
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.ToastBus
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
@@ -79,6 +79,30 @@ private fun SupportingText(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 16.dp),
     )
+}
+
+/** One settings row: label, optional info icon, and an optional trailing control. */
+@Composable
+private fun SettingRow(
+    label: String,
+    modifier: Modifier = Modifier,
+    infoContentDescription: String? = null,
+    onInfo: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (infoContentDescription != null && onInfo != null) {
+            IconButton(onClick = onInfo) {
+                Icon(Icons.Outlined.Info, contentDescription = infoContentDescription)
+            }
+        }
+        trailing?.invoke()
+    }
 }
 
 @Composable
@@ -142,74 +166,55 @@ fun SettingsScreen(
         TabHeader("Settings", Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
 
         SectionHeader("Appearance", first = true)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Dark mode", style = MaterialTheme.typography.bodyLarge)
-            Switch(
-                checked = state.settings.colorScheme == AppColorScheme.DARK,
-                onCheckedChange = { on -> vm.setColorScheme(on) },
-            )
-        }
+        SettingRow(
+            label = "Dark mode",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            trailing = {
+                Switch(
+                    checked = state.settings.colorScheme == AppColorScheme.DARK,
+                    onCheckedChange = { on -> vm.setColorScheme(on) },
+                )
+            },
+        )
 
         SectionHeader("Planning")
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Portions per day",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = { portionsInfoOpen = true }) {
-                Icon(Icons.Outlined.Info, contentDescription = "About portions per day")
-            }
-            OutlinedTextField(
-                value = portionsText,
-                onValueChange = { portionsText = it },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (!vm.applyPortions(portionsText)) {
-                            portionsText = state.settings.portionsPerDay.toString()
-                        }
-                        focusManager.clearFocus()
-                    },
-                ),
-                singleLine = true,
-                modifier = Modifier.width(88.dp),
-            )
-        }
+        SettingRow(
+            label = "Portions per day",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            infoContentDescription = "About portions per day",
+            onInfo = { portionsInfoOpen = true },
+            trailing = {
+                OutlinedTextField(
+                    value = portionsText,
+                    onValueChange = { portionsText = it },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (!vm.applyPortions(portionsText)) {
+                                portionsText = state.settings.portionsPerDay.toString()
+                            }
+                            focusManager.clearFocus()
+                        },
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.width(88.dp),
+                )
+            },
+        )
 
         SectionHeader("Recipe import")
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "Mistral API key",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { keyInfoOpen = true }) {
-                    Icon(Icons.Outlined.Info, contentDescription = "About the Mistral API key")
-                }
-            }
+            SettingRow(
+                label = "Mistral API key",
+                infoContentDescription = "About the Mistral API key",
+                onInfo = { keyInfoOpen = true },
+            )
             OutlinedTextField(
                 value = keyText,
                 onValueChange = { keyText = it },
@@ -276,19 +281,16 @@ fun SettingsScreen(
                     onClick = { vm.clearBackupFolder() },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 ) { Text("Remove folder") }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Back up automatically", style = MaterialTheme.typography.bodyLarge)
-                    Switch(
-                        checked = state.backupFolder.autoBackup,
-                        onCheckedChange = { on -> vm.setAutoBackup(on) },
-                    )
-                }
+                SettingRow(
+                    label = "Back up automatically",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    trailing = {
+                        Switch(
+                            checked = state.backupFolder.autoBackup,
+                            onCheckedChange = { on -> vm.setAutoBackup(on) },
+                        )
+                    },
+                )
                 SupportingText(AUTO_BACKUP_INFO_TEXT)
                 Button(
                     onClick = { vm.backupNowToFolder() },
@@ -319,23 +321,17 @@ fun SettingsScreen(
     }
 
     if (portionsInfoOpen) {
-        AlertDialog(
-            onDismissRequest = { portionsInfoOpen = false },
-            title = { Text("Portions per day") },
+        InfoDialog(
+            title = "Portions per day",
+            onDismiss = { portionsInfoOpen = false },
             text = { Text(PORTIONS_INFO_TEXT) },
-            confirmButton = {
-                TextButton(onClick = { portionsInfoOpen = false }) { Text("Close") }
-            },
         )
     }
     if (keyInfoOpen) {
-        AlertDialog(
-            onDismissRequest = { keyInfoOpen = false },
-            title = { Text("Mistral API key") },
+        InfoDialog(
+            title = "Mistral API key",
+            onDismiss = { keyInfoOpen = false },
             text = { Text(MISTRAL_KEY_INFO_TEXT) },
-            confirmButton = {
-                TextButton(onClick = { keyInfoOpen = false }) { Text("Close") }
-            },
         )
     }
 }

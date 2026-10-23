@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +59,8 @@ import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.isValidPortionsPerDay
 import io.github.conorryan.weeklies.ui.BottomAction
 import io.github.conorryan.weeklies.ui.BottomActionBar
+import io.github.conorryan.weeklies.ui.ConfirmDialog
+import io.github.conorryan.weeklies.ui.SheetHeader
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.ToastBus
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
@@ -294,9 +294,15 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
         var portionsText by remember { mutableStateOf(state.defaultPortions.toString()) }
         val portions = portionsText.trim().toIntOrNull()
         val portionsValid = portions != null && isValidPortionsPerDay(portions)
-        AlertDialog(
-            onDismissRequest = { portionsFor = null },
-            title = { Text(portionsTarget.name) },
+        ConfirmDialog(
+            title = portionsTarget.name,
+            confirmLabel = "Add",
+            confirmEnabled = portionsValid,
+            onConfirm = {
+                portionsFor = null
+                if (portions != null) vm.addRecipeIngredients(portionsTarget.id, portions)
+            },
+            onDismiss = { portionsFor = null },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("How many portions? (Settings default: ${state.defaultPortions})")
@@ -309,18 +315,6 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                     )
                 }
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        portionsFor = null
-                        if (portions != null) vm.addRecipeIngredients(portionsTarget.id, portions)
-                    },
-                    enabled = portionsValid,
-                ) { Text("Add") }
-            },
-            dismissButton = {
-                TextButton(onClick = { portionsFor = null }) { Text("Cancel") }
-            },
         )
     }
 
@@ -329,21 +323,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             onDismissRequest = { pickerOpen = false },
             sheetState = pickerSheetState,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Add recipe", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Cancel",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { pickerOpen = false },
-                )
-            }
+            SheetHeader(title = "Add recipe", actionLabel = "Cancel", onAction = { pickerOpen = false })
 
             val others = state.recipes.filter { it.id != state.todayRecipeId }
             if (others.isEmpty()) {

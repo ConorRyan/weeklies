@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.ui.SheetHeader
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
@@ -113,21 +114,7 @@ fun PlanScreen(
             onDismissRequest = { pickerDay = null },
             sheetState = sheetState,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(day.label, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Done",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { pickerDay = null },
-                )
-            }
+            SheetHeader(title = day.label, actionLabel = "Done", onAction = { pickerDay = null })
 
             if (byDay[day] != null) {
                 Text(
