@@ -45,10 +45,10 @@ class SettingsViewModel(
     private val _busy = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     private val backupFolderState = combine(
-        graph.settingsStore.backupFolderUri,
-        graph.settingsStore.backupFolderName,
-        graph.settingsStore.autoBackupEnabled,
-        graph.settingsStore.lastFolderBackupAt,
+        graph.backupFolderStore.backupFolderUri,
+        graph.backupFolderStore.backupFolderName,
+        graph.backupFolderStore.autoBackupEnabled,
+        graph.backupFolderStore.lastFolderBackupAt,
     ) { uri, name, autoBackup, lastBackupAt ->
         BackupFolderState(
             uri = uri,
@@ -115,7 +115,7 @@ class SettingsViewModel(
             try {
                 graph.folderBackups.takePersistablePermission(uri)
                 val name = graph.folderBackups.folderDisplayName(uri) ?: "Backup folder"
-                graph.settingsStore.setBackupFolder(uri.toString(), name)
+                graph.backupFolderStore.setBackupFolder(uri.toString(), name)
                 toastBus.info("Backup folder set")
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -129,21 +129,21 @@ class SettingsViewModel(
     fun clearBackupFolder() {
         viewModelScope.launch {
             state.value.backupFolder.uri?.let { graph.folderBackups.releasePersistablePermission(Uri.parse(it)) }
-            graph.settingsStore.clearBackupFolder()
+            graph.backupFolderStore.clearBackupFolder()
             toastBus.info("Backup folder removed")
         }
     }
 
     fun setAutoBackup(enabled: Boolean) {
-        viewModelScope.launch { graph.settingsStore.setAutoBackupEnabled(enabled) }
+        viewModelScope.launch { graph.backupFolderStore.setAutoBackupEnabled(enabled) }
     }
 
     /** Writes a timestamped backup into the configured folder. */
     fun backupNowToFolder() {
         runBackup(BackupErrors.Kind.EXPORT, "Backup", successMessage = "Backed up") {
-            val uri = state.value.backupFolder.uri ?: error("No backup folder configured")
-            graph.folderBackups.writeBackup(Uri.parse(uri))
-            graph.settingsStore.recordFolderBackup(Instant.now())
+            if (!graph.folderBackups.writeBackupNow()) {
+                error("No backup folder configured")
+            }
         }
     }
 

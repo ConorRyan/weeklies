@@ -5,8 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.conorryan.weeklies.data.db.AppDatabase
 import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.data.settings.AppSettingsStore
+import io.github.conorryan.weeklies.data.settings.BackupFolderStore
 import io.github.conorryan.weeklies.data.settings.SecretsStore
-import io.github.conorryan.weeklies.data.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,7 +33,12 @@ class AppGraphWarmStateTest {
     private fun buildGraph(): AppGraph {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = AppDatabase.build(context)
-        return AppGraph(context, db, SettingsStore(context), SecretsStore(context))
+        return AppGraph(
+            context, db,
+            AppSettingsStore.create(context),
+            BackupFolderStore.create(context),
+            SecretsStore.create(context),
+        )
     }
 
     /** Waits until the predicate holds; the graph collects on Dispatchers.IO. */

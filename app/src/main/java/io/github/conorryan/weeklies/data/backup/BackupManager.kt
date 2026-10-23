@@ -2,7 +2,7 @@ package io.github.conorryan.weeklies.data.backup
 
 import androidx.room.withTransaction
 import io.github.conorryan.weeklies.data.db.AppDatabase
-import io.github.conorryan.weeklies.data.settings.SettingsStore
+import io.github.conorryan.weeklies.data.settings.AppSettingsStore
 import io.github.conorryan.weeklies.data.repo.PlanRepository
 import io.github.conorryan.weeklies.data.repo.RecipeRepository
 import io.github.conorryan.weeklies.data.repo.ShoppingRepository
@@ -20,7 +20,7 @@ class BackupManager(
     private val recipeRepository: RecipeRepository,
     private val planRepository: PlanRepository,
     private val shoppingRepository: ShoppingRepository,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: AppSettingsStore,
 ) {
 
     fun defaultBackupFilename(): String = BackupCodec.defaultBackupFilename()

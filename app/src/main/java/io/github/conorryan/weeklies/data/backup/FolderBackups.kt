@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
-import io.github.conorryan.weeklies.data.settings.SettingsStore
+import io.github.conorryan.weeklies.data.settings.BackupFolderStore
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import java.time.ZoneId
@@ -66,17 +66,33 @@ object BackupFilenames {
  * OpenDocumentTree; the app holds a persisted tree permission and the provider
  * handles the off-device sync. No credentials are stored.
  *
+ * This module owns the whole "write a folder backup" concept: resolving the
+ * configured folder, writing the timestamped file, pruning old backups, and
+ * recording the last-backup timestamp.
+ *
  * Pruning is restricted to files this app itself created: every written
- * backup's document ID is recorded in [SettingsStore], and only recorded IDs
- * are ever deleted. Files placed in the folder by anything else are never
+ * backup's document ID is recorded in [BackupFolderStore], and only recorded
+ * IDs are ever deleted. Files placed in the folder by anything else are never
  * touched.
  */
 class FolderBackups(
     private val context: Context,
     private val backupManager: BackupManager,
-    private val settingsStore: SettingsStore,
+    private val backupFolderStore: BackupFolderStore,
 ) {
     private val resolver get() = context.contentResolver
+
+    /**
+     * Writes a timestamped backup into the configured folder, prunes old
+     * backups beyond [BackupFilenames.KEEP], and records the last-backup
+     * timestamp. Returns false when no folder is configured yet.
+     */
+    suspend fun writeBackupNow(): Boolean {
+        val treeUri = backupFolderStore.backupFolderUri.first()?.let(Uri::parse) ?: return false
+        writeBackup(treeUri)
+        backupFolderStore.recordFolderBackup(Instant.now())
+        return true
+    }
 
     /**
      * Writes a timestamped backup into [treeUri] and prunes old backups
@@ -100,7 +116,7 @@ class FolderBackups(
             throw e
         }
         val documentId = DocumentsContract.getDocumentId(document)
-        settingsStore.recordFolderBackupDocument(documentId)
+        backupFolderStore.recordFolderBackupDocument(documentId)
         pruneOldBackups(treeUri)
         return filename
     }
@@ -148,7 +164,7 @@ class FolderBackups(
                 present.add(FolderFile(cursor.getString(0), cursor.getString(1)))
             }
         }
-        val recorded = settingsStore.folderBackupDocumentIds.first()
+        val recorded = backupFolderStore.folderBackupDocumentIds.first()
         val own = present.filter { it.documentId in recorded }
         val targets = BackupFilenames.pruneTargets(own)
         for (file in targets) {
@@ -156,7 +172,7 @@ class FolderBackups(
             runCatching { DocumentsContract.deleteDocument(resolver, documentUri) }
         }
         val deletedIds = targets.map { it.documentId }.toSet()
-        settingsStore.trimFolderBackupDocumentIds(
+        backupFolderStore.trimFolderBackupDocumentIds(
             own.map { it.documentId }.filter { it !in deletedIds },
         )
     }
