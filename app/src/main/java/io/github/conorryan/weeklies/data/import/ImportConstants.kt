@@ -3,9 +3,9 @@ package io.github.conorryan.weeklies.data.import
 /** Tuning knobs and endpoints of the recipe import pipeline. */
 object ImportConstants {
     const val MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions"
-    const val MISTRAL_RECIPE_MODEL = "mistral-small-latest"
+    const val MISTRAL_RECIPE_MODEL = "mistral-medium-latest"
 
-    /** One-off cleanup gets the more careful model; import stays on small. */
+    /** Recipe import and one-off cleanup both use medium. */
     const val MISTRAL_CLEANUP_MODEL = "mistral-medium-latest"
 
     /** Stored recipes are always normalized to this serving count. */

@@ -1,6 +1,9 @@
 package io.github.conorryan.weeklies.data.import
 
+import io.github.conorryan.weeklies.data.quantity.NUMERIC_TOKEN
 import io.github.conorryan.weeklies.data.quantity.ingredientPartsToLine
+import io.github.conorryan.weeklies.data.quantity.parseNumericToken
+import kotlin.math.abs
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -15,15 +18,16 @@ You clean up a recipe's ingredient list. Return only a JSON object matching the 
 - Keep every ingredient: do not add or remove any. Preserve the original order, except when you merge duplicates or split a line that lists several ingredients ("salt and pepper, to taste" may become one line per ingredient).
 - If the same ingredient appears on multiple lines, combine them into a single line.
 - Each ingredient must end up as one line with exactly one unit (e.g. "250 g flour", never "2 cups plus 1 tbsp flour").
+- The quantity is a single amount and unit: never append a second, equivalent amount after a dash, slash, equals sign, or in parentheses ("0.5 tbsp", never "0.5 tbsp - 7 g" or "0.5 tbsp (7 g)").
 - Prefer metric units (g, ml). Convert US or imperial units when a standard conversion exists.
 - For volume-to-mass conversions, use this table of weights per 1 US cup and never guess a different value:
   all-purpose or bread flour: 120 g; whole-wheat flour: 120 g; granulated sugar: 200 g; packed brown sugar: 220 g; powdered sugar: 120 g; butter or margarine: 227 g; cocoa powder: 100 g; rolled oats: 90 g; uncooked white rice: 190 g; chocolate chips: 170 g; chopped nuts: 140 g; shredded or grated cheese: 110 g; grated zucchini: 110 g; mashed banana: 225 g; honey: 340 g; maple syrup: 320 g.
   Liquids (milk, water, cream, oil, broth) convert by volume, not mass: 1 cup = 240 ml, 1 fl oz = 30 ml, 1 pint = 480 ml, 1 quart = 960 ml.
   If the ingredient is not in the table and you are not confident of its weight per cup, keep the original unit as-is ("1 cup shredded coconut" stays in cups) rather than inventing a conversion.
 - Keep tablespoons and teaspoons as they are: do not convert tbsp/tsp to milliliters ("2 tbsp olive oil" stays "2 tbsp olive oil").
-- Round amounts: if a value is within 5% of a rounder value (a whole number, a simple multiple of 10, or a simple fraction for small amounts), use the rounder value.
+- Round amounts, but never by more than 10%: if a value is within 10% of a rounder value (a whole number, a simple multiple of 10, or a simple fraction for small amounts), use the rounder value; otherwise keep the exact value ("0.333 onion" stays "0.333 onion", never "1 onion").
 - Write amounts as decimals, not fractions: "0.5 cup", never "1/2 cup"; "1.5 tbsp", never "1 1/2 tbsp".
-- If a countable ingredient has no amount, give it quantity "1" (e.g. "1 green onion"). Keep the quantity empty only for to-taste items like salt and pepper.
+- If a countable ingredient has no amount, give it quantity "1" (e.g. "1 green onion"). Never do the reverse: an ingredient that already has an amount keeps that amount (rounded at most 10%), even when it is a fraction of a countable ingredient. Keep the quantity empty only for to-taste items like salt and pepper.
 - Never invent a unit: if the original amount has no unit ("20 olives"), keep it without one — do not write "20 g olives". Only add a unit when converting from another unit that is already there.
 - Put preparation notes (chopped, trimmed, halved, grated…) in parentheses at the end of the name: "250 g mushrooms (trimmed)", "1 onion (finely chopped)". Parentheses are never for units — a unit word (clove, stem, head, bunch, wedge…) always stays in the quantity: "1 clove garlic", "2 stem green onion", never "1 garlic (clove)" or "3 green onion (stem)".
 - Never change an amount except by unit conversion or by summing lines you are actually merging — one input line in, one output line out, same count.
@@ -171,6 +175,71 @@ fun moveParenthesizedUnitToQuantity(quantity: String, name: String): Pair<String
     ).firstOrNull { it in PARENTHESIZED_UNIT_WORDS } ?: return quantity to name
 
     return "${quantity.trim()} $unit" to base
+}
+
+/**
+ * Backstop for the cleanup prompt's one-unit rule: the model sometimes keeps a
+ * unit and appends its metric equivalent ("0.5 tbsp - 7 g"); only the first
+ * amount survives, so the line reads "0.5 tbsp soy sauce". A range whose only
+ * unit sits at the end ("1 - 2 tbsp") and anything without a second amount
+ * after a dash, slash, equals sign, or parenthesis is left alone.
+ */
+fun stripAlternateQuantity(quantity: String): String {
+    val match = Regex(
+        """^(.*?\d+(?:[.,]\d+)?\s*[a-zA-Z]+.*?)\s*(?:[-–=/]|\()\s*(?:[a-zA-Z]+\s+)?\d+(?:[.,]\d+)?\s*[a-zA-Z]+\.?\)?\s*$""",
+    ).find(quantity.trim()) ?: return quantity.trim()
+    return match.groupValues[1].trim()
+}
+
+/** Max relative amount change rounding is allowed to make. */
+private const val ROUNDING_TOLERANCE = 0.10
+
+/**
+ * Backstop for the cleanup prompt's rounding rule: on a 1:1 line whose unit
+ * word is unchanged, the amount may move at most 10% ([ROUNDING_TOLERANCE]);
+ * a bigger jump (the model turning "0.333 onion" into "1 onion") puts the
+ * original amount back into the cleaned line. Merges, splits (an original
+ * claimed by several lines), unit conversions, and lines without a comparable
+ * number are left alone.
+ */
+fun clampRounding(before: List<String>, cleaned: CleanedIngredients): CleanedIngredients {
+    if (!isValidCleanupMapping(cleaned.from, before.size)) return cleaned
+    val claims = IntArray(before.size)
+    cleaned.from.forEach { origins -> origins.forEach { claims[it]++ } }
+
+    val lines = cleaned.lines.mapIndexed { index, line ->
+        val origins = cleaned.from[index]
+        if (origins.size != 1) return@mapIndexed line
+        val origin = origins[0]
+        if (claims[origin] != 1) return@mapIndexed line
+        clampLine(before[origin], line) ?: line
+    }
+    return cleaned.copy(lines = lines)
+}
+
+/** Original amount restored into [cleaned] when it jumped too far; null to keep [cleaned]. */
+private fun clampLine(original: String, cleaned: String): String? {
+    val originalNumber = NUMERIC_TOKEN.find(original) ?: return null
+    val cleanedNumber = NUMERIC_TOKEN.find(cleaned) ?: return null
+    val originalValue = parseNumericToken(originalNumber.value) ?: return null
+    val cleanedValue = parseNumericToken(cleanedNumber.value) ?: return null
+    if (originalValue == 0.0 || cleanedValue == 0.0) return null
+
+    val change = abs(cleanedValue - originalValue) / originalValue
+    if (change <= ROUNDING_TOLERANCE) return null
+    if (amountUnit(original, originalNumber) != amountUnit(cleaned, cleanedNumber)) return null
+
+    return cleaned.replaceRange(cleanedNumber.range, originalNumber.value)
+}
+
+/** The word right after the amount, singularized; null when the amount ends the line. */
+private fun amountUnit(line: String, number: MatchResult): String? {
+    val word = Regex("""[a-zA-Z]+""").find(line.substring(number.range.last + 1))
+        ?.value?.lowercase() ?: return null
+    IRREGULAR_SINGULARS[word]?.let { return it }
+    if (word.endsWith("es")) return word.dropLast(2)
+    if (word.endsWith("s")) return word.dropLast(1)
+    return word
 }
 
 /** One review row: the original line(s) and the cleaned line(s) they align to. */
@@ -377,9 +446,9 @@ fun parseCleanupResponse(content: String): CleanedIngredients? {
     val parsed = ingredients.mapNotNull { item ->
         val obj = item as? JsonObject ?: return@mapNotNull null
         val rawName = (obj["name"] as? JsonPrimitive)?.content ?: return@mapNotNull null
-        val quantity = (obj["quantity"] as? JsonPrimitive)?.content
-        val name = removeDuplicatedUnit(quantity ?: "", rawName)
-        val (fixedQuantity, fixedName) = moveParenthesizedUnitToQuantity(quantity ?: "", name)
+        val quantity = stripAlternateQuantity((obj["quantity"] as? JsonPrimitive)?.content ?: "")
+        val name = removeDuplicatedUnit(quantity, rawName)
+        val (fixedQuantity, fixedName) = moveParenthesizedUnitToQuantity(quantity, name)
         val line = ingredientPartsToLine(fixedQuantity, fixedName) ?: return@mapNotNull null
         val from = (obj["from"] as? JsonArray)
             ?.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }
@@ -395,7 +464,7 @@ fun parseCleanupResponse(content: String): CleanedIngredients? {
 
 /**
  * Calls Mistral to clean up a recipe's ingredient lines: one unit each,
- * metric where convertible, amounts rounded within 5%. The wire protocol and
+ * metric where convertible, amounts rounded within 10%. The wire protocol and
  * retry behavior live in [MistralChat]; this class owns the cleanup prompts,
  * schemas, and response parsing.
  */
@@ -407,7 +476,7 @@ class RecipeCleaner(transport: HttpTransport) {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
-        return chat.chatForJson(
+        val cleaned = chat.chatForJson(
             apiKey = key,
             model = ImportConstants.MISTRAL_CLEANUP_MODEL,
             schemaName = "recipe_cleanup",
@@ -416,6 +485,7 @@ class RecipeCleaner(transport: HttpTransport) {
             schema = CLEANUP_JSON_SCHEMA,
             parse = ::parseCleanupResponse,
         )
+        return clampRounding(ingredients, cleaned)
     }
 
     /**

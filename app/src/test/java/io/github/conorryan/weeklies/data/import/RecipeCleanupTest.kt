@@ -353,6 +353,16 @@ class RecipeCleanerTest {
     }
 
     @Test
+    fun restoresOriginalAmountWhenModelRoundsTooFar() = runTest {
+        val content = """{"ingredients":[{"name":"onion","quantity":"1","from":[0]},{"name":"flour","quantity":"255 g","from":[1]}]}"""
+        val transport = CleanupFakeTransport(cleanupChatResponse(content))
+        val result = RecipeCleaner(transport).cleanIngredients("key", "Soup", listOf("0.333 onion", "250 g flour"))
+
+        assertEquals(listOf("0.333 onion", "255 g flour"), result.lines)
+        assertEquals(listOf(listOf(0), listOf(1)), result.from)
+    }
+
+    @Test
     fun sendsRecipeNameAndLinesToMistral() = runTest {
         val content = """{"ingredients":[{"name":"flour","quantity":"250 g"}]}"""
         val transport = CleanupFakeTransport(cleanupChatResponse(content))
@@ -549,5 +559,100 @@ class MoveParenthesizedUnitTest {
             CleanedIngredients(lines = listOf("1 clove garlic"), from = listOf(listOf(0))),
             parseCleanupResponse(content),
         )
+    }
+}
+
+class StripAlternateQuantityTest {
+
+    @Test
+    fun stripsAppendedEquivalentAmount() {
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp - 7 g"))
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp-7g"))
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp (7 g)"))
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp = 7 g"))
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp / 7 g"))
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp - about 7 g"))
+    }
+
+    @Test
+    fun leavesSingleAmountsAndRangesAlone() {
+        assertEquals("0.5 tbsp", stripAlternateQuantity("0.5 tbsp"))
+        assertEquals("250 g", stripAlternateQuantity("250 g"))
+        assertEquals("1 - 2 tbsp", stripAlternateQuantity("1 - 2 tbsp"))
+        assertEquals("pepper", stripAlternateQuantity("pepper"))
+        assertEquals("", stripAlternateQuantity(""))
+    }
+
+    @Test
+    fun parseDropsAppendedEquivalentFromCleanedLine() {
+        val content = """{"ingredients":[{"name":"soy sauce","quantity":"0.5 tbsp - 7 g","from":[0]}]}"""
+        assertEquals(
+            CleanedIngredients(lines = listOf("0.5 tbsp soy sauce"), from = listOf(listOf(0))),
+            parseCleanupResponse(content),
+        )
+    }
+}
+
+class ClampRoundingTest {
+
+    @Test
+    fun restoresOriginalAmountWhenRoundingJumpsTooFar() {
+        val before = listOf("0.333 onion")
+        val cleaned = CleanedIngredients(lines = listOf("1 onion"), from = listOf(listOf(0)))
+        assertEquals(
+            CleanedIngredients(lines = listOf("0.333 onion"), from = listOf(listOf(0))),
+            clampRounding(before, cleaned),
+        )
+    }
+
+    @Test
+    fun matchesPluralUnitWordsCaseInsensitively() {
+        val before = listOf("0.333 Onions")
+        val cleaned = CleanedIngredients(lines = listOf("1 onion"), from = listOf(listOf(0)))
+        assertEquals(
+            CleanedIngredients(lines = listOf("0.333 onion"), from = listOf(listOf(0))),
+            clampRounding(before, cleaned),
+        )
+    }
+
+    @Test
+    fun keepsSmallRoundingAndUnitConversions() {
+        val before = listOf("250 g flour", "1 cup flour")
+        val cleaned = CleanedIngredients(lines = listOf("255 g flour", "120 g flour"), from = listOf(listOf(0), listOf(1)))
+        assertEquals(cleaned, clampRounding(before, cleaned))
+    }
+
+    @Test
+    fun clampsOnlyPastTenPercent() {
+        val atLimit = CleanedIngredients(lines = listOf("275 g flour"), from = listOf(listOf(0)))
+        assertEquals(atLimit, clampRounding(listOf("250 g flour"), atLimit))
+
+        val overLimit = CleanedIngredients(lines = listOf("280 g flour"), from = listOf(listOf(0)))
+        assertEquals(
+            CleanedIngredients(lines = listOf("250 g flour"), from = listOf(listOf(0))),
+            clampRounding(listOf("250 g flour"), overLimit),
+        )
+    }
+
+    @Test
+    fun leavesMergesSplitsAndMissingAmountsAlone() {
+        // Merge: two originals combined, amounts may sum.
+        val merge = CleanedIngredients(lines = listOf("200 g pasta"), from = listOf(listOf(0, 1)))
+        assertEquals(merge, clampRounding(listOf("100 g pasta", "100 g pasta"), merge))
+
+        // Split: one original split into two lines.
+        val split = CleanedIngredients(lines = listOf("1 clove garlic", "1 clove garlic"), from = listOf(listOf(0), listOf(0)))
+        assertEquals(split, clampRounding(listOf("2 clove garlic"), split))
+
+        // Original had no amount: the countable rule may add one.
+        val added = CleanedIngredients(lines = listOf("1 onion"), from = listOf(listOf(0)))
+        assertEquals(added, clampRounding(listOf("onion"), added))
+    }
+
+    @Test
+    fun ignoresUntrustedMapping() {
+        val before = listOf("0.333 onion")
+        val cleaned = CleanedIngredients(lines = listOf("1 onion"), from = listOf(emptyList()))
+        assertEquals(cleaned, clampRounding(before, cleaned))
     }
 }

@@ -210,7 +210,7 @@ class RecipeFormViewModelTest {
         )
         val vm = vm(cleaner = RecipeCleaner(transport))
         vm.setName("Pasta")
-        vm.setIngredient(0, "200 g pasta")
+        vm.setIngredient(0, "2 cups pasta")
         key.value = "k-1"
 
         vm.cleanIngredients()
@@ -219,7 +219,7 @@ class RecipeFormViewModelTest {
             CleanedIngredients(lines = listOf("400 g pasta"), from = listOf(listOf(0))),
             vm.state.value.ingredientPreview,
         )
-        assertEquals(listOf("200 g pasta"), vm.state.value.draft.ingredients)
+        assertEquals(listOf("2 cups pasta"), vm.state.value.draft.ingredients)
 
         vm.applyIngredientCleanup()
 
