@@ -22,10 +22,10 @@
             android:fillColor="#F6863C"
             android:pathData="M62.5,26.25 A2.25,2.25 0 0 1 67,26.25 V32.75 A2.25,2.25 0 0 1 62.5,32.75 Z" />
         <path
-            android:fillColor="#131236"
+            android:fillColor="#181565"
             android:pathData="M40,50.5 H42.6 V57.5 H44.7 V50.5 H47.3 V57.5 H49.4 V50.5 H52 V60.5 L47.3,63 V74.5 H44.7 V63 L40,60.5 Z" />
         <path
-            android:fillColor="#131236"
+            android:fillColor="#181565"
             android:pathData="M63,49.5 A5,7 0 0 1 64.3,63.26 V74.5 H61.7 V63.26 A5,7 0 0 1 63,49.5 Z" />
     </group>
 </vector>
