@@ -1,4 +1,4 @@
-package io.github.conorryan.weeklies.data.import
+package io.github.conorryan.weeklies.data.quantity
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -10,7 +10,10 @@ import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.ShoppingItem
 import io.github.conorryan.weeklies.data.model.Weekday
 import io.github.conorryan.weeklies.data.model.emptyByDay
+import io.github.conorryan.weeklies.data.quantity.scaleIngredientLine
 import io.github.conorryan.weeklies.data.shopping.combineShoppingLine
+import io.github.conorryan.weeklies.data.shopping.stripIngredientNotes
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -139,6 +142,48 @@ class ShoppingRepository(private val db: AppDatabase) {
         val trimmed = label.trim()
         if (trimmed.isEmpty()) return
         db.shoppingItemDao().setLabel(id, trimmed)
+    }
+
+    /**
+     * Adds a recipe's ingredients to the list, scaled to [portions]:
+     * preparation notes are stripped, note-only lines are skipped, amounts
+     * are multiplied, and each line merges into an existing unchecked line
+     * whose remaining text matches (the same rule as [addItem]). Runs as one
+     * transaction so the whole recipe lands or nothing does.
+     */
+    suspend fun addRecipeIngredients(recipe: Recipe, portions: Int) {
+        val factor = portions.toDouble()
+        val lines = recipe.ingredients
+            .map { scaleIngredientLine(stripIngredientNotes(it), factor).trim() }
+            .filter { it.isNotEmpty() }
+        if (lines.isEmpty()) return
+
+        db.withTransaction {
+            var rows = db.shoppingItemDao().getAll()
+            var position = db.shoppingItemDao().nextPosition()
+            for (line in lines) {
+                val trimmed = line.trim()
+                if (trimmed.isEmpty()) continue
+                val merge = rows.firstNotNullOfOrNull { row ->
+                    if (row.checked) null
+                    else combineShoppingLine(row.label, trimmed)?.let { row.id to it }
+                }
+                if (merge != null) {
+                    db.shoppingItemDao().setLabel(merge.first, merge.second)
+                    rows = rows.map { if (it.id == merge.first) it.copy(label = merge.second) else it }
+                } else {
+                    val entity = ShoppingItemEntity(
+                        id = UUID.randomUUID().toString(),
+                        label = trimmed,
+                        checked = false,
+                        position = position,
+                    )
+                    db.shoppingItemDao().insert(entity)
+                    position += 1
+                    rows = rows + entity
+                }
+            }
+        }
     }
 
     suspend fun removeCheckedItems() = db.shoppingItemDao().deleteChecked()

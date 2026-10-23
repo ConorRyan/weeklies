@@ -4,12 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.github.conorryan.weeklies.AppGraph
-import io.github.conorryan.weeklies.data.import.scaleIngredientLine
 import io.github.conorryan.weeklies.data.model.AppSettings
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.ShoppingItem
 import io.github.conorryan.weeklies.data.model.Weekday
-import io.github.conorryan.weeklies.data.shopping.stripIngredientNotes
 import io.github.conorryan.weeklies.ui.ToastBus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +59,10 @@ class ShoppingViewModel(
         viewModelScope.launch { graph.shoppingRepository.removeCheckedItems() }
     }
 
-    /** Adds the recipe's ingredients, scaled to [portions]; toasts if the recipe is gone. */
+    /**
+     * Adds the recipe's ingredients scaled to [portions] via the repository
+     * (strip, scale, merge, one transaction); toasts if the recipe is gone.
+     */
     fun addRecipeIngredients(recipeId: String, portions: Int) {
         viewModelScope.launch {
             val recipe = graph.recipeRepository.snapshot().firstOrNull { it.id == recipeId }
@@ -71,12 +72,7 @@ class ShoppingViewModel(
                     "The recipe was removed. Update Weeklies or Recipes.",
                 )
             } else {
-                val factor = portions.toDouble()
-                for (line in recipe.ingredients) {
-                    val cleaned = stripIngredientNotes(line)
-                    if (cleaned.isEmpty()) continue
-                    graph.shoppingRepository.addItem(scaleIngredientLine(cleaned, factor))
-                }
+                graph.shoppingRepository.addRecipeIngredients(recipe, portions)
             }
         }
     }

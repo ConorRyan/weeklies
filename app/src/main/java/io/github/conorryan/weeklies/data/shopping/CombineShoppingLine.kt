@@ -1,8 +1,8 @@
 package io.github.conorryan.weeklies.data.shopping
 
-import io.github.conorryan.weeklies.data.import.NUMERIC_TOKEN
-import io.github.conorryan.weeklies.data.import.formatScaled
-import io.github.conorryan.weeklies.data.import.parseNumericToken
+import io.github.conorryan.weeklies.data.quantity.NUMERIC_TOKEN
+import io.github.conorryan.weeklies.data.quantity.formatScaled
+import io.github.conorryan.weeklies.data.quantity.parseNumericToken
 
 private data class SplitLine(val before: String, val amount: Double, val after: String)
 

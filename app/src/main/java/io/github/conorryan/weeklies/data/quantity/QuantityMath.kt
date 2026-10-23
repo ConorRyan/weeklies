@@ -1,13 +1,19 @@
-package io.github.conorryan.weeklies.data.import
+package io.github.conorryan.weeklies.data.quantity
 
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
 /**
+ * Ingredient-quantity math shared by the recipe import scaler and the
+ * shopping-list merge: token matching, parsing, formatting, and line scaling
+ * live here so neither feature reaches into the other's machinery.
+ */
+
+/**
  * Matches mixed numbers (`1 1/2`), fractions (`1/2`, `1 / 2`),
  * comma-grouped integers (`1,000`), decimals, and plain integers.
  */
-internal val NUMERIC_TOKEN = Regex(
+val NUMERIC_TOKEN = Regex(
     """\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d{1,3}(?:,\d{3})+|\d+\.\d+|\d+""",
 )
 
@@ -20,7 +26,7 @@ private fun parseFraction(token: String): Double? {
     return a / b
 }
 
-internal fun parseNumericToken(raw: String): Double? {
+fun parseNumericToken(raw: String): Double? {
     val t = raw.trim().replace(",", "").replace(Regex("""\s*/\s*"""), "/")
     val parts = t.split(Regex("""\s+"""))
     if (parts.size == 2 && parts[1].contains("/")) {
@@ -36,11 +42,23 @@ internal fun parseNumericToken(raw: String): Double? {
     return null
 }
 
-internal fun formatScaled(n: Double): String {
+fun formatScaled(n: Double): String {
     if (n.isNaN() || n.isInfinite()) return n.toString()
     val rounded = (n * 10000).roundToLong() / 10000.0
     if (abs(rounded - rounded.roundToLong().toDouble()) < 1e-9) {
         return rounded.roundToLong().toString()
     }
     return rounded.toString()
+}
+
+/**
+ * Multiplies every numeric token in an ingredient line by [factor].
+ * Handles integers, decimals, and fractions like `1/2` or `1 / 2`.
+ */
+fun scaleIngredientLine(line: String, factor: Double): String {
+    if (factor.isNaN() || factor.isInfinite() || factor == 1.0) return line
+    return NUMERIC_TOKEN.replace(line) { match ->
+        val value = parseNumericToken(match.value) ?: return@replace match.value
+        formatScaled(value * factor)
+    }
 }
