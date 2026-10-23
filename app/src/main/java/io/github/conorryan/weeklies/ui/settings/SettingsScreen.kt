@@ -217,12 +217,20 @@ fun SettingsScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(onClick = { vm.saveApiKey(keyText) }) { Text("Save key") }
-            if (state.apiKey.trim().isNotEmpty()) {
-                TextButton(onClick = {
-                    vm.clearApiKey()
-                    keyText = ""
-                }) { Text("Clear key") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { vm.saveApiKey(keyText) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Save key") }
+                if (state.apiKey.trim().isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            vm.clearApiKey()
+                            keyText = ""
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Clear key") }
+                }
             }
         }
 

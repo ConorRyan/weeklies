@@ -32,8 +32,11 @@ fun ImportScreen(
 ) {
     val vm: ImportViewModel = viewModel(factory = ImportViewModel.Factory(graph))
     val state by vm.state.collectAsStateWithLifecycle()
-    val apiKey by graph.secretsStore.mistralApiKey.collectAsStateWithLifecycle("")
-    val keyReady = apiKey.trim().isNotEmpty()
+    // Warm app state (loaded eagerly at startup), so the key is known in the
+    // screen's first frame and no hint flashes in.
+    val key by graph.mistralKeyState.collectAsStateWithLifecycle()
+    val storedKey = key
+    val keyReady = storedKey != null && storedKey.trim().isNotEmpty()
 
     val preview = state.preview
     if (preview != null) {
@@ -80,7 +83,7 @@ fun ImportScreen(
                 )
                 ActionButton(
                     label = "Import with AI",
-                    onClick = { vm.runAiImport(apiKey) },
+                    onClick = { vm.runAiImport(storedKey.orEmpty()) },
                     enabled = !state.busy && keyReady,
                     modifier = Modifier.weight(1f),
                 )
@@ -96,7 +99,7 @@ fun ImportScreen(
                 }
             }
 
-            if (!keyReady) {
+            if (storedKey != null && !keyReady) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "Import with AI needs a Mistral API key in Settings.",

@@ -41,8 +41,11 @@ fun RecipeDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
 ) {
-    val recipe by graph.recipeRepository.observeRecipe(recipeId).collectAsStateWithLifecycle(null)
-    val current = recipe
+    // Warm app state: the recipe list is already loaded by the time the user
+    // can navigate here, so the first composed frame has real content and no
+    // placeholder flashes.
+    val recipes by graph.recipesState.collectAsStateWithLifecycle()
+    val current = recipes.firstOrNull { it.id == recipeId }
     val scope = rememberCoroutineScope()
     var adjustPortionsOpen by remember { mutableStateOf(false) }
 
@@ -177,8 +180,9 @@ fun RecipeEditScreen(
     recipeId: String,
     onBack: () -> Unit,
 ) {
-    val recipe by graph.recipeRepository.observeRecipe(recipeId).collectAsStateWithLifecycle(null)
-    val current = recipe
+    // Warm app state: see RecipeDetailScreen.
+    val recipes by graph.recipesState.collectAsStateWithLifecycle()
+    val current = recipes.firstOrNull { it.id == recipeId }
     val scope = rememberCoroutineScope()
 
     ModalScreen(title = if (current != null) "Edit recipe" else "New recipe", onBack = onBack) {

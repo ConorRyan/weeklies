@@ -181,7 +181,7 @@ fun RecipeForm(
                     onClick = runIngredientCleanup,
                     enabled = cleanupBusy == null && draftIngredients().isNotEmpty(),
                 ) {
-                    Text(if (cleanupBusy == "ingredients") "Cleaning up…" else "Clean up ingredients (AI)")
+                    Text(if (cleanupBusy == "ingredients") "Cleaning up…" else "Clean up ingredients ✨")
                 }
             }
         }
@@ -202,7 +202,7 @@ fun RecipeForm(
                 onClick = runInstructionCleanup,
                 enabled = cleanupBusy == null && instructions.isNotBlank(),
             ) {
-                Text(if (cleanupBusy == "instructions") "Cleaning up…" else "Clean up instructions (AI)")
+                Text(if (cleanupBusy == "instructions") "Cleaning up…" else "Clean up instructions ✨")
             }
         }
 

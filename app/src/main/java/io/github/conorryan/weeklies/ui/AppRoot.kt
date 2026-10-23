@@ -183,12 +183,11 @@ fun WeekliesApp(graph: AppGraph) {
         ) { padding ->
             // Mirrors the last tab route seen on the back stack; resynced from
             // currentRoute so process-death restore and tab navigation agree.
+            // Updated synchronously in composition so a tab switch renders the
+            // new tab in the same frame instead of flashing the old one.
             var activeTabRoute by rememberSaveable { mutableStateOf(Routes.PLAN) }
-            LaunchedEffect(currentRoute) {
-                val route = currentRoute ?: return@LaunchedEffect
-                if (TABS.any { it.route == route }) {
-                    activeTabRoute = route
-                }
+            if (currentRoute != null && TABS.any { it.route == currentRoute }) {
+                activeTabRoute = currentRoute
             }
             val onTabRoute = TABS.any { it.route == currentRoute }
 

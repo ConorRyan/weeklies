@@ -13,6 +13,7 @@ import io.github.conorryan.weeklies.data.import.OkHttpTransport
 import io.github.conorryan.weeklies.data.import.PageFetcher
 import io.github.conorryan.weeklies.data.import.RecipeCleaner
 import io.github.conorryan.weeklies.data.import.RecipeImporter
+import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.repo.PlanRepository
 import io.github.conorryan.weeklies.data.repo.RecipeRepository
 import io.github.conorryan.weeklies.data.repo.ShoppingRepository
@@ -21,10 +22,13 @@ import io.github.conorryan.weeklies.data.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
 
 /** Manual dependency graph; one instance per process, owned by the Application. */
@@ -46,6 +50,20 @@ class AppGraph(
 
     /** Application-lived scope for background work like auto-backup. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Warm, app-lived state. Compose screens collect these with the StateFlow
+     * overload of collectAsStateWithLifecycle, which seeds the first composed
+     * frame from `.value` synchronously. That way a screen pushed onto the
+     * NavHost renders real data in its first frame instead of flashing a
+     * placeholder (NavHost is AnimatedContent-based, so a blank first
+     * composition visibly animates in).
+     */
+    val recipesState: StateFlow<List<Recipe>> = recipeRepository.recipes
+        .stateIn(appScope, SharingStarted.Lazily, emptyList())
+
+    val mistralKeyState: StateFlow<String?> = secretsStore.mistralApiKey
+        .stateIn(appScope, SharingStarted.Eagerly, null)
 
     val autoBackup = AutoBackup(
         enabled = combine(

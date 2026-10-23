@@ -61,7 +61,7 @@ fun RecipesScreen(
     onImport: () -> Unit,
     onOpenRecipe: (String) -> Unit,
 ) {
-    val recipes by graph.recipeRepository.recipes.collectAsStateWithLifecycle(emptyList())
+    val recipes by graph.recipesState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var deleteTarget by remember { mutableStateOf<String?>(null) }
     var showRecommendedSites by remember { mutableStateOf(false) }
