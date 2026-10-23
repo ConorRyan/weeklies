@@ -86,6 +86,7 @@ fun SettingsScreen(
     graph: AppGraph,
     toastBus: ToastBus,
     onOpenHelp: () -> Unit,
+    onOpenPrivacy: () -> Unit,
 ) {
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(graph, toastBus))
     val state by vm.state.collectAsStateWithLifecycle()
@@ -302,12 +303,18 @@ fun SettingsScreen(
             }
         }
 
-        SectionHeader("Support")
+        SectionHeader("Other")
         TextButton(
             onClick = onOpenHelp,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text("Help")
+        }
+        TextButton(
+            onClick = onOpenPrivacy,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text("Privacy policy")
         }
     }
 

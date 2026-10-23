@@ -214,6 +214,7 @@ fun WeekliesApp(graph: AppGraph) {
                             graph = graph,
                             toastBus = toastBus,
                             onOpenHelp = { navController.navigate(Routes.HELP) },
+                            onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
                         )
                     }
                 }
