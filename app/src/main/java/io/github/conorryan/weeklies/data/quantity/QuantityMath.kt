@@ -62,3 +62,15 @@ fun scaleIngredientLine(line: String, factor: Double): String {
         formatScaled(value * factor)
     }
 }
+
+/**
+ * Joins an optional quantity and an ingredient name into one line; null when
+ * nothing usable remains (empty name).
+ */
+fun ingredientPartsToLine(quantity: String?, name: String): String? {
+    val n = name.trim()
+    if (n.isEmpty()) return null
+    val q = quantity?.trim() ?: ""
+    val line = listOf(q, n).filter { it.isNotEmpty() }.joinToString(" ")
+    return line.ifEmpty { null }
+}

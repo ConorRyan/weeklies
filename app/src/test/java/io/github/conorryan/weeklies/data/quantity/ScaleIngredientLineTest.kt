@@ -1,6 +1,7 @@
 package io.github.conorryan.weeklies.data.quantity
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ScaleIngredientLineTest {
@@ -65,5 +66,23 @@ class ScaleIngredientLineTest {
     @Test
     fun roundsRepeatingDecimalsToFourPlaces() {
         assertEquals("0.3333 cup", scaleIngredientLine("1 cup", 1.0 / 3.0))
+    }
+}
+
+class IngredientPartsToLineTest {
+
+    @Test
+    fun joinsQuantityAndName() {
+        assertEquals("200 g flour", ingredientPartsToLine("200 g", "flour"))
+    }
+
+    @Test
+    fun returnsNullForEmptyIngredientName() {
+        assertNull(ingredientPartsToLine("200 g", "  "))
+    }
+
+    @Test
+    fun handlesMissingQuantity() {
+        assertEquals("salt", ingredientPartsToLine(null, "salt"))
     }
 }
