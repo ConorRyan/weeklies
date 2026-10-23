@@ -424,3 +424,130 @@ class RecipeCleanerTest {
         }
     }
 }
+
+class ParseInstructionsCleanupResponseTest {
+
+    @Test
+    fun parsesRewrittenInstructionsFromValidContent() {
+        val content = """{"instructions":"- Boil salted water\n- Add pasta; cook 8 min\n- Drain and serve"}"""
+        assertEquals(
+            "- Boil salted water\n- Add pasta; cook 8 min\n- Drain and serve",
+            parseInstructionsCleanupResponse(content),
+        )
+    }
+
+    @Test
+    fun trimsSurroundingWhitespace() {
+        assertEquals("- Step", parseInstructionsCleanupResponse("""{"instructions":"  - Step  "}"""))
+    }
+
+    @Test
+    fun returnsNullForInvalidOrEmptyContent() {
+        assertEquals(null, parseInstructionsCleanupResponse("not json"))
+        assertEquals(null, parseInstructionsCleanupResponse("""{"other":"x"}"""))
+        assertEquals(null, parseInstructionsCleanupResponse("""{"instructions":"   "}"""))
+    }
+}
+
+class RecipeCleanerInstructionsTest {
+
+    @Test
+    fun cleansInstructionsFromValidResponse() = runTest {
+        val content = """{"instructions":"- Boil water\n- Add pasta"}"""
+        val transport = CleanupFakeTransport(cleanupChatResponse(content))
+        val result = RecipeCleaner(transport).cleanInstructions(
+            "key",
+            "Pasta",
+            listOf("250 g pasta"),
+            "First, tell a long story about Rome. Then boil water and add the pasta. Enjoy!",
+        )
+
+        assertEquals("- Boil water\n- Add pasta", result)
+    }
+
+    @Test
+    fun sendsRecipeNameIngredientsAndInstructions() = runTest {
+        val content = """{"instructions":"- Boil water"}"""
+        val transport = CleanupFakeTransport(cleanupChatResponse(content))
+        RecipeCleaner(transport).cleanInstructions(
+            "key",
+            "Pasta",
+            listOf("250 g pasta"),
+            "Boil the water in a large pot.",
+        )
+
+        val body = transport.requests.single().second
+        assertTrue(body.contains("Pasta"))
+        assertTrue(body.contains("250 g pasta"))
+        assertTrue(body.contains("Boil the water in a large pot."))
+        assertTrue(body.contains("recipe_cleanup"))
+        assertTrue(body.contains("mistral-medium-latest"))
+    }
+
+    @Test
+    fun retriesOnceWhenResponseIsNotValidJson() = runTest {
+        val good = """{"instructions":"- Boil water"}"""
+        val transport = CleanupFakeTransport(
+            cleanupChatResponse("nope"),
+            cleanupChatResponse(good),
+        )
+        val result = RecipeCleaner(transport).cleanInstructions("key", "Pasta", listOf("pasta"), "Boil water.")
+        assertEquals("- Boil water", result)
+        assertEquals(2, transport.requests.size)
+    }
+
+    @Test
+    fun throwsParseAfterTwoInvalidResponses() = runTest {
+        val transport = CleanupFakeTransport(
+            cleanupChatResponse("nope"),
+            cleanupChatResponse("still not json"),
+        )
+        try {
+            RecipeCleaner(transport).cleanInstructions("key", "Pasta", listOf("pasta"), "Boil water.")
+            fail("expected mistralParse")
+        } catch (e: RecipeImportException) {
+            assertEquals(RecipeImportErrorCode.MISTRAL_PARSE, e.code)
+        }
+    }
+
+    @Test
+    fun throwsKeyMissingForBlankKey() = runTest {
+        val transport = CleanupFakeTransport()
+        try {
+            RecipeCleaner(transport).cleanInstructions("  ", "Pasta", listOf("pasta"), "Boil water.")
+            fail("expected mistralKeyMissing")
+        } catch (e: RecipeImportException) {
+            assertEquals(RecipeImportErrorCode.MISTRAL_KEY_MISSING, e.code)
+        }
+    }
+}
+
+class MoveParenthesizedUnitTest {
+
+    @Test
+    fun movesTrailingParenthesizedUnitIntoBareQuantity() {
+        assertEquals("1 clove" to "garlic", moveParenthesizedUnitToQuantity("1", "garlic (clove)"))
+        assertEquals("2 cup" to "milk", moveParenthesizedUnitToQuantity("2", "milk (cups)"))
+    }
+
+    @Test
+    fun leavesPreparationNotesAlone() {
+        assertEquals("250 g" to "mushrooms (trimmed)", moveParenthesizedUnitToQuantity("250 g", "mushrooms (trimmed)"))
+        assertEquals("1" to "onion (finely chopped)", moveParenthesizedUnitToQuantity("1", "onion (finely chopped)"))
+    }
+
+    @Test
+    fun leavesNonUnitWordsAndQuantitiesWithUnitsAlone() {
+        assertEquals("1" to "onion (large)", moveParenthesizedUnitToQuantity("1", "onion (large)"))
+        assertEquals("250 g" to "flour (cup)", moveParenthesizedUnitToQuantity("250 g", "flour (cup)"))
+    }
+
+    @Test
+    fun parseTurnsGarlicCloveAround() {
+        val content = """{"ingredients":[{"name":"garlic (clove)","quantity":"1","from":[0]}]}"""
+        assertEquals(
+            CleanedIngredients(lines = listOf("1 clove garlic"), from = listOf(listOf(0))),
+            parseCleanupResponse(content),
+        )
+    }
+}

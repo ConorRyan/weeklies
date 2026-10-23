@@ -14,13 +14,17 @@ You clean up a recipe's ingredient list. Return only a JSON object matching the 
 - Keep every ingredient: do not add or remove any. Preserve the original order, except when you merge duplicates or split a line that lists several ingredients ("salt and pepper, to taste" may become one line per ingredient).
 - If the same ingredient appears on multiple lines, combine them into a single line.
 - Each ingredient must end up as one line with exactly one unit (e.g. "250 g flour", never "2 cups plus 1 tbsp flour").
-- Prefer metric units (g, ml). Convert US or imperial units when a standard conversion exists; for volume-to-mass conversions use the ingredient's typical density.
+- Prefer metric units (g, ml). Convert US or imperial units when a standard conversion exists.
+- For volume-to-mass conversions, use this table of weights per 1 US cup and never guess a different value:
+  all-purpose or bread flour: 120 g; whole-wheat flour: 120 g; granulated sugar: 200 g; packed brown sugar: 220 g; powdered sugar: 120 g; butter or margarine: 227 g; cocoa powder: 100 g; rolled oats: 90 g; uncooked white rice: 190 g; chocolate chips: 170 g; chopped nuts: 140 g; shredded or grated cheese: 110 g; grated zucchini: 110 g; mashed banana: 225 g; honey: 340 g; maple syrup: 320 g.
+  Liquids (milk, water, cream, oil, broth) convert by volume, not mass: 1 cup = 240 ml, 1 fl oz = 30 ml, 1 pint = 480 ml, 1 quart = 960 ml.
+  If the ingredient is not in the table and you are not confident of its weight per cup, keep the original unit as-is ("1 cup shredded coconut" stays in cups) rather than inventing a conversion.
 - Keep tablespoons and teaspoons as they are: do not convert tbsp/tsp to milliliters ("2 tbsp olive oil" stays "2 tbsp olive oil").
 - Round amounts: if a value is within 5% of a rounder value (a whole number, a simple multiple of 10, or a simple fraction for small amounts), use the rounder value.
 - Write amounts as decimals, not fractions: "0.5 cup", never "1/2 cup"; "1.5 tbsp", never "1 1/2 tbsp".
 - If a countable ingredient has no amount, give it quantity "1" (e.g. "1 green onion"). Keep the quantity empty only for to-taste items like salt and pepper.
 - Never invent a unit: if the original amount has no unit ("20 olives"), keep it without one — do not write "20 g olives". Only add a unit when converting from another unit that is already there.
-- Put preparation notes (chopped, trimmed, halved, grated…) in parentheses at the end of the name: "250 g mushrooms (trimmed)", "1 onion (finely chopped)". Parentheses are never for units — an unusual unit (stem, head, bunch, wedge) stays in the quantity as-is: "2 stems green onion" becomes "2 stem green onion", not "3 green onion (stem)".
+- Put preparation notes (chopped, trimmed, halved, grated…) in parentheses at the end of the name: "250 g mushrooms (trimmed)", "1 onion (finely chopped)". Parentheses are never for units — a unit word (clove, stem, head, bunch, wedge…) always stays in the quantity: "1 clove garlic", "2 stem green onion", never "1 garlic (clove)" or "3 green onion (stem)".
 - Never change an amount except by unit conversion or by summing lines you are actually merging — one input line in, one output line out, same count.
 - Each cleaned line must also carry "from": the zero-based positions of the original ingredient lines it came from (the first is 0). A merged line lists every original position it combined, in ascending order; a split line repeats the position of the original it came from. Every original position must be used at least once.
 - Always write unit words in the quantity in singular form, even for amounts above 1 ("2 clove garlic", "1.5 cup milk"). Metric unit symbols (g, ml) never change.
@@ -62,6 +66,50 @@ fun buildCleanupUserMessage(recipeName: String, ingredients: List<String>): Stri
     return "Recipe: $recipeName\n\nIngredients to clean up:\n$lines"
 }
 
+private val INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT = """
+You rewrite a recipe's instructions as a concise checklist. Return only a JSON object matching the schema.
+
+- Rewrite the instructions as one string of bullet points: one step per line, each line starting with "- ".
+- The whole list must be readable in about two minutes: 5 to 15 bullets, each a short concrete action with its key time, temperature, or amount.
+- Keep every essential step and its order. Do not invent, skip, or reorder steps.
+- Keep all times, temperatures, and amounts exactly as the original states them; never invent new ones.
+- Cut fluff: stories, introductions, serving suggestions, storage tips, nutrition notes, and sign-offs.
+""" + "\n"
+
+/** JSON schema sent to Mistral via `response_format: json_schema` for instructions cleanup. */
+val INSTRUCTIONS_CLEANUP_JSON_SCHEMA: JsonObject = buildJsonObject {
+    put("type", "object")
+    put("properties", buildJsonObject {
+        put("instructions", buildJsonObject { put("type", "string") })
+    })
+    put("required", buildJsonArray { add(JsonPrimitive("instructions")) })
+    put("additionalProperties", false)
+}
+
+fun buildInstructionsCleanupUserMessage(
+    recipeName: String,
+    ingredients: List<String>,
+    instructions: String,
+): String {
+    val lines = ingredients.joinToString("\n") { "- $it" }
+    return "Recipe: $recipeName\n\nIngredients:\n$lines\n\nInstructions to clean up:\n$instructions"
+}
+
+/**
+ * Parses instructions-cleanup response content into the rewritten instruction
+ * text; null when the content is not valid JSON or carries no instructions.
+ */
+fun parseInstructionsCleanupResponse(content: String): String? {
+    val data = try {
+        Json.parseToJsonElement(content)
+    } catch (e: Exception) {
+        return null
+    }
+    val text = (data as? JsonObject)?.get("instructions") as? JsonPrimitive ?: return null
+    val trimmed = text.content.trim()
+    return trimmed.ifEmpty { null }
+}
+
 /** Irregular plurals the strip check would otherwise miss, mapped to singular. */
 private val IRREGULAR_SINGULARS = mapOf("leaves" to "leaf", "loaves" to "loaf")
 
@@ -86,6 +134,42 @@ fun removeDuplicatedUnit(quantity: String, name: String): String {
 
     val stripped = words.dropLast(1).joinToString(" ")
     return stripped.ifEmpty { name }
+}
+
+/** Units (singular) a model may wrongly wrap in parentheses at the end of a name. */
+private val PARENTHESIZED_UNIT_WORDS = setOf(
+    "g", "gram", "kg", "mg", "ml", "l", "liter", "litre",
+    "cup", "tbsp", "tablespoon", "tsp", "teaspoon",
+    "oz", "ounce", "lb", "pound",
+    "clove", "slice", "can", "pinch", "sprig", "leaf", "stick",
+    "head", "bunch", "wedge", "stem", "piece", "packet", "tin", "dash",
+)
+
+/**
+ * Backstop for the cleanup prompt's parentheses rule: when the model moves the
+ * unit into a trailing parenthesis of the name ("garlic (clove)") while the
+ * quantity is a bare number, the unit goes back into the quantity, so the
+ * line reads "1 clove garlic" instead of "1 garlic (clove)". Preparation
+ * notes ("mushrooms (trimmed)") and parenthesized words that are not units
+ * are left alone, as is anything whose quantity already carries a unit.
+ */
+fun moveParenthesizedUnitToQuantity(quantity: String, name: String): Pair<String, String> {
+    val trimmed = name.trim()
+    val match = Regex("""^(.+?)\s*\(([a-zA-Z]+)\)$""").find(trimmed)
+        ?: return quantity to name
+    val base = match.groupValues[1].trim()
+    if (base.isEmpty()) return quantity to name
+    if (!quantity.trim().matches(Regex("""\d*\.?\d+"""))) return quantity to name
+
+    val word = match.groupValues[2].lowercase()
+    val unit = listOfNotNull(
+        word,
+        IRREGULAR_SINGULARS[word],
+        word.dropLast(1).takeIf { word.endsWith("s") },
+        word.dropLast(2).takeIf { word.endsWith("es") },
+    ).firstOrNull { it in PARENTHESIZED_UNIT_WORDS } ?: return quantity to name
+
+    return "${quantity.trim()} $unit" to base
 }
 
 /** One review row: the original line(s) and the cleaned line(s) they align to. */
@@ -294,7 +378,8 @@ fun parseCleanupResponse(content: String): CleanedIngredients? {
         val rawName = (obj["name"] as? JsonPrimitive)?.content ?: return@mapNotNull null
         val quantity = (obj["quantity"] as? JsonPrimitive)?.content
         val name = removeDuplicatedUnit(quantity ?: "", rawName)
-        val line = ingredientPartsToLine(quantity, name) ?: return@mapNotNull null
+        val (fixedQuantity, fixedName) = moveParenthesizedUnitToQuantity(quantity ?: "", name)
+        val line = ingredientPartsToLine(fixedQuantity, fixedName) ?: return@mapNotNull null
         val from = (obj["from"] as? JsonArray)
             ?.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }
             ?: emptyList()
@@ -320,11 +405,35 @@ class RecipeCleaner(private val transport: HttpTransport) {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
-        var content = callOnce(key, recipeName, ingredients, retryFixJson = false)
+        var content = callOnce(key, CLEANUP_SYSTEM_PROMPT, buildCleanupUserMessage(recipeName, ingredients), CLEANUP_JSON_SCHEMA, retryFixJson = false)
         var result = parseCleanupResponse(content)
         if (result == null) {
-            content = callOnce(key, recipeName, ingredients, retryFixJson = true)
+            content = callOnce(key, CLEANUP_SYSTEM_PROMPT, buildCleanupUserMessage(recipeName, ingredients), CLEANUP_JSON_SCHEMA, retryFixJson = true)
             result = parseCleanupResponse(content)
+        }
+
+        return result ?: throw RecipeImportErrors.mistralParse()
+    }
+
+    /**
+     * Calls Mistral to rewrite a recipe's instructions as a concise bulleted
+     * list readable in about two minutes, with the fluff removed. Retries
+     * once when the response is not valid JSON.
+     */
+    suspend fun cleanInstructions(
+        apiKey: String,
+        recipeName: String,
+        ingredients: List<String>,
+        instructions: String,
+    ): String {
+        val key = apiKey.trim()
+        if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
+
+        var content = callOnce(key, INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT, buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions), INSTRUCTIONS_CLEANUP_JSON_SCHEMA, retryFixJson = false)
+        var result = parseInstructionsCleanupResponse(content)
+        if (result == null) {
+            content = callOnce(key, INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT, buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions), INSTRUCTIONS_CLEANUP_JSON_SCHEMA, retryFixJson = true)
+            result = parseInstructionsCleanupResponse(content)
         }
 
         return result ?: throw RecipeImportErrors.mistralParse()
@@ -332,15 +441,16 @@ class RecipeCleaner(private val transport: HttpTransport) {
 
     private suspend fun callOnce(
         apiKey: String,
-        recipeName: String,
-        ingredients: List<String>,
+        systemPrompt: String,
+        userContent: String,
+        schema: JsonObject,
         retryFixJson: Boolean,
     ): String {
-        val userContent = if (retryFixJson) {
+        val userMessageContent = if (retryFixJson) {
             "Your previous response was not valid JSON for the schema. " +
                 "Reply with only valid JSON for the cleanup schema, no markdown."
         } else {
-            buildCleanupUserMessage(recipeName, ingredients)
+            userContent
         }
 
         val requestBody = buildJsonObject {
@@ -349,11 +459,11 @@ class RecipeCleaner(private val transport: HttpTransport) {
             put("messages", buildJsonArray {
                 add(buildJsonObject {
                     put("role", "system")
-                    put("content", CLEANUP_SYSTEM_PROMPT)
+                    put("content", systemPrompt)
                 })
                 add(buildJsonObject {
                     put("role", "user")
-                    put("content", userContent)
+                    put("content", userMessageContent)
                 })
             })
             put("response_format", buildJsonObject {
@@ -361,7 +471,7 @@ class RecipeCleaner(private val transport: HttpTransport) {
                 put("json_schema", buildJsonObject {
                     put("name", "recipe_cleanup")
                     put("strict", true)
-                    put("schema", CLEANUP_JSON_SCHEMA)
+                    put("schema", schema)
                 })
             })
         }.toString()

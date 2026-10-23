@@ -70,7 +70,8 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   - `import/` — recipe import subsystem: `PageFetcher`/`Scraper` (OkHttp + Jsoup),
     JSON-LD parsing (`ScraperParse`, `ScraperToRecipe`, `ParseRecipe`,
     `Preprocess`), optional Mistral completion (`MistralClient`, `RecipeImporter`),
-    and quantity math (`QuantityMath`, `ScaleIngredientLine`).
+    quantity math (`QuantityMath`, `ScaleIngredientLine`), and the AI cleanup of
+    ingredients and instructions (`RecipeCleaner` in `RecipeCleanup.kt`).
   - `shopping/` — `combineShoppingLine`: pure logic merging duplicate lines
     ("100g pasta" + "100g pasta" -> "200g pasta").
 - **UI layer** (`ui/`) — Compose screens + ViewModels, one package per feature:
