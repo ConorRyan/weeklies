@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.ui.BottomAction
 import io.github.conorryan.weeklies.ui.BottomActionBar
@@ -44,7 +44,6 @@ import io.github.conorryan.weeklies.ui.InfoDialog
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
-import kotlinx.coroutines.launch
 
 private fun openWebsite(context: Context, url: String) {
     try {
@@ -62,7 +61,7 @@ fun RecipesScreen(
     onOpenRecipe: (String) -> Unit,
 ) {
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+    val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph))
     var deleteTarget by remember { mutableStateOf<String?>(null) }
     var showRecommendedSites by remember { mutableStateOf(false) }
 
@@ -169,7 +168,7 @@ fun RecipesScreen(
             title = "Delete recipe?",
             confirmLabel = "Delete",
             onConfirm = {
-                scope.launch { graph.recipeRepository.removeRecipe(target) }
+                vm.removeRecipe(target)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },

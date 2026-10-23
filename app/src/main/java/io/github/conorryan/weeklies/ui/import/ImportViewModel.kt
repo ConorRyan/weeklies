@@ -64,10 +64,6 @@ class ImportViewModel(private val graph: AppGraph) : ViewModel() {
         run { graph.recipeImporter.importRecipeFromUrlWithMistral(state.value.url.trim(), apiKey.trim()) }
     }
 
-    fun saveRecipe(recipe: NewRecipe) {
-        viewModelScope.launch { graph.recipeRepository.addRecipe(recipe) }
-    }
-
     private fun run(block: suspend () -> NewRecipe) {
         _state.update { it.copy(busy = true, error = null, preview = null) }
         job = viewModelScope.launch {

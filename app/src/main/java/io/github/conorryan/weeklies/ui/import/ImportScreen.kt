@@ -23,6 +23,7 @@ import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.ui.ActionButton
 import io.github.conorryan.weeklies.ui.ModalScreen
 import io.github.conorryan.weeklies.ui.recipes.RecipeForm
+import io.github.conorryan.weeklies.ui.recipes.RecipeFormViewModel
 
 @Composable
 fun ImportScreen(
@@ -40,6 +41,11 @@ fun ImportScreen(
 
     val preview = state.preview
     if (preview != null) {
+        val formVm: RecipeFormViewModel = viewModel(
+            key = "import-review",
+            factory = RecipeFormViewModel.importReviewFactory(graph, preview),
+        )
+        val formState by formVm.state.collectAsStateWithLifecycle()
         ModalScreen(title = "Review import", onBack = onBack) {
             Text(
                 "Review the imported recipe, edit if needed, then save. Ingredient amounts were scaled " +
@@ -48,12 +54,12 @@ fun ImportScreen(
                 modifier = Modifier.padding(vertical = 8.dp),
             )
             RecipeForm(
-                initialRecipe = preview,
-                onAddRecipe = { recipe ->
-                    vm.saveRecipe(recipe)
-                    onBack()
-                },
-            )
+                state = formState,
+                vm = formVm,
+                submitLabel = "Save recipe",
+            ) { recipe ->
+                formVm.save(recipe, onBack)
+            }
             TextButton(onClick = { vm.clearPreview() }) { Text("Import again") }
         }
         return

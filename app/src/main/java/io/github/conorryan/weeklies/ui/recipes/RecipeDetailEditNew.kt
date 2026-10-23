@@ -17,14 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.data.import.isValidServings
 import io.github.conorryan.weeklies.data.import.rescaleToSinglePortion
@@ -32,7 +32,6 @@ import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.ui.ConfirmDialog
 import io.github.conorryan.weeklies.ui.ModalScreen
-import kotlinx.coroutines.launch
 
 @Composable
 fun RecipeDetailScreen(
@@ -46,7 +45,7 @@ fun RecipeDetailScreen(
     // placeholder flashes.
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
     val current = recipes.firstOrNull { it.id == recipeId }
-    val scope = rememberCoroutineScope()
+    val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph))
     var adjustPortionsOpen by remember { mutableStateOf(false) }
 
     ModalScreen(title = current?.name ?: "Recipe", onBack = onBack) {
@@ -81,16 +80,7 @@ fun RecipeDetailScreen(
                 AdjustPortionsDialog(
                     recipe = current,
                     onRescale = { scaled ->
-                        scope.launch {
-                            graph.recipeRepository.updateRecipe(
-                                current.id,
-                                NewRecipe(
-                                    name = current.name,
-                                    ingredients = scaled,
-                                    instructions = current.instructions,
-                                ),
-                            )
-                        }
+                        vm.rescaleRecipe(current.id, scaled)
                         adjustPortionsOpen = false
                     },
                     onDismiss = { adjustPortionsOpen = false },
@@ -180,20 +170,20 @@ fun RecipeEditScreen(
     // Warm app state: see RecipeDetailScreen.
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
     val current = recipes.firstOrNull { it.id == recipeId }
-    val scope = rememberCoroutineScope()
+    val initial = current?.let { NewRecipe(name = it.name, ingredients = it.ingredients, instructions = it.instructions) }
+    val vm: RecipeFormViewModel = viewModel(
+        factory = RecipeFormViewModel.editRecipeFactory(graph, recipeId, initial),
+    )
+    val state by vm.state.collectAsStateWithLifecycle()
 
     ModalScreen(title = if (current != null) "Edit recipe" else "New recipe", onBack = onBack) {
         if (current != null) {
             RecipeForm(
-                initialRecipe = io.github.conorryan.weeklies.data.model.NewRecipe(
-                    name = current.name,
-                    ingredients = current.ingredients,
-                    instructions = current.instructions,
-                ),
-                graph = graph,
-            ) { next ->
-                scope.launch { graph.recipeRepository.updateRecipe(current.id, next) }
-                onBack()
+                state = state,
+                vm = vm,
+                submitLabel = "Save recipe",
+            ) { recipe ->
+                vm.save(recipe, onBack)
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
@@ -209,12 +199,18 @@ fun RecipeNewScreen(
     graph: AppGraph,
     onBack: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
+    val vm: RecipeFormViewModel = viewModel(
+        factory = RecipeFormViewModel.newRecipeFactory(graph),
+    )
+    val state by vm.state.collectAsStateWithLifecycle()
 
     ModalScreen(title = "New recipe", onBack = onBack) {
-        RecipeForm(initialRecipe = null) { recipe ->
-            scope.launch { graph.recipeRepository.addRecipe(recipe) }
-            onBack()
+        RecipeForm(
+            state = state,
+            vm = vm,
+            submitLabel = "Save recipe",
+        ) { recipe ->
+            vm.save(recipe, onBack)
         }
     }
 }
