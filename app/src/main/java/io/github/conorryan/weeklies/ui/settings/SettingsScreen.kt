@@ -16,7 +16,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -54,19 +57,27 @@ private const val MISTRAL_KEY_INFO_TEXT =
     "Your Mistral API key is stored only on this device and is not included in backup export or import. Get a key at console.mistral.ai."
 
 private const val BACKUP_FOLDER_INFO_TEXT =
-    "Backups are written to a folder you choose — pick one from Google Drive, Nextcloud, or similar and your provider syncs it off this phone. The newest 3 backups are kept."
+    "Backups are written to a folder you choose - pick one from Google Drive, Nextcloud, or similar and your provider syncs it off this phone. The newest 3 backups are kept."
 
 private const val AUTO_BACKUP_INFO_TEXT =
     "A backup is written automatically shortly after your recipes, plan, or shopping list change."
 
 @Composable
-fun SectionHeading(text: String, first: Boolean = false) {
+private fun SectionHeader(text: String, first: Boolean = false) {
     Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 16.dp else 20.dp, bottom = 2.dp),
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 24.dp else 28.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun SupportingText(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp),
     )
 }
 
@@ -129,11 +140,11 @@ fun SettingsScreen(
     ) {
         TabHeader("Settings", Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
 
-        SectionHeading("Appearance", first = true)
+        SectionHeader("Appearance", first = true)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -144,12 +155,12 @@ fun SettingsScreen(
             )
         }
 
-        SectionHeading("Planning")
+        SectionHeader("Planning")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -157,7 +168,9 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = { portionsInfoOpen = true }) { Text("Info") }
+            IconButton(onClick = { portionsInfoOpen = true }) {
+                Icon(Icons.Outlined.Info, contentDescription = "About portions per day")
+            }
             OutlinedTextField(
                 value = portionsText,
                 onValueChange = { portionsText = it },
@@ -178,13 +191,13 @@ fun SettingsScreen(
             )
         }
 
-        SectionHeading("Recipe import")
+        SectionHeader("Recipe import")
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -192,7 +205,9 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { keyInfoOpen = true }) { Text("Info") }
+                IconButton(onClick = { keyInfoOpen = true }) {
+                    Icon(Icons.Outlined.Info, contentDescription = "About the Mistral API key")
+                }
             }
             OutlinedTextField(
                 value = keyText,
@@ -202,7 +217,7 @@ fun SettingsScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = { vm.saveApiKey(keyText) }) { Text("Save key") }
+            Button(onClick = { vm.saveApiKey(keyText) }) { Text("Save key") }
             if (state.apiKey.trim().isNotEmpty()) {
                 TextButton(onClick = {
                     vm.clearApiKey()
@@ -211,49 +226,51 @@ fun SettingsScreen(
             }
         }
 
-        SectionHeading("Data")
+        SectionHeader("Data")
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            TextButton(
+            OutlinedButton(
                 onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
                 enabled = !state.backupBusy,
-            ) { Text("Export…") }
-            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Export backup") }
+            OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
                 enabled = !state.backupBusy,
-            ) {
-                Text("Import… (WARNING: replaces all data)")
-            }
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Import backup") }
+            SupportingText("Importing replaces all data on this device.")
         }
 
-        SectionHeading("Backup folder")
+        SectionHeader("Backup folder")
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(vertical = 8.dp),
         ) {
             if (state.backupFolder.configured) {
-                Text(
-                    "Backing up to: ${state.backupFolder.name ?: "configured folder"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                SupportingText("Backing up to: ${state.backupFolder.name ?: "configured folder"}")
             } else {
-                Text(
-                    BACKUP_FOLDER_INFO_TEXT,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                )
+                SupportingText(BACKUP_FOLDER_INFO_TEXT)
             }
-            TextButton(onClick = { folderPicker.launch(null) }) {
-                Text(if (state.backupFolder.configured) "Change folder…" else "Choose folder…")
+            OutlinedButton(
+                onClick = { folderPicker.launch(null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) {
+                Text(if (state.backupFolder.configured) "Change folder" else "Choose folder")
             }
             if (state.backupFolder.configured) {
-                TextButton(onClick = { vm.clearBackupFolder() }) { Text("Remove folder") }
+                TextButton(
+                    onClick = { vm.clearBackupFolder() },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) { Text("Remove folder") }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -263,27 +280,25 @@ fun SettingsScreen(
                         onCheckedChange = { on -> vm.setAutoBackup(on) },
                     )
                 }
-                Text(
-                    AUTO_BACKUP_INFO_TEXT,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                )
-                TextButton(
+                SupportingText(AUTO_BACKUP_INFO_TEXT)
+                Button(
                     onClick = { vm.backupNowToFolder() },
                     enabled = !state.backupBusy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                 ) { Text("Back up now") }
             }
             state.backupFolder.lastBackupAt?.let { at ->
-                Text(
-                    "Last backup: ${DateUtils.getRelativeTimeSpanString(at.toEpochMilli())}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                )
+                SupportingText("Last backup: ${DateUtils.getRelativeTimeSpanString(at.toEpochMilli())}")
             }
         }
 
-        SectionHeading("Support")
-        TextButton(onClick = onOpenHelp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SectionHeader("Support")
+        TextButton(
+            onClick = onOpenHelp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
             Text("Help")
         }
     }
@@ -294,7 +309,7 @@ fun SettingsScreen(
             title = { Text("Portions per day") },
             text = { Text(PORTIONS_INFO_TEXT) },
             confirmButton = {
-                OutlinedButton(onClick = { portionsInfoOpen = false }) { Text("Close") }
+                TextButton(onClick = { portionsInfoOpen = false }) { Text("Close") }
             },
         )
     }
@@ -304,7 +319,7 @@ fun SettingsScreen(
             title = { Text("Mistral API key") },
             text = { Text(MISTRAL_KEY_INFO_TEXT) },
             confirmButton = {
-                OutlinedButton(onClick = { keyInfoOpen = false }) { Text("Close") }
+                TextButton(onClick = { keyInfoOpen = false }) { Text("Close") }
             },
         )
     }
