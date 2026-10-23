@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +27,6 @@ private fun Section(title: String, paragraphs: List<String>) {
 @Composable
 fun HelpScreen(
     onBack: () -> Unit,
-    onOpenPrivacy: () -> Unit,
 ) {
     ModalScreen(title = "Help", onBack = onBack) {
         Section(
@@ -96,9 +94,6 @@ fun HelpScreen(
                     "completely.",
             ),
         )
-        TextButton(onClick = onOpenPrivacy, modifier = Modifier.padding(top = 16.dp)) {
-            Text("Privacy policy")
-        }
     }
 }
 

@@ -268,10 +268,7 @@ fun WeekliesApp(graph: AppGraph) {
                             )
                         }
                         composable(Routes.HELP) {
-                            HelpScreen(
-                                onBack = { navController.popBackStack() },
-                                onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
-                            )
+                            HelpScreen(onBack = { navController.popBackStack() })
                         }
                         composable(Routes.PRIVACY) {
                             PrivacyScreen(onBack = { navController.popBackStack() })
