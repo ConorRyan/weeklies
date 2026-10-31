@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: the release themed-icon silhouette with a "D" badge where the checkmark sits, the checkmark cut back around it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.6"
+        android:pathData="M42.7,50 V39 A9,9 0 0 1 60.7,39 V41" />
+    <group android:translateX="1.2">
+        <group
+            android:rotation="-15"
+            android:pivotX="60.7"
+            android:pivotY="41.6">
+            <path
+                android:strokeColor="#000000"
+                android:strokeWidth="3.6"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:pathData="M56.1,37 L60.7,41.6 L65.3,37" />
+        </group>
+    </group>
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round"
+        android:pathData="M38,47 H70 Q72,47 71.8,49 L69.4,74.6 Q69.2,77 66.8,77 H41.2 Q38.8,77 38.6,74.6 L36.2,49 Q36,47 38,47 Z" />
+    <group android:translateY="8">
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M54,40 A14,14 0 1 1 54,68 A14,14 0 1 1 54,40 Z M47,45 H52 A9,9 0 0 1 52,63 H47 Z M50.2,48.2 H52 A5.8,5.8 0 0 1 52,59.8 H50.2 Z" />
+    </group>
+</vector>
