@@ -1,0 +1,35 @@
+Weeklies est un planificateur de repas hebdomadaire, pour ceux qui ne
+veulent pas se demander chaque jour quoi manger.
+
+Ajoutez les plats que vous savez déjà cuisiner, notez les ingrédients de
+chacun, puis choisissez une recette pour chaque jour de la semaine.
+Reprenez les mêmes repas sur plusieurs semaines, modifiez quelques jours
+selon vos envies, ou reconstruisez la semaine de zéro. L'application se
+concentre volontairement sur les ingrédients : ce n'est pas un livre de
+recettes pas à pas.
+
+La liste de courses ajuste les ingrédients de la recette du jour selon vos
+portions, fusionne les lignes en double et retire les remarques de
+préparation : « 250 g de champignons (équeutés) » devient « 250 g de
+champignons ».
+
+Tout est stocké localement sur votre appareil. Pas de compte, pas de
+publicité, pas d'analytique, pas de pistage. L'application fonctionne
+totalement hors ligne ; le seul accès réseau est l'import de recette
+optionnel, qui lit les données d'une page que vous fournissez ou — avec
+votre propre clé API Mistral — lui demande de l'extraire pour vous. La clé
+reste sur cet appareil et n'est jamais incluse dans les sauvegardes.
+
+Fonctionnalités :
+
+- Enregistrez vos recettes avec leurs ingrédients
+- Planifiez une recette pour chaque jour de la semaine ; le jour en cours est mis en évidence
+- Réutilisez un plan hebdomadaire sur plusieurs semaines
+- Liste de courses avec ajustement des quantités, fusion et cases à cocher
+- Importez des recettes depuis une URL (JSON-LD, sans clé) ou avec l'IA (votre clé)
+- Sauvegardez tout dans un fichier JSON et restaurez-le sur un nouvel appareil
+- Mode sombre, anglais et français
+
+<b>Confidentialité</b> : aucune donnée personnelle n'est collectée,
+stockée hors de l'appareil ou partagée. Les quantités issues de l'import
+avec IA sont ramenées à une portion.

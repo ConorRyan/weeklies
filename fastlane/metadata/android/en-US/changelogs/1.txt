@@ -1,0 +1,3 @@
+Initial release: weekly meal planning from your own recipes, a shopping list
+that scales and merges ingredients, recipe import from a URL (with optional AI
+using your own Mistral key), and full backup to a single JSON file.

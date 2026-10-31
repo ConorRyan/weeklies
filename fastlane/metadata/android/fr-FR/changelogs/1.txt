@@ -1,0 +1,4 @@
+Version initiale : planification des repas de la semaine à partir de vos
+propres recettes, liste de courses qui ajuste et fusionne les ingrédients,
+import de recettes depuis une URL (avec IA optionnelle via votre clé
+Mistral) et sauvegarde complète dans un fichier JSON.

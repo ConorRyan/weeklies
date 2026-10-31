@@ -1,0 +1,31 @@
+Weeklies is a weekly meal planner for people who do not want to ask
+themselves what to eat every day.
+
+Add the meals you already know how to cook, store the ingredients for each
+one, and choose a recipe for every day of the week. Run the same meals over
+multiple weeks, change a few days when you feel like it, or rebuild the week
+from scratch. The recipe storage is intentionally ingredient-focused: it is
+not trying to be a cooking instruction book.
+
+The shopping list scales a planned recipe's ingredients by your portions per
+day, merges duplicate lines, and strips preparation notes so "250 g mushrooms
+(trimmed)" is bought as "250 g mushrooms".
+
+Everything is stored locally on your device. No account, no ads, no
+analytics, no trackers. The app works fully offline; the only network use is
+the optional recipe import, which reads recipe data from a page you paste, or
+- with your own Mistral API key - asks Mistral to read it for you. The key is
+stored on this device only and is never included in backups.
+
+Features:
+
+- Save known recipes with their ingredients
+- Plan a recipe for each day of the week; today is highlighted
+- Reuse a weekly plan across multiple weeks
+- Shopping list with scaling, merging, and check-off
+- Import recipes from a URL (JSON-LD, no key needed) or with AI (your key)
+- Backup everything to one JSON file and restore it on a new device
+- Dark mode, English and French
+
+<b>Privacy</b>: no personal data is collected, stored off the device, or
+shared. Ingredient amounts from AI import are normalized to one portion.
