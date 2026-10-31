@@ -1,5 +1,6 @@
 package io.github.conorryan.weeklies.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
@@ -34,7 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -42,6 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.ui.import.ImportScreen
 import io.github.conorryan.weeklies.ui.plan.PlanScreen
 import io.github.conorryan.weeklies.ui.recipes.RecipeDetailScreen
@@ -73,13 +77,13 @@ object Routes {
     fun recipeEdit(id: String) = "recipe/$id/edit"
 }
 
-private data class TabSpec(val route: String, val label: String, val icon: ImageVector)
+private data class TabSpec(val route: String, @StringRes val label: Int, val icon: ImageVector)
 
 private val TABS = listOf(
-    TabSpec(Routes.PLAN, "Weeklies", Icons.Filled.CalendarMonth),
-    TabSpec(Routes.RECIPES, "Recipes", Icons.AutoMirrored.Filled.MenuBook),
-    TabSpec(Routes.SHOPPING, "Shopping List", Icons.Filled.ShoppingCart),
-    TabSpec(Routes.SETTINGS, "Settings", Icons.Filled.Settings),
+    TabSpec(Routes.PLAN, R.string.tab_plan, Icons.Filled.CalendarMonth),
+    TabSpec(Routes.RECIPES, R.string.tab_recipes, Icons.AutoMirrored.Filled.MenuBook),
+    TabSpec(Routes.SHOPPING, R.string.tab_shopping, Icons.Filled.ShoppingCart),
+    TabSpec(Routes.SETTINGS, R.string.tab_settings, Icons.Filled.Settings),
 )
 
 private fun NavHostController.navigateTab(route: String) {
@@ -115,6 +119,9 @@ private fun PersistentTabHost(
     }
 }
 
+private fun resolve(context: android.content.Context, @StringRes id: Int, arg: String?): String =
+    if (arg == null) context.getString(id) else context.getString(id, arg)
+
 @Composable
 fun WeekliesApp(graph: AppGraph) {
     val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(graph.settingsStore.defaults)
@@ -124,6 +131,7 @@ fun WeekliesApp(graph: AppGraph) {
         val navController = rememberNavController()
         val backStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = backStackEntry?.destination?.route
+        val context = LocalContext.current
         val snackbarHostState = remember { SnackbarHostState() }
         val haptics = LocalHapticFeedback.current
         var toastIsError by remember { mutableStateOf(false) }
@@ -133,12 +141,10 @@ fun WeekliesApp(graph: AppGraph) {
                 .onEach { event ->
                     if (event != null) {
                         toastIsError = event.isError
+                        val title = resolve(context, event.title, event.titleArg)
+                        val message = event.message?.let { resolve(context, it, event.messageArg) }
                         snackbarHostState.showSnackbar(
-                            message = if (event.message != null) {
-                                "${event.title}: ${event.message}"
-                            } else {
-                                event.title
-                            },
+                            message = if (message != null) "$title: $message" else title,
                             duration = SnackbarDuration.Short,
                         )
                         toastBus.clear()
@@ -174,8 +180,8 @@ fun WeekliesApp(graph: AppGraph) {
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 navController.navigateTab(tab.route)
                             },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
+                            icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
+                            label = { Text(stringResource(tab.label)) },
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package io.github.conorryan.weeklies.data.import
 
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Weekday
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -17,25 +18,22 @@ class ImportErrorsTest {
     @Test
     fun importExceptionsKeepTheirTitle() {
         val display = RecipeImportErrors.format(RecipeImportErrors.mistralAuth())
-        assertEquals("Mistral API key", display?.title)
-        assertEquals(
-            "Invalid Mistral API key. Check Settings → Recipe import.",
-            display?.message,
-        )
+        assertEquals(R.string.import_error_mistral_auth, display?.title)
+        assertEquals(R.string.import_msg_mistral_auth, display?.message)
     }
 
     @Test
     fun hintsArePreserved() {
         val display = RecipeImportErrors.format(RecipeImportErrors.noRecipeData())
-        assertEquals("No recipe found", display?.title)
-        assertEquals(true, display?.hint?.contains("Import with AI") ?: false)
+        assertEquals(R.string.import_error_no_recipe_data, display?.title)
+        assertEquals(R.string.import_hint_no_recipe_data, display?.hint)
     }
 
     @Test
     fun unknownErrorsGetFallbackCopy() {
         val display = RecipeImportErrors.format(IllegalStateException("boom"))
-        assertEquals("Import failed", display?.title)
-        assertEquals("boom", display?.message)
+        assertEquals(R.string.import_error_unknown, display?.title)
+        assertEquals(R.string.import_msg_unknown, display?.message)
     }
 
     @Test

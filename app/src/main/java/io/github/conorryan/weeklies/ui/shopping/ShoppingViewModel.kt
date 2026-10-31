@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.AppSettings
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.ShoppingItem
@@ -68,8 +69,8 @@ class ShoppingViewModel(
             val recipe = graph.recipeRepository.snapshot().firstOrNull { it.id == recipeId }
             if (recipe == null) {
                 toastBus.info(
-                    "Recipe missing",
-                    "The recipe was removed. Update Weeklies or Recipes.",
+                    R.string.shopping_recipe_missing,
+                    message = R.string.shopping_recipe_removed_msg,
                 )
             } else {
                 graph.shoppingRepository.addRecipeIngredients(recipe, portions)

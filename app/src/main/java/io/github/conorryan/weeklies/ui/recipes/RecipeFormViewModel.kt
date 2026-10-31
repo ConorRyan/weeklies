@@ -1,5 +1,6 @@
 package io.github.conorryan.weeklies.ui.recipes
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -7,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.import.CleanedIngredients
 import io.github.conorryan.weeklies.data.import.RecipeCleaner
 import io.github.conorryan.weeklies.data.import.RecipeImportErrorDisplay
@@ -34,7 +36,7 @@ data class RecipeFormUiState(
     val draft: RecipeDraft = RecipeDraft(),
     val hasApiKey: Boolean = false,
     val cleanupBusy: CleanupTarget? = null,
-    val validationError: String? = null,
+    @StringRes val validationError: Int? = null,
     val cleanupError: RecipeImportErrorDisplay? = null,
     val ingredientPreview: CleanedIngredients? = null,
     val instructionPreview: String? = null,
@@ -104,8 +106,8 @@ class RecipeFormViewModel(
         val name = draft.name.trim()
         val ingredients = draft.ingredients.map { it.trim() }.filter { it.isNotEmpty() }
         when {
-            name.isEmpty() -> _state.update { it.copy(validationError = "Recipe name is required.") }
-            ingredients.isEmpty() -> _state.update { it.copy(validationError = "Add at least one ingredient.") }
+            name.isEmpty() -> _state.update { it.copy(validationError = R.string.recipe_name_required) }
+            ingredients.isEmpty() -> _state.update { it.copy(validationError = R.string.recipe_ingredient_required) }
             else -> {
                 _state.update { it.copy(validationError = null) }
                 onReady(NewRecipe(name = name, ingredients = ingredients, instructions = draft.instructions.trim()))

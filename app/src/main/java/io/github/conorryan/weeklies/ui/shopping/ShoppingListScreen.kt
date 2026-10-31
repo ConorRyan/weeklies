@@ -48,6 +48,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.isValidPortionsPerDay
 import io.github.conorryan.weeklies.ui.BottomAction
@@ -83,7 +86,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             .fillMaxSize()
             .imePadding(),
     ) {
-        TabHeader("Shopping List", Icons.Filled.ShoppingCart, headerColorFor(HeaderColor.SHOPPING))
+        TabHeader(stringResource(R.string.tab_shopping), Icons.Filled.ShoppingCart, headerColorFor(HeaderColor.SHOPPING))
 
         Column(
             modifier = Modifier
@@ -169,7 +172,11 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                     ) {
                         Icon(
                             if (editing) Icons.Filled.Check else Icons.Filled.Edit,
-                            contentDescription = if (editing) "Done editing" else "Edit item",
+                            contentDescription = if (editing) {
+                                stringResource(R.string.shopping_done_editing)
+                            } else {
+                                stringResource(R.string.shopping_edit_item)
+                            },
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         )
                     }
@@ -230,7 +237,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                         ) {
                             if (newLabel.isEmpty()) {
                                 Text(
-                                    "Item",
+                                    stringResource(R.string.shopping_item_hint),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -245,7 +252,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 ) {
                     Icon(
                         Icons.Filled.Add,
-                        contentDescription = "Add item",
+                        contentDescription = stringResource(R.string.shopping_add_item),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -256,18 +263,18 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             listOf(
                 BottomAction(
                     icon = Icons.Filled.AddShoppingCart,
-                    label = "Add today's recipe",
+                    label = stringResource(R.string.shopping_add_todays_recipe),
                     onClick = {
                         val id = state.todayRecipeId
                         val recipe = state.recipes.firstOrNull { it.id == id }
                         when {
                             id == null -> toastBus.info(
-                                "No recipe today",
-                                "Assign a recipe to today on the Weeklies tab first.",
+                                R.string.shopping_no_recipe_today,
+                                message = R.string.shopping_no_recipe_today_msg,
                             )
                             recipe == null -> toastBus.info(
-                                "Recipe missing",
-                                "The planned recipe was removed. Update Weeklies or Recipes.",
+                                R.string.shopping_recipe_missing,
+                                message = R.string.shopping_recipe_missing_msg,
                             )
                             else -> portionsFor = recipe
                         }
@@ -275,12 +282,12 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 ),
                 BottomAction(
                     icon = Icons.Filled.RestaurantMenu,
-                    label = "Add recipe",
+                    label = stringResource(R.string.shopping_add_recipe),
                     onClick = { pickerOpen = true },
                 ),
                 BottomAction(
                     icon = Icons.Filled.Delete,
-                    label = "Remove checked",
+                    label = stringResource(R.string.shopping_remove_checked),
                     onClick = { vm.removeChecked() },
                     enabled = state.hasChecked,
                     destructive = true,
@@ -296,7 +303,7 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
         val portionsValid = portions != null && isValidPortionsPerDay(portions)
         ConfirmDialog(
             title = portionsTarget.name,
-            confirmLabel = "Add",
+            confirmLabel = stringResource(R.string.add),
             confirmEnabled = portionsValid,
             onConfirm = {
                 portionsFor = null
@@ -305,11 +312,11 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             onDismiss = { portionsFor = null },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("How many portions? (Settings default: ${state.defaultPortions})")
+                    Text(stringResource(R.string.shopping_portions_prompt, state.defaultPortions))
                     OutlinedTextField(
                         value = portionsText,
                         onValueChange = { portionsText = it },
-                        label = { Text("Portions") },
+                        label = { Text(stringResource(R.string.shopping_portions_label)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                     )
@@ -323,7 +330,11 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
             onDismissRequest = { pickerOpen = false },
             sheetState = pickerSheetState,
         ) {
-            SheetHeader(title = "Add recipe", actionLabel = "Cancel", onAction = { pickerOpen = false })
+            SheetHeader(
+                title = stringResource(R.string.shopping_add_recipe),
+                actionLabel = stringResource(R.string.cancel),
+                onAction = { pickerOpen = false },
+            )
 
             val others = state.recipes.filter { it.id != state.todayRecipeId }
             if (others.isEmpty()) {
@@ -333,9 +344,9 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                 ) {
                     Text(
                         if (state.recipes.isEmpty()) {
-                            "Add recipes first, then pick one here."
+                            stringResource(R.string.shopping_add_recipes_first)
                         } else {
-                            "No other recipes yet."
+                            stringResource(R.string.shopping_no_other_recipes)
                         },
                     )
                 }
@@ -351,8 +362,13 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text(item.name, fontWeight = FontWeight.SemiBold)
+                        val ingredientCount = item.ingredients.size
                         Text(
-                            "${item.ingredients.size} ingredient${if (item.ingredients.size == 1) "" else "s"}",
+                            pluralStringResource(
+                                R.plurals.shopping_ingredient_count,
+                                ingredientCount,
+                                ingredientCount,
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )

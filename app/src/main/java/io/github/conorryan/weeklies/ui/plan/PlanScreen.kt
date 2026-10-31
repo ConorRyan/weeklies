@@ -25,13 +25,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Weekday
 import io.github.conorryan.weeklies.ui.SheetHeader
+import io.github.conorryan.weeklies.ui.weekdayName
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
@@ -53,9 +57,13 @@ fun PlanScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        TabHeader("Weeklies", Icons.Filled.CalendarMonth, headerColorFor(HeaderColor.PLAN))
+        TabHeader(
+            stringResource(R.string.tab_plan),
+            Icons.Filled.CalendarMonth,
+            headerColorFor(HeaderColor.PLAN),
+        )
         Text(
-            "Tap a row to assign a recipe. Repeats every week.",
+            stringResource(R.string.plan_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -65,8 +73,8 @@ fun PlanScreen(
             val recipeId = byDay[day]
             val recipe = recipeId?.let { id -> state.recipes.firstOrNull { it.id == id } }
             val line = when {
-                recipeId == null -> "Choose recipe"
-                recipe == null -> "Recipe removed"
+                recipeId == null -> stringResource(R.string.plan_choose_recipe)
+                recipe == null -> stringResource(R.string.plan_recipe_removed)
                 else -> recipe.name
             }
             val isToday = day == state.today
@@ -83,7 +91,7 @@ fun PlanScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    day.label,
+                    weekdayName(day),
                     fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.align(Alignment.CenterVertically),
@@ -114,11 +122,15 @@ fun PlanScreen(
             onDismissRequest = { pickerDay = null },
             sheetState = sheetState,
         ) {
-            SheetHeader(title = day.label, actionLabel = "Done", onAction = { pickerDay = null })
+            SheetHeader(
+                title = weekdayName(day),
+                actionLabel = stringResource(R.string.done),
+                onAction = { pickerDay = null },
+            )
 
             if (byDay[day] != null) {
                 Text(
-                    "Clear assignment",
+                    stringResource(R.string.plan_clear_assignment),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .clickable {
@@ -131,9 +143,9 @@ fun PlanScreen(
 
             if (state.recipes.isEmpty()) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Add recipes first, then pick one for each day.")
+                    Text(stringResource(R.string.plan_add_recipes_first))
                     Text(
-                        "Go to Recipes",
+                        stringResource(R.string.plan_go_to_recipes),
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.clickable {
@@ -155,7 +167,11 @@ fun PlanScreen(
                     ) {
                         Text(item.name, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "${item.ingredients.size} ingredient${if (item.ingredients.size == 1) "" else "s"}",
+                            pluralStringResource(
+                                R.plurals.plan_ingredient_count,
+                                item.ingredients.size,
+                                item.ingredients.size,
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )

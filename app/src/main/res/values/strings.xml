@@ -1,4 +1,254 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Weeklies</string>
+
+    <!-- Tabs and common -->
+    <string name="tab_plan">Weeklies</string>
+    <string name="tab_recipes">Recipes</string>
+    <string name="tab_shopping">Shopping List</string>
+    <string name="tab_settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="add">Add</string>
+    <string name="edit">Edit</string>
+    <string name="done">Done</string>
+    <string name="close">Close</string>
+    <string name="apply">Apply</string>
+    <string name="remove">Remove</string>
+    <string name="help">Help</string>
+    <string name="settings">Settings</string>
+
+    <!-- Backup toasts and errors -->
+    <string name="backup_folder_set">Backup folder set</string>
+    <string name="backup_folder_removed">Backup folder removed</string>
+    <string name="backup_folder_error_title">Could not use that folder</string>
+    <string name="backup_done">Backed up</string>
+    <string name="export_canceled_toast">Export canceled</string>
+    <string name="import_canceled_toast">Import canceled</string>
+    <string name="folder_selection_canceled">Folder selection canceled</string>
+    <string name="export_canceled_msg">Export was canceled.</string>
+    <string name="import_canceled_msg">Import was canceled.</string>
+    <string name="backup_canceled_msg">Backup was canceled.</string>
+    <string name="export_failed_title">Export failed</string>
+    <string name="import_failed_title">Import failed</string>
+    <string name="backup_failed_title">Backup failed</string>
+    <string name="backup_export_permission_error">Could not write there. Try another folder or check permissions.</string>
+    <string name="backup_import_permission_error">Could not read that file. Check permissions and try again.</string>
+    <string name="backup_invalid_file">That file is not a valid Weeklies backup.</string>
+    <string name="backup_unsupported_version">That backup version is not supported.</string>
+    <string name="backup_import_generic_error">Could not import. Pick a backup JSON file from this app.</string>
+    <string name="backup_export_generic_error">Could not save your backup. Try again or choose another folder.</string>
+
+    <!-- Import errors -->
+    <string name="import_error_canceled">Import canceled</string>
+    <string name="import_error_empty_content">Nothing to import</string>
+    <string name="import_error_invalid_url">Invalid URL</string>
+    <string name="import_error_no_recipe_data">No recipe found</string>
+    <string name="import_error_incomplete_recipe">Incomplete recipe</string>
+    <string name="import_error_parse_failed">Could not read page</string>
+    <string name="import_error_fetch_failed">Could not load page</string>
+    <string name="import_error_page_too_large">Page too large</string>
+    <string name="import_error_mistral_auth">Mistral API key</string>
+    <string name="import_error_mistral_rate_limit">Rate limit</string>
+    <string name="import_error_mistral_unavailable">Mistral unavailable</string>
+    <string name="import_error_mistral_failed">Import with AI failed</string>
+    <string name="import_error_mistral_key_missing">Mistral API key</string>
+    <string name="import_error_unknown">Import failed</string>
+    <string name="import_msg_canceled">Import canceled.</string>
+    <string name="import_msg_empty_content">Paste or load page content before importing.</string>
+    <string name="import_msg_missing_url">Enter a recipe URL.</string>
+    <string name="import_msg_invalid_url">Enter a valid http or https URL.</string>
+    <string name="import_msg_no_recipe_data">This page doesn\'t include recipe data we can read.</string>
+    <string name="import_hint_no_recipe_data">Try a different recipe page, paste the full page HTML on web, or use Import with AI.</string>
+    <string name="import_msg_incomplete_recipe">The page had recipe markup but no usable name and ingredients.</string>
+    <string name="import_hint_incomplete_recipe">Try Import with AI or create the recipe manually.</string>
+    <string name="import_msg_parse_failed">Could not parse the page HTML.</string>
+    <string name="import_hint_parse_failed">Make sure you copied the full page source, not just the visible text.</string>
+    <string name="import_msg_fetch_failed">Could not load page.</string>
+    <string name="import_msg_fetch_failed_status">Could not load page (HTTP %1$s).</string>
+    <string name="import_hint_fetch_failed">Check the URL, your connection, and that the site allows fetching this page.</string>
+    <string name="import_msg_page_too_large">Page is too large to import.</string>
+    <string name="import_hint_page_too_large">Try a shorter recipe page or paste the HTML on web.</string>
+    <string name="import_msg_key_missing">Add your Mistral API key in Settings → Recipe import.</string>
+    <string name="import_hint_key_missing">Import with AI needs a key; standard Import does not.</string>
+    <string name="import_msg_mistral_auth">Invalid Mistral API key. Check Settings → Recipe import.</string>
+    <string name="import_msg_mistral_rate_limit">Mistral rate limit reached. Try again later.</string>
+    <string name="import_msg_mistral_unavailable">Mistral is temporarily unavailable. Try again later.</string>
+    <string name="import_msg_mistral_failed">Mistral request failed (%1$s).</string>
+    <string name="import_msg_mistral_empty">Mistral returned an empty response.</string>
+    <string name="import_hint_mistral_empty">Try again, or use standard Import if the page has JSON-LD recipe data.</string>
+    <string name="import_msg_mistral_parse">Could not parse recipe from Mistral response.</string>
+    <string name="import_hint_mistral_parse">Try again, or use standard Import if the page has JSON-LD recipe data.</string>
+    <string name="import_msg_unknown">Something went wrong while importing.</string>
+    <string name="import_hint_unknown">Try again, or use Import with AI if standard Import cannot read the page.</string>
+
+    <!-- Plan -->
+    <string name="plan_hint">Tap a row to assign a recipe. Repeats every week.</string>
+    <string name="plan_choose_recipe">Choose recipe</string>
+    <string name="plan_recipe_removed">Recipe removed</string>
+    <string name="plan_clear_assignment">Clear assignment</string>
+    <string name="plan_add_recipes_first">Add recipes first, then pick one for each day.</string>
+    <string name="plan_go_to_recipes">Go to Recipes</string>
+
+    <!-- Shopping list -->
+    <string name="shopping_done_editing">Done editing</string>
+    <string name="shopping_edit_item">Edit item</string>
+    <string name="shopping_item_hint">Item</string>
+    <string name="shopping_add_item">Add item</string>
+    <string name="shopping_add_todays_recipe">Add today\'s recipe</string>
+    <string name="shopping_add_recipe">Add recipe</string>
+    <string name="shopping_remove_checked">Remove checked</string>
+    <string name="shopping_no_recipe_today">No recipe today</string>
+    <string name="shopping_no_recipe_today_msg">Assign a recipe to today on the Weeklies tab first.</string>
+    <string name="shopping_recipe_missing">Recipe missing</string>
+    <string name="shopping_recipe_missing_msg">The planned recipe was removed. Update Weeklies or Recipes.</string>
+    <string name="shopping_recipe_removed_msg">The recipe was removed. Update Weeklies or Recipes.</string>
+    <string name="shopping_portions_prompt">How many portions? (Settings default: %1$d)</string>
+    <string name="shopping_portions_label">Portions</string>
+    <string name="shopping_add_recipes_first">Add recipes first, then pick one here.</string>
+    <string name="shopping_no_other_recipes">No other recipes yet.</string>
+
+    <!-- Settings -->
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_section_planning">Planning</string>
+    <string name="settings_portions_per_day">Portions per day</string>
+    <string name="settings_about_portions">About portions per day</string>
+    <string name="settings_portions_info">Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.</string>
+    <string name="settings_section_recipe_import">Recipe import</string>
+    <string name="settings_mistral_api_key">Mistral API key</string>
+    <string name="settings_about_mistral_key">About the Mistral API key</string>
+    <string name="settings_key_info">Your Mistral API key is stored only on this device and is not included in backup export or import. Get a key at console.mistral.ai.</string>
+    <string name="settings_paste_api_key">Paste API key</string>
+    <string name="settings_save_key">Save key</string>
+    <string name="settings_clear_key">Clear key</string>
+    <string name="settings_section_data">Data</string>
+    <string name="settings_export_backup">Export backup</string>
+    <string name="settings_import_backup">Import backup</string>
+    <string name="settings_import_replaces_data">Importing replaces all data on this device.</string>
+    <string name="settings_section_backup_folder">Backup folder</string>
+    <string name="settings_backing_up_to">Backing up to: %1$s</string>
+    <string name="settings_configured_folder">configured folder</string>
+    <string name="settings_backup_folder_info">Backups are written to a folder you choose - pick one from Google Drive, Nextcloud, or similar and your provider syncs it off this phone. The newest 3 backups are kept.</string>
+    <string name="settings_change_folder">Change folder</string>
+    <string name="settings_choose_folder">Choose folder</string>
+    <string name="settings_remove_folder">Remove folder</string>
+    <string name="settings_auto_backup">Back up automatically</string>
+    <string name="settings_auto_backup_info">A backup is written automatically shortly after your recipes, plan, or shopping list change.</string>
+    <string name="settings_backup_now">Back up now</string>
+    <string name="settings_last_backup">Last backup: %1$s</string>
+    <string name="settings_section_other">Other</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+
+    <!-- Import screen -->
+    <string name="import_review_title">Review import</string>
+    <string name="import_review_hint">Review the imported recipe, edit if needed, then save. Ingredient amounts were scaled to one portion (the recipe\'s serving count was used only for scaling).</string>
+    <string name="import_save_recipe">Save recipe</string>
+    <string name="import_again">Import again</string>
+    <string name="import_recipe_title">Import recipe</string>
+    <string name="import_url_label">Recipe URL</string>
+    <string name="import_button">Import</string>
+    <string name="import_with_ai">Import with AI</string>
+    <string name="import_ai_needs_key">Import with AI needs a Mistral API key in Settings.</string>
+    <string name="import_open_settings">Open Settings</string>
+    <string name="import_explainer">Import reads recipe data from JSON-LD on the page on this device — no API key needed. Import with AI sends page content to Mistral using your key. Amounts are stored for one portion; the shopping list scales them when you add a planned recipe. Requires an internet connection to fetch the page (native) or when using AI.</string>
+
+    <!-- Recipes -->
+    <string name="recipe_empty">No recipes yet.</string>
+    <string name="recipe_delete_content_desc">Delete %1$s</string>
+    <string name="recipe_create_new">Create new</string>
+    <string name="recipe_import">Import</string>
+    <string name="recipe_websites">Websites</string>
+    <string name="recipe_recommended_sites">Recommended websites</string>
+    <string name="recipe_delete_confirm_title">Delete recipe?</string>
+    <string name="recipe_delete_confirm_text">Remove \"%1$s\"? This cannot be undone.</string>
+    <string name="recipe_save">Save recipe</string>
+    <string name="recipe_name_label">Name</string>
+    <string name="recipe_name_hint">Recipe name</string>
+    <string name="recipe_ingredients_label">Ingredients</string>
+    <string name="recipe_ingredient_hint">Ingredient</string>
+    <string name="recipe_remove_ingredient">Remove ingredient</string>
+    <string name="recipe_add_ingredient">Add ingredient</string>
+    <string name="recipe_cleaning_up">Cleaning up…</string>
+    <string name="recipe_clean_ingredients">Clean up ingredients ✨</string>
+    <string name="recipe_instructions_label">Instructions</string>
+    <string name="recipe_instructions_hint">Steps, notes, timing…</string>
+    <string name="recipe_clean_instructions">Clean up instructions ✨</string>
+    <string name="recipe_name_required">Recipe name is required.</string>
+    <string name="recipe_ingredient_required">Add at least one ingredient.</string>
+    <string name="recipe_apply_cleanup">Apply cleanup?</string>
+    <string name="recipe_nothing_to_clean">Nothing to clean up</string>
+    <string name="recipe_ingredients_look_good">Your ingredients already look good - no changes suggested.</string>
+    <string name="recipe_merged">merged</string>
+    <string name="recipe_split">split</string>
+    <string name="recipe_instructions_look_good">Your instructions already look good - no changes suggested.</string>
+    <string name="recipe_default_title">Recipe</string>
+    <string name="recipe_edit">Edit recipe</string>
+    <string name="recipe_adjust_portions">Adjust portions</string>
+    <string name="recipe_ingredients_single_portion">Ingredients (single portion)</string>
+    <string name="recipe_back_to_recipes">Back to recipes</string>
+    <string name="recipe_not_found_title">Recipe not found</string>
+    <string name="recipe_not_found_message">The recipe may have been deleted.</string>
+    <string name="recipe_adjust_portions_text">The listed amounts make how many portions? Amounts are rescaled to a single portion (use 0.5 to double).</string>
+    <string name="recipe_portions">Portions</string>
+    <string name="recipe_new_amounts">New amounts</string>
+    <string name="recipe_rescale">Rescale</string>
+    <string name="recipe_new">New recipe</string>
+
+    <!-- Help -->
+    <string name="help_weeklies_intro">Weeklies is for planning meals once, then not asking yourself what to eat every day. Your week runs Monday through Sunday. Tap a day to choose a recipe, reuse the same plan across multiple weeks, or change any day whenever your plans change. Today\'s row has a light highlight and the day name and recipe line are bold so you can spot the current day quickly.</string>
+    <string name="help_recipes_intro">Recipes are for meals you already know how to cook. Store the ingredients you need, one line at a time, without writing out full cooking instructions. Open the Recipes tab to add, review, or remove saved meals.</string>
+    <string name="help_recipes_edit">To edit a recipe, open it from the list and tap Edit recipe. The screen matches new recipe (same fields and Save recipe), with your current name and ingredients filled in; saving replaces that recipe and keeps the same entry everywhere it is used in your plan.</string>
+    <string name="help_recipes_import">Import (Recipes tab) reads recipe data from JSON-LD on the page — no API key needed. Enter a recipe URL; ingredient amounts are scaled to one portion before saving. You review and edit before saving.</string>
+    <string name="help_recipes_import_ai">Import with AI uses your Mistral API key (Settings → Recipe import) to extract the recipe when schema data is missing or incomplete. The key stays on this device and is not included in backup files. Same URL input as Import; requires an internet connection.</string>
+    <string name="help_shopping_list_title">Shopping list</string>
+    <string name="help_shopping_add">Type at the bottom and tap + to add a line. Tap the checkbox or anywhere on the row to check an item off. Use Remove checked to delete every checked line. Tap Add today\'s recipe to append ingredients from whatever recipe is planned for today on the Weeklies tab; amounts are scaled using Portions per day in Settings (each number in an ingredient line is multiplied by that value).</string>
+    <string name="help_settings_dark_mode">Turn dark mode on or off; the choice is remembered after you close the app.</string>
+    <string name="help_settings_portions">Portions per day is the multiplier used when you use Add today\'s recipe on the shopping list: every numeric quantity in each ingredient line is multiplied by this value.</string>
+    <string name="help_settings_import_key">Recipe import: add your Mistral API key under Recipe import. It is stored locally and excluded from backup export and import.</string>
+    <string name="help_settings_help_link">This Help screen is linked from Settings.</string>
+    <string name="help_data_title">Data</string>
+    <string name="help_data_local">Weeklies is fully local and completely offline. Recipes, your weekly plan, and the shopping list are stored on this device, where they stay until you remove them in the app or replace them by importing a backup.</string>
+    <string name="help_data_export">In Settings, open the Data section. Export writes one JSON file (default name like weeklies-backup-2026-05-09.json) containing recipes, your weekly plan, the shopping list, and settings — including dark mode and portions per day.</string>
+    <string name="help_data_import">Import replaces all stored data with the contents of that file. Nothing is merged with what you already had — confirm only when you intend to overwrite the app completely.</string>
+
+    <!-- Privacy -->
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_summary_title">Summary</string>
+    <string name="privacy_summary">Weeklies stores your data on your device. The app has no accounts, no analytics, no advertising, and no tracking. It does not send your data anywhere unless you use the optional AI recipe import described below.</string>
+    <string name="privacy_data_stored_title">Data stored on your device</string>
+    <string name="privacy_data_stored">Your recipes, weekly plan, shopping list, and settings (dark mode, portions per day) are saved in local storage on this device only. They stay there until you delete them in the app or replace them by importing a backup file. This data is never transmitted to us or to any server.</string>
+    <string name="privacy_backups_title">Backups</string>
+    <string name="privacy_backups">Export (Settings → Data) writes a JSON file to a location you choose. The file is yours: the app never uploads it, and the app has no access to any other files on your device. Import reads only the backup file you pick, and replaces your stored data with its contents.</string>
+    <string name="privacy_recipe_import_title">Recipe import</string>
+    <string name="privacy_recipe_import_native">Import fetches the recipe page from the web address you enter, on your device, and reads the recipe data from the page itself. The request goes directly to that website, the same as opening it in a browser.</string>
+    <string name="privacy_recipe_import_ai">Import with AI is optional and only runs when you ask for it. It sends the recipe web address or page text you provide to the Mistral AI API (api.mistral.ai) using your own API key, so the recipe can be extracted when the page does not contain structured recipe data. Your API key is stored on this device only and is never included in backup exports. These requests are processed by Mistral according to Mistral\'s privacy policy; we do not see them and cannot access your key. Without this feature, the app makes no network requests at all.</string>
+    <string name="privacy_permissions_title">Permissions</string>
+    <string name="privacy_permissions">The app can open the system file picker when you export or import a backup, and only for the file or folder you select. It requests no other permissions.</string>
+    <string name="privacy_children_title">Children</string>
+    <string name="privacy_children">Weeklies is a general-purpose meal planner and is not directed at children. Because the app collects no personal data, no age verification is used.</string>
+    <string name="privacy_changes_title">Changes to this policy</string>
+    <string name="privacy_changes">If the app changes in a way that affects your privacy, this policy will be updated and published with the matching app update. The current version is always available on GitHub and inside the app.</string>
+    <string name="privacy_contact_title">Contact</string>
+    <string name="privacy_contact">Questions about this policy can be raised on GitHub: github.com/ConorRyan/weeklies.</string>
+
+    <!-- Counts -->
+    <plurals name="plan_ingredient_count">
+        <item quantity="one">%1$d ingredient</item>
+        <item quantity="other">%1$d ingredients</item>
+    </plurals>
+    <plurals name="recipe_ingredient_count">
+        <item quantity="one">%1$d ingredient</item>
+        <item quantity="other">%1$d ingredients</item>
+    </plurals>
+    <plurals name="shopping_ingredient_count">
+        <item quantity="one">%1$d ingredient</item>
+        <item quantity="other">%1$d ingredients</item>
+    </plurals>
+    <plurals name="recipe_unchanged_count">
+        <item quantity="one">%1$d ingredient unchanged</item>
+        <item quantity="other">%1$d ingredients unchanged</item>
+    </plurals>
 </resources>

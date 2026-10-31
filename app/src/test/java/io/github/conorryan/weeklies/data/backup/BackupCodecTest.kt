@@ -1,5 +1,6 @@
 package io.github.conorryan.weeklies.data.backup
 
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.AppColorScheme
 import io.github.conorryan.weeklies.data.model.AppSettings
 import io.github.conorryan.weeklies.data.model.Recipe
@@ -192,11 +193,11 @@ class BackupCodecTest {
     @Test
     fun backupErrorsFormatsImportFailures() {
         assertEquals(
-            "That file is not a valid Weeklies backup.",
+            R.string.backup_invalid_file,
             BackupErrors.formatBackupError(BackupFormatException("Could not parse JSON"), BackupErrors.Kind.IMPORT),
         )
         assertEquals(
-            "That backup version is not supported.",
+            R.string.backup_unsupported_version,
             BackupErrors.formatBackupError(
                 BackupFormatException("Unsupported backup version"),
                 BackupErrors.Kind.IMPORT,
@@ -208,7 +209,7 @@ class BackupCodecTest {
     fun backupErrorsTreatsCancellationAsUserCanceled() {
         assertEquals(false, BackupErrors.isUserCanceled(null))
         assertEquals(
-            "Export was canceled.",
+            R.string.export_canceled_msg,
             BackupErrors.formatBackupError(
                 kotlinx.coroutines.CancellationException(),
                 BackupErrors.Kind.EXPORT,

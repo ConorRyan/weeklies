@@ -32,9 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.R
 
 /**
  * Full-screen page for non-tab routes: back arrow, title, scrollable body.
@@ -58,7 +62,7 @@ fun ModalScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = MaterialTheme.colorScheme.onBackground,
                 )
             }
@@ -167,7 +171,7 @@ fun InfoDialog(
         title = { Text(title) },
         text = text,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         },
     )
 }
@@ -184,7 +188,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     confirmEnabled: Boolean = true,
-    dismissLabel: String? = "Cancel",
+    dismissLabel: String? = stringResource(R.string.cancel),
     text: @Composable () -> Unit = {},
 ) {
     AlertDialog(
@@ -270,4 +274,16 @@ fun BottomActionBar(
             }
         }
     }
+}
+
+/**
+ * The weekday's name in the app's language. [Weekday.label] is English-only
+ * (it mirrors the React Native app's keys), so display names come from the
+ * platform's own localized weekday names.
+ */
+@Composable
+fun weekdayName(day: Weekday): String {
+    val locale = LocalConfiguration.current.locales[0] ?: java.util.Locale.getDefault()
+    return java.time.DayOfWeek.of(day.ordinal + 1)
+        .getDisplayName(java.time.format.TextStyle.FULL, locale)
 }

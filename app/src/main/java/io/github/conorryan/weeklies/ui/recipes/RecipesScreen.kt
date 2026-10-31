@@ -32,11 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.ui.BottomAction
 import io.github.conorryan.weeklies.ui.BottomActionBar
 import io.github.conorryan.weeklies.ui.ConfirmDialog
@@ -66,7 +69,7 @@ fun RecipesScreen(
     var showRecommendedSites by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabHeader("Recipes", Icons.AutoMirrored.Filled.MenuBook, headerColorFor(HeaderColor.RECIPES))
+        TabHeader(stringResource(R.string.tab_recipes), Icons.AutoMirrored.Filled.MenuBook, headerColorFor(HeaderColor.RECIPES))
 
         Column(
             modifier = Modifier
@@ -76,7 +79,7 @@ fun RecipesScreen(
         ) {
             if (recipes.isEmpty()) {
                 Text(
-                    "No recipes yet.",
+                    stringResource(R.string.recipe_empty),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
@@ -98,7 +101,11 @@ fun RecipesScreen(
                         Column(Modifier.padding(vertical = 8.dp)) {
                             Text(recipe.name, fontWeight = FontWeight.SemiBold)
                             Text(
-                                "${recipe.ingredients.size} ingredient${if (recipe.ingredients.size == 1) "" else "s"}",
+                                pluralStringResource(
+                                    R.plurals.recipe_ingredient_count,
+                                    recipe.ingredients.size,
+                                    recipe.ingredients.size,
+                                ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -106,7 +113,7 @@ fun RecipesScreen(
                     IconButton(onClick = { deleteTarget = recipe.id }) {
                         Icon(
                             Icons.Filled.Remove,
-                            contentDescription = "Delete ${recipe.name}",
+                            contentDescription = stringResource(R.string.recipe_delete_content_desc, recipe.name),
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -118,17 +125,17 @@ fun RecipesScreen(
             listOf(
                 BottomAction(
                     icon = Icons.Filled.Add,
-                    label = "Create new",
+                    label = stringResource(R.string.recipe_create_new),
                     onClick = onNew,
                 ),
                 BottomAction(
                     icon = Icons.Filled.Download,
-                    label = "Import",
+                    label = stringResource(R.string.recipe_import),
                     onClick = onImport,
                 ),
                 BottomAction(
                     icon = Icons.Filled.Public,
-                    label = "Websites",
+                    label = stringResource(R.string.recipe_websites),
                     onClick = { showRecommendedSites = true },
                 ),
             ),
@@ -138,7 +145,7 @@ fun RecipesScreen(
     if (showRecommendedSites) {
         val context = LocalContext.current
         InfoDialog(
-            title = "Recommended websites",
+            title = stringResource(R.string.recipe_recommended_sites),
             onDismiss = { showRecommendedSites = false },
             text = {
                 Column(
@@ -165,14 +172,14 @@ fun RecipesScreen(
     val targetRecipe = recipes.firstOrNull { it.id == target }
     if (target != null && targetRecipe != null) {
         ConfirmDialog(
-            title = "Delete recipe?",
-            confirmLabel = "Delete",
+            title = stringResource(R.string.recipe_delete_confirm_title),
+            confirmLabel = stringResource(R.string.delete),
             onConfirm = {
                 vm.removeRecipe(target)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },
-            text = { Text("Remove \"${targetRecipe.name}\"? This cannot be undone.") },
+            text = { Text(stringResource(R.string.recipe_delete_confirm_text, targetRecipe.name)) },
         )
     }
 }

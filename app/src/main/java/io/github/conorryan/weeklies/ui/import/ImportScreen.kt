@@ -15,11 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.ui.ActionButton
 import io.github.conorryan.weeklies.ui.ModalScreen
 import io.github.conorryan.weeklies.ui.recipes.RecipeForm
@@ -46,31 +48,34 @@ fun ImportScreen(
             factory = RecipeFormViewModel.importReviewFactory(graph, preview),
         )
         val formState by formVm.state.collectAsStateWithLifecycle()
-        ModalScreen(title = "Review import", onBack = onBack) {
+        ModalScreen(title = stringResource(R.string.import_review_title), onBack = onBack) {
             Text(
-                "Review the imported recipe, edit if needed, then save. Ingredient amounts were scaled " +
-                    "to one portion (the recipe's serving count was used only for scaling).",
+                stringResource(R.string.import_review_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
             RecipeForm(
                 state = formState,
                 vm = formVm,
-                submitLabel = "Save recipe",
+                submitLabel = stringResource(R.string.import_save_recipe),
             ) { recipe ->
                 formVm.save(recipe, onBack)
             }
-            TextButton(onClick = { vm.clearPreview() }) { Text("Import again") }
+            TextButton(onClick = { vm.clearPreview() }) { Text(stringResource(R.string.import_again)) }
         }
         return
     }
 
-    ModalScreen(title = "Import recipe", onBack = onBack) {
+    ModalScreen(title = stringResource(R.string.import_recipe_title), onBack = onBack) {
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(vertical = 8.dp),
         ) {
-            Text("Recipe URL", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.import_url_label),
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+            )
             OutlinedTextField(
                 value = state.url,
                 onValueChange = { vm.setUrl(it) },
@@ -82,13 +87,13 @@ fun ImportScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 ActionButton(
-                    label = "Import",
+                    label = stringResource(R.string.import_button),
                     onClick = { vm.runScraperImport() },
                     enabled = !state.busy,
                     modifier = Modifier.weight(1f),
                 )
                 ActionButton(
-                    label = "Import with AI",
+                    label = stringResource(R.string.import_with_ai),
                     onClick = { vm.runAiImport(storedKey.orEmpty()) },
                     enabled = !state.busy && keyReady,
                     modifier = Modifier.weight(1f),
@@ -101,17 +106,17 @@ fun ImportScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator()
-                    TextButton(onClick = { vm.cancelImport() }) { Text("Cancel") }
+                    TextButton(onClick = { vm.cancelImport() }) { Text(stringResource(R.string.cancel)) }
                 }
             }
 
             if (storedKey != null && !keyReady) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Import with AI needs a Mistral API key in Settings.",
+                        stringResource(R.string.import_ai_needs_key),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    TextButton(onClick = onOpenSettings) { Text("Open Settings") }
+                    TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.import_open_settings)) }
                 }
             }
 
@@ -124,18 +129,20 @@ fun ImportScreen(
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            error.title,
+                            stringResource(error.title),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
                         Text(
-                            error.message,
+                            error.messageArg?.let { stringResource(error.message, it) }
+                                ?: stringResource(error.message),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        if (error.hint != null) {
+                        val hint = error.hint
+                        if (hint != null) {
                             Text(
-                                error.hint,
+                                stringResource(hint),
                                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                                 style = MaterialTheme.typography.bodySmall,
                             )
@@ -145,10 +152,7 @@ fun ImportScreen(
             }
 
             Text(
-                "Import reads recipe data from JSON-LD on the page on this device — no API key " +
-                    "needed. Import with AI sends page content to Mistral using your key. Amounts are stored " +
-                    "for one portion; the shopping list scales them when you add a planned recipe. Requires an " +
-                    "internet connection to fetch the page (native) or when using AI.",
+                stringResource(R.string.import_explainer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

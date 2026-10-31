@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -43,24 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.AppColorScheme
 import io.github.conorryan.weeklies.ui.InfoDialog
 import io.github.conorryan.weeklies.ui.TabHeader
 import io.github.conorryan.weeklies.ui.ToastBus
 import io.github.conorryan.weeklies.ui.theme.HeaderColor
 import io.github.conorryan.weeklies.ui.theme.headerColorFor
-
-private const val PORTIONS_INFO_TEXT =
-    "Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients."
-
-private const val MISTRAL_KEY_INFO_TEXT =
-    "Your Mistral API key is stored only on this device and is not included in backup export or import. Get a key at console.mistral.ai."
-
-private const val BACKUP_FOLDER_INFO_TEXT =
-    "Backups are written to a folder you choose - pick one from Google Drive, Nextcloud, or similar and your provider syncs it off this phone. The newest 3 backups are kept."
-
-private const val AUTO_BACKUP_INFO_TEXT =
-    "A backup is written automatically shortly after your recipes, plan, or shopping list change."
 
 @Composable
 private fun SectionHeader(text: String, first: Boolean = false) {
@@ -129,7 +119,7 @@ fun SettingsScreen(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
         when (uri) {
-            null -> toastBus.info("Export canceled")
+            null -> toastBus.info(R.string.export_canceled_toast)
             else -> vm.exportBackup {
                 context.contentResolver.openOutputStream(uri)
                     ?: error("Could not open file for writing")
@@ -141,7 +131,7 @@ fun SettingsScreen(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         when (uri) {
-            null -> toastBus.info("Import canceled")
+            null -> toastBus.info(R.string.import_canceled_toast)
             else -> vm.importBackup {
                 context.contentResolver.openInputStream(uri)
                     ?: error("Could not read that file")
@@ -153,7 +143,7 @@ fun SettingsScreen(
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         when (uri) {
-            null -> toastBus.info("Folder selection canceled")
+            null -> toastBus.info(R.string.folder_selection_canceled)
             else -> vm.chooseBackupFolder(uri)
         }
     }
@@ -163,11 +153,11 @@ fun SettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        TabHeader("Settings", Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
+        TabHeader(stringResource(R.string.settings), Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
 
-        SectionHeader("Appearance", first = true)
+        SectionHeader(stringResource(R.string.settings_section_appearance), first = true)
         SettingRow(
-            label = "Dark mode",
+            label = stringResource(R.string.settings_dark_mode),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             trailing = {
                 Switch(
@@ -177,11 +167,11 @@ fun SettingsScreen(
             },
         )
 
-        SectionHeader("Planning")
+        SectionHeader(stringResource(R.string.settings_section_planning))
         SettingRow(
-            label = "Portions per day",
+            label = stringResource(R.string.settings_portions_per_day),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            infoContentDescription = "About portions per day",
+            infoContentDescription = stringResource(R.string.settings_about_portions),
             onInfo = { portionsInfoOpen = true },
             trailing = {
                 OutlinedTextField(
@@ -205,20 +195,20 @@ fun SettingsScreen(
             },
         )
 
-        SectionHeader("Recipe import")
+        SectionHeader(stringResource(R.string.settings_section_recipe_import))
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             SettingRow(
-                label = "Mistral API key",
-                infoContentDescription = "About the Mistral API key",
+                label = stringResource(R.string.settings_mistral_api_key),
+                infoContentDescription = stringResource(R.string.settings_about_mistral_key),
                 onInfo = { keyInfoOpen = true },
             )
             OutlinedTextField(
                 value = keyText,
                 onValueChange = { keyText = it },
-                placeholder = { Text("Paste API key") },
+                placeholder = { Text(stringResource(R.string.settings_paste_api_key)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -227,7 +217,7 @@ fun SettingsScreen(
                 Button(
                     onClick = { vm.saveApiKey(keyText) },
                     modifier = Modifier.weight(1f),
-                ) { Text("Save key") }
+                ) { Text(stringResource(R.string.settings_save_key)) }
                 if (state.apiKey.trim().isNotEmpty()) {
                     TextButton(
                         onClick = {
@@ -235,12 +225,12 @@ fun SettingsScreen(
                             keyText = ""
                         },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Clear key") }
+                    ) { Text(stringResource(R.string.settings_clear_key)) }
                 }
             }
         }
 
-        SectionHeader("Data")
+        SectionHeader(stringResource(R.string.settings_section_data))
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -249,24 +239,26 @@ fun SettingsScreen(
                 onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
                 enabled = !state.backupBusy,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Export backup") }
+            ) { Text(stringResource(R.string.settings_export_backup)) }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
                 enabled = !state.backupBusy,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Import backup") }
-            SupportingText("Importing replaces all data on this device.")
+            ) { Text(stringResource(R.string.settings_import_backup)) }
+            SupportingText(stringResource(R.string.settings_import_replaces_data))
         }
 
-        SectionHeader("Backup folder")
+        SectionHeader(stringResource(R.string.settings_section_backup_folder))
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(vertical = 8.dp),
         ) {
             if (state.backupFolder.configured) {
-                SupportingText("Backing up to: ${state.backupFolder.name ?: "configured folder"}")
+                val folderName = state.backupFolder.name?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.settings_configured_folder)
+                SupportingText(stringResource(R.string.settings_backing_up_to, folderName))
             } else {
-                SupportingText(BACKUP_FOLDER_INFO_TEXT)
+                SupportingText(stringResource(R.string.settings_backup_folder_info))
             }
             OutlinedButton(
                 onClick = { folderPicker.launch(null) },
@@ -274,15 +266,21 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
             ) {
-                Text(if (state.backupFolder.configured) "Change folder" else "Choose folder")
+                Text(
+                    if (state.backupFolder.configured) {
+                        stringResource(R.string.settings_change_folder)
+                    } else {
+                        stringResource(R.string.settings_choose_folder)
+                    },
+                )
             }
             if (state.backupFolder.configured) {
                 TextButton(
                     onClick = { vm.clearBackupFolder() },
                     modifier = Modifier.padding(horizontal = 16.dp),
-                ) { Text("Remove folder") }
+                ) { Text(stringResource(R.string.settings_remove_folder)) }
                 SettingRow(
-                    label = "Back up automatically",
+                    label = stringResource(R.string.settings_auto_backup),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     trailing = {
                         Switch(
@@ -291,47 +289,52 @@ fun SettingsScreen(
                         )
                     },
                 )
-                SupportingText(AUTO_BACKUP_INFO_TEXT)
+                SupportingText(stringResource(R.string.settings_auto_backup_info))
                 Button(
                     onClick = { vm.backupNowToFolder() },
                     enabled = !state.backupBusy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                ) { Text("Back up now") }
+                ) { Text(stringResource(R.string.settings_backup_now)) }
             }
             state.backupFolder.lastBackupAt?.let { at ->
-                SupportingText("Last backup: ${DateUtils.getRelativeTimeSpanString(at.toEpochMilli())}")
+                SupportingText(
+                    stringResource(
+                        R.string.settings_last_backup,
+                        DateUtils.getRelativeTimeSpanString(at.toEpochMilli()).toString(),
+                    ),
+                )
             }
         }
 
-        SectionHeader("Other")
+        SectionHeader(stringResource(R.string.settings_section_other))
         TextButton(
             onClick = onOpenHelp,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Text("Help")
+            Text(stringResource(R.string.help))
         }
         TextButton(
             onClick = onOpenPrivacy,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Text("Privacy policy")
+            Text(stringResource(R.string.settings_privacy_policy))
         }
     }
 
     if (portionsInfoOpen) {
         InfoDialog(
-            title = "Portions per day",
+            title = stringResource(R.string.settings_portions_per_day),
             onDismiss = { portionsInfoOpen = false },
-            text = { Text(PORTIONS_INFO_TEXT) },
+            text = { Text(stringResource(R.string.settings_portions_info)) },
         )
     }
     if (keyInfoOpen) {
         InfoDialog(
-            title = "Mistral API key",
+            title = stringResource(R.string.settings_mistral_api_key),
             onDismiss = { keyInfoOpen = false },
-            text = { Text(MISTRAL_KEY_INFO_TEXT) },
+            text = { Text(stringResource(R.string.settings_key_info)) },
         )
     }
 }

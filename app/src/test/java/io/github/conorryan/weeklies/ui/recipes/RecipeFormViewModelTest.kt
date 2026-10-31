@@ -1,6 +1,7 @@
 package io.github.conorryan.weeklies.ui.recipes
 
 import androidx.lifecycle.SavedStateHandle
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.import.CleanedIngredients
 import io.github.conorryan.weeklies.data.import.HttpResponse
 import io.github.conorryan.weeklies.data.import.HttpTransport
@@ -145,7 +146,7 @@ class RecipeFormViewModelTest {
 
         vm.submit { submitted = it }
 
-        assertEquals("Recipe name is required.", vm.state.value.validationError)
+        assertEquals(R.string.recipe_name_required, vm.state.value.validationError)
         assertNull(submitted)
     }
 
@@ -156,7 +157,7 @@ class RecipeFormViewModelTest {
 
         vm.submit { }
 
-        assertEquals("Add at least one ingredient.", vm.state.value.validationError)
+        assertEquals(R.string.recipe_ingredient_required, vm.state.value.validationError)
     }
 
     @Test

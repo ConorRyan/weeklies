@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.backup.BackupErrors
 import io.github.conorryan.weeklies.data.model.AppColorScheme
 import io.github.conorryan.weeklies.data.model.AppSettings
@@ -96,14 +97,14 @@ class SettingsViewModel(
 
     /** Writes a backup to [open] the user-picked destination; owns busy state and error copy. */
     fun exportBackup(open: () -> OutputStream) {
-        runBackup(BackupErrors.Kind.EXPORT, "Export") {
+        runBackup(BackupAction.EXPORT) {
             open().use { out -> out.write(graph.backupManager.buildBackupJson().toByteArray(Charsets.UTF_8)) }
         }
     }
 
     /** Reads a backup from [read] the user-picked source and replaces all data; owns busy state and error copy. */
     fun importBackup(read: () -> InputStream) {
-        runBackup(BackupErrors.Kind.IMPORT, "Import") {
+        runBackup(BackupAction.IMPORT) {
             val text = read().use { it.readBytes().toString(Charsets.UTF_8) }
             graph.backupManager.applyBackupImport(text)
         }
@@ -114,13 +115,16 @@ class SettingsViewModel(
         viewModelScope.launch {
             try {
                 graph.folderBackups.takePersistablePermission(uri)
-                val name = graph.folderBackups.folderDisplayName(uri) ?: "Backup folder"
+                val name = graph.folderBackups.folderDisplayName(uri) ?: ""
                 graph.backupFolderStore.setBackupFolder(uri.toString(), name)
-                toastBus.info("Backup folder set")
+                toastBus.info(R.string.backup_folder_set)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                toastBus.error("Could not use that folder", BackupErrors.formatBackupError(e, BackupErrors.Kind.EXPORT))
+                toastBus.error(
+                    R.string.backup_folder_error_title,
+                    BackupErrors.formatBackupError(e, BackupErrors.Kind.EXPORT),
+                )
             }
         }
     }
@@ -130,7 +134,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             state.value.backupFolder.uri?.let { graph.folderBackups.releasePersistablePermission(Uri.parse(it)) }
             graph.backupFolderStore.clearBackupFolder()
-            toastBus.info("Backup folder removed")
+            toastBus.info(R.string.backup_folder_removed)
         }
     }
 
@@ -140,17 +144,27 @@ class SettingsViewModel(
 
     /** Writes a timestamped backup into the configured folder. */
     fun backupNowToFolder() {
-        runBackup(BackupErrors.Kind.EXPORT, "Backup", successMessage = "Backed up") {
+        runBackup(BackupAction.BACKUP, successMessage = R.string.backup_done) {
             if (!graph.folderBackups.writeBackupNow()) {
                 error("No backup folder configured")
             }
         }
     }
 
+    /** One kind of backup run: the error category plus the copy for its canceled and failed toasts. */
+    private enum class BackupAction(
+        val errorKind: BackupErrors.Kind,
+        val canceledMessage: Int,
+        val failedTitle: Int,
+    ) {
+        EXPORT(BackupErrors.Kind.EXPORT, R.string.export_canceled_msg, R.string.export_failed_title),
+        IMPORT(BackupErrors.Kind.IMPORT, R.string.import_canceled_msg, R.string.import_failed_title),
+        BACKUP(BackupErrors.Kind.EXPORT, R.string.backup_canceled_msg, R.string.backup_failed_title),
+    }
+
     private fun runBackup(
-        kind: BackupErrors.Kind,
-        label: String,
-        successMessage: String? = null,
+        action: BackupAction,
+        successMessage: Int? = null,
         block: suspend () -> Unit,
     ) {
         viewModelScope.launch {
@@ -159,11 +173,11 @@ class SettingsViewModel(
                 block()
                 if (successMessage != null) toastBus.info(successMessage)
             } catch (e: kotlinx.coroutines.CancellationException) {
-                toastBus.info("$label canceled")
+                toastBus.info(action.canceledMessage)
             } catch (e: Exception) {
                 toastBus.error(
-                    "$label failed",
-                    BackupErrors.formatBackupError(e, kind),
+                    action.failedTitle,
+                    BackupErrors.formatBackupError(e, action.errorKind),
                 )
             } finally {
                 _busy.update { false }

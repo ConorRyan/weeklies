@@ -20,12 +20,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.import.isValidServings
 import io.github.conorryan.weeklies.data.import.rescaleToSinglePortion
 import io.github.conorryan.weeklies.data.model.NewRecipe
@@ -48,16 +50,20 @@ fun RecipeDetailScreen(
     val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph))
     var adjustPortionsOpen by remember { mutableStateOf(false) }
 
-    ModalScreen(title = current?.name ?: "Recipe", onBack = onBack) {
+    ModalScreen(title = current?.name ?: stringResource(R.string.recipe_default_title), onBack = onBack) {
         if (current != null) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(current.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Row {
-                    TextButton(onClick = { onEdit(current.id) }) { Text("Edit recipe") }
-                    TextButton(onClick = { adjustPortionsOpen = true }) { Text("Adjust portions") }
+                    TextButton(onClick = { onEdit(current.id) }) {
+                        Text(stringResource(R.string.recipe_edit))
+                    }
+                    TextButton(onClick = { adjustPortionsOpen = true }) {
+                        Text(stringResource(R.string.recipe_adjust_portions))
+                    }
                 }
                 Text(
-                    "Ingredients (single portion)",
+                    stringResource(R.string.recipe_ingredients_single_portion),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -66,14 +72,14 @@ fun RecipeDetailScreen(
                 }
                 if (current.instructions.isNotEmpty()) {
                     Text(
-                        "Instructions",
+                        stringResource(R.string.recipe_instructions_label),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(current.instructions, style = MaterialTheme.typography.bodyLarge)
                 }
                 TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
-                    Text("Back to recipes")
+                    Text(stringResource(R.string.recipe_back_to_recipes))
                 }
             }
             if (adjustPortionsOpen) {
@@ -91,9 +97,13 @@ fun RecipeDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize().padding(top = 12.dp),
             ) {
-                Text("Recipe not found", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("The recipe may have been deleted.")
-                TextButton(onClick = onBack) { Text("Back to recipes") }
+                Text(
+                    stringResource(R.string.recipe_not_found_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(stringResource(R.string.recipe_not_found_message))
+                TextButton(onClick = onBack) { Text(stringResource(R.string.recipe_back_to_recipes)) }
             }
         }
     }
@@ -120,27 +130,24 @@ private fun AdjustPortionsDialog(
 
     ConfirmDialog(
         title = recipe.name,
-        confirmLabel = "Rescale",
+        confirmLabel = stringResource(R.string.recipe_rescale),
         confirmEnabled = portionsValid,
         onConfirm = { onRescale(preview) },
         onDismiss = onDismiss,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "The listed amounts make how many portions? " +
-                        "Amounts are rescaled to a single portion (use 0.5 to double).",
-                )
+                Text(stringResource(R.string.recipe_adjust_portions_text))
                 OutlinedTextField(
                     value = portionsText,
                     onValueChange = { portionsText = it },
-                    label = { Text("Portions") },
+                    label = { Text(stringResource(R.string.recipe_portions)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (portionsValid) {
                     Text(
-                        "New amounts",
+                        stringResource(R.string.recipe_new_amounts),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -176,19 +183,26 @@ fun RecipeEditScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
-    ModalScreen(title = if (current != null) "Edit recipe" else "New recipe", onBack = onBack) {
+    ModalScreen(
+        title = if (current != null) stringResource(R.string.recipe_edit) else stringResource(R.string.recipe_new),
+        onBack = onBack,
+    ) {
         if (current != null) {
             RecipeForm(
                 state = state,
                 vm = vm,
-                submitLabel = "Save recipe",
+                submitLabel = stringResource(R.string.recipe_save),
             ) { recipe ->
                 vm.save(recipe, onBack)
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
-                Text("Recipe not found", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("The recipe may have been deleted.")
+                Text(
+                    stringResource(R.string.recipe_not_found_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(stringResource(R.string.recipe_not_found_message))
             }
         }
     }
@@ -204,11 +218,11 @@ fun RecipeNewScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
-    ModalScreen(title = "New recipe", onBack = onBack) {
+    ModalScreen(title = stringResource(R.string.recipe_new), onBack = onBack) {
         RecipeForm(
             state = state,
             vm = vm,
-            submitLabel = "Save recipe",
+            submitLabel = stringResource(R.string.recipe_save),
         ) { recipe ->
             vm.save(recipe, onBack)
         }

@@ -1,6 +1,8 @@
 package io.github.conorryan.weeklies.data.backup
 
+import androidx.annotation.StringRes
 import androidx.room.withTransaction
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.db.AppDatabase
 import io.github.conorryan.weeklies.data.settings.AppSettingsStore
 import io.github.conorryan.weeklies.data.repo.PlanRepository
@@ -60,9 +62,10 @@ object BackupErrors {
             lower.contains("user dismissed")
     }
 
-    fun formatBackupError(error: Throwable?, kind: Kind): String {
+    @StringRes
+    fun formatBackupError(error: Throwable?, kind: Kind): Int {
         if (isUserCanceled(error)) {
-            return if (kind == Kind.EXPORT) "Export was canceled." else "Import was canceled."
+            return if (kind == Kind.EXPORT) R.string.export_canceled_msg else R.string.import_canceled_msg
         }
 
         val lower = (error?.message ?: "").lowercase()
@@ -72,9 +75,9 @@ object BackupErrors {
             lower.contains("access denied")
         if (permission) {
             return if (kind == Kind.EXPORT) {
-                "Could not write there. Try another folder or check permissions."
+                R.string.backup_export_permission_error
             } else {
-                "Could not read that file. Check permissions and try again."
+                R.string.backup_import_permission_error
             }
         }
 
@@ -84,15 +87,15 @@ object BackupErrors {
                 lower.contains("invalid backup") ||
                 lower.contains("could not parse json")
             ) {
-                return "That file is not a valid Weeklies backup."
+                return R.string.backup_invalid_file
             }
             if (lower.contains("unsupported backup")) {
-                return "That backup version is not supported."
+                return R.string.backup_unsupported_version
             }
-            return "Could not import. Pick a backup JSON file from this app."
+            return R.string.backup_import_generic_error
         }
 
-        return "Could not save your backup. Try again or choose another folder."
+        return R.string.backup_export_generic_error
     }
 
     enum class Kind { EXPORT, IMPORT }

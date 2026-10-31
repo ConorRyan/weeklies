@@ -1,5 +1,8 @@
 package io.github.conorryan.weeklies.data.import
 
+import androidx.annotation.StringRes
+import io.github.conorryan.weeklies.R
+
 /** Error codes mirror the React Native app one-for-one. */
 enum class RecipeImportErrorCode {
     CANCELED,
@@ -20,122 +23,159 @@ enum class RecipeImportErrorCode {
     UNKNOWN,
 }
 
-data class RecipeImportErrorDisplay(val title: String, val message: String, val hint: String? = null)
+/**
+ * Copy shown for a failed import, as string resources so the UI resolves it
+ * in the app's language. [messageArg] formats into [message].
+ */
+data class RecipeImportErrorDisplay(
+    @StringRes val title: Int,
+    @StringRes val message: Int,
+    val messageArg: String? = null,
+    @StringRes val hint: Int? = null,
+)
 
 class RecipeImportException(
     message: String,
     val code: RecipeImportErrorCode,
-    val hint: String? = null,
+    /** Display copy for the message line; falls back to the code's default. */
+    @StringRes val displayMessage: Int? = null,
+    val displayArg: String? = null,
+    @StringRes val displayHint: Int? = null,
 ) : Exception(message)
 
 object RecipeImportErrors {
 
-    private val TITLES: Map<RecipeImportErrorCode, String> = mapOf(
-        RecipeImportErrorCode.CANCELED to "Import canceled",
-        RecipeImportErrorCode.EMPTY_CONTENT to "Nothing to import",
-        RecipeImportErrorCode.INVALID_URL to "Invalid URL",
-        RecipeImportErrorCode.NO_RECIPE_DATA to "No recipe found",
-        RecipeImportErrorCode.INCOMPLETE_RECIPE to "Incomplete recipe",
-        RecipeImportErrorCode.PARSE_FAILED to "Could not read page",
-        RecipeImportErrorCode.FETCH_FAILED to "Could not load page",
-        RecipeImportErrorCode.PAGE_TOO_LARGE to "Page too large",
-        RecipeImportErrorCode.MISTRAL_AUTH to "Mistral API key",
-        RecipeImportErrorCode.MISTRAL_RATE_LIMIT to "Rate limit",
-        RecipeImportErrorCode.MISTRAL_UNAVAILABLE to "Mistral unavailable",
-        RecipeImportErrorCode.MISTRAL_FAILED to "Import with AI failed",
-        RecipeImportErrorCode.MISTRAL_EMPTY to "Import with AI failed",
-        RecipeImportErrorCode.MISTRAL_PARSE to "Import with AI failed",
-        RecipeImportErrorCode.MISTRAL_KEY_MISSING to "Mistral API key",
-        RecipeImportErrorCode.UNKNOWN to "Import failed",
+    private val TITLES: Map<RecipeImportErrorCode, Int> = mapOf(
+        RecipeImportErrorCode.CANCELED to R.string.import_error_canceled,
+        RecipeImportErrorCode.EMPTY_CONTENT to R.string.import_error_empty_content,
+        RecipeImportErrorCode.INVALID_URL to R.string.import_error_invalid_url,
+        RecipeImportErrorCode.NO_RECIPE_DATA to R.string.import_error_no_recipe_data,
+        RecipeImportErrorCode.INCOMPLETE_RECIPE to R.string.import_error_incomplete_recipe,
+        RecipeImportErrorCode.PARSE_FAILED to R.string.import_error_parse_failed,
+        RecipeImportErrorCode.FETCH_FAILED to R.string.import_error_fetch_failed,
+        RecipeImportErrorCode.PAGE_TOO_LARGE to R.string.import_error_page_too_large,
+        RecipeImportErrorCode.MISTRAL_AUTH to R.string.import_error_mistral_auth,
+        RecipeImportErrorCode.MISTRAL_RATE_LIMIT to R.string.import_error_mistral_rate_limit,
+        RecipeImportErrorCode.MISTRAL_UNAVAILABLE to R.string.import_error_mistral_unavailable,
+        RecipeImportErrorCode.MISTRAL_FAILED to R.string.import_error_mistral_failed,
+        RecipeImportErrorCode.MISTRAL_EMPTY to R.string.import_error_mistral_failed,
+        RecipeImportErrorCode.MISTRAL_PARSE to R.string.import_error_mistral_failed,
+        RecipeImportErrorCode.MISTRAL_KEY_MISSING to R.string.import_error_mistral_key_missing,
+        RecipeImportErrorCode.UNKNOWN to R.string.import_error_unknown,
     )
 
-    fun canceled() = RecipeImportException("Import canceled.", RecipeImportErrorCode.CANCELED)
+    fun canceled() = RecipeImportException(
+        "Import canceled.",
+        RecipeImportErrorCode.CANCELED,
+        R.string.import_msg_canceled,
+    )
 
     fun emptyContent() = RecipeImportException(
         "Paste or load page content before importing.",
         RecipeImportErrorCode.EMPTY_CONTENT,
+        R.string.import_msg_empty_content,
     )
 
     fun missingUrl() = RecipeImportException(
         "Enter a recipe URL.",
         RecipeImportErrorCode.EMPTY_CONTENT,
+        R.string.import_msg_missing_url,
     )
 
     fun invalidUrl() = RecipeImportException(
         "Enter a valid http or https URL.",
         RecipeImportErrorCode.INVALID_URL,
+        R.string.import_msg_invalid_url,
     )
 
     fun noRecipeData() = RecipeImportException(
         "This page doesn't include recipe data we can read.",
         RecipeImportErrorCode.NO_RECIPE_DATA,
-        "Try a different recipe page, paste the full page HTML on web, or use Import with AI.",
+        R.string.import_msg_no_recipe_data,
+        displayHint = R.string.import_hint_no_recipe_data,
     )
 
     fun incompleteRecipe() = RecipeImportException(
         "The page had recipe markup but no usable name and ingredients.",
         RecipeImportErrorCode.INCOMPLETE_RECIPE,
-        "Try Import with AI or create the recipe manually.",
+        R.string.import_msg_incomplete_recipe,
+        displayHint = R.string.import_hint_incomplete_recipe,
     )
 
     fun parseFailed() = RecipeImportException(
         "Could not parse the page HTML.",
         RecipeImportErrorCode.PARSE_FAILED,
-        "Make sure you copied the full page source, not just the visible text.",
+        R.string.import_msg_parse_failed,
+        displayHint = R.string.import_hint_parse_failed,
     )
 
     fun fetchFailed(status: Int? = null) = RecipeImportException(
         if (status != null) "Could not load page (HTTP $status)." else "Could not load page.",
         RecipeImportErrorCode.FETCH_FAILED,
-        "Check the URL, your connection, and that the site allows fetching this page.",
+        if (status != null) R.string.import_msg_fetch_failed_status else R.string.import_msg_fetch_failed,
+        displayArg = status?.toString(),
+        displayHint = R.string.import_hint_fetch_failed,
     )
 
     fun pageTooLarge() = RecipeImportException(
         "Page is too large to import.",
         RecipeImportErrorCode.PAGE_TOO_LARGE,
-        "Try a shorter recipe page or paste the HTML on web.",
+        R.string.import_msg_page_too_large,
+        displayHint = R.string.import_hint_page_too_large,
     )
 
     fun mistralKeyMissing() = RecipeImportException(
         "Add your Mistral API key in Settings → Recipe import.",
         RecipeImportErrorCode.MISTRAL_KEY_MISSING,
-        "Import with AI needs a key; standard Import does not.",
+        R.string.import_msg_key_missing,
+        displayHint = R.string.import_hint_key_missing,
     )
 
     fun mistralAuth() = RecipeImportException(
         "Invalid Mistral API key. Check Settings → Recipe import.",
         RecipeImportErrorCode.MISTRAL_AUTH,
+        R.string.import_msg_mistral_auth,
     )
 
     fun mistralRateLimit() = RecipeImportException(
         "Mistral rate limit reached. Try again later.",
         RecipeImportErrorCode.MISTRAL_RATE_LIMIT,
+        R.string.import_msg_mistral_rate_limit,
     )
 
     fun mistralUnavailable() = RecipeImportException(
         "Mistral is temporarily unavailable. Try again later.",
         RecipeImportErrorCode.MISTRAL_UNAVAILABLE,
+        R.string.import_msg_mistral_unavailable,
     )
 
     fun mistralFailed(status: Int) =
-        RecipeImportException("Mistral request failed ($status).", RecipeImportErrorCode.MISTRAL_FAILED)
+        RecipeImportException(
+            "Mistral request failed ($status).",
+            RecipeImportErrorCode.MISTRAL_FAILED,
+            R.string.import_msg_mistral_failed,
+            displayArg = status.toString(),
+        )
 
     fun mistralEmpty() = RecipeImportException(
         "Mistral returned an empty response.",
         RecipeImportErrorCode.MISTRAL_EMPTY,
-        "Try again, or use standard Import if the page has JSON-LD recipe data.",
+        R.string.import_msg_mistral_empty,
+        displayHint = R.string.import_hint_mistral_empty,
     )
 
     fun mistralParse() = RecipeImportException(
         "Could not parse recipe from Mistral response.",
         RecipeImportErrorCode.MISTRAL_PARSE,
-        "Try again, or use standard Import if the page has JSON-LD recipe data.",
+        R.string.import_msg_mistral_parse,
+        displayHint = R.string.import_hint_mistral_parse,
     )
 
     fun unknown() = RecipeImportException(
         "Something went wrong while importing.",
         RecipeImportErrorCode.UNKNOWN,
-        "Try again, or use Import with AI if standard Import cannot read the page.",
+        R.string.import_msg_unknown,
+        displayHint = R.string.import_hint_unknown,
     )
 
     fun isImportCanceled(error: Throwable?): Boolean {
@@ -152,20 +192,16 @@ object RecipeImportErrors {
         if (error is RecipeImportException) {
             return RecipeImportErrorDisplay(
                 title = TITLES.getValue(error.code),
-                message = error.message ?: "",
-                hint = error.hint,
+                message = error.displayMessage ?: R.string.import_msg_unknown,
+                messageArg = error.displayArg,
+                hint = error.displayHint,
             )
         }
 
-        val message = error?.message
         return RecipeImportErrorDisplay(
             title = TITLES.getValue(RecipeImportErrorCode.UNKNOWN),
-            message = if (message.isNullOrBlank()) {
-                unknown().message ?: "Something went wrong while importing."
-            } else {
-                message
-            },
-            hint = unknown().hint,
+            message = R.string.import_msg_unknown,
+            hint = R.string.import_hint_unknown,
         )
     }
 }

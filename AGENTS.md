@@ -17,6 +17,10 @@
   Debug builds install as `<applicationId>.debug` ("… Debug" in the
   launcher, `app/src/debug/res/`), beside the release-signed app; target
   that package in adb. Never sign debug builds with the release key.
+- **Every user-visible string is translated.** When you add or change a
+  string in `values/strings.xml`, update `values-fr/strings.xml` in the
+  same change. `TranslationsTest` fails on a missing name but can't catch
+  stale text.
 - Match existing style: 4-space indent, trailing commas, explicit types only
   where the codebase already uses them. Keep modules small and focused; prefer
   pure, testable functions over Android-coupled code.

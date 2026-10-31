@@ -19,8 +19,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.import.isUnchangedPairing
 import io.github.conorryan.weeklies.data.import.pairCleanupForReview
 import io.github.conorryan.weeklies.data.model.NewRecipe
@@ -42,7 +45,7 @@ private fun FormLabel(text: String) {
 fun RecipeForm(
     state: RecipeFormUiState,
     vm: RecipeFormViewModel,
-    submitLabel: String = "Save recipe",
+    submitLabel: String = stringResource(R.string.recipe_save),
     onSubmit: (NewRecipe) -> Unit,
 ) {
     val draft = state.draft
@@ -52,16 +55,16 @@ fun RecipeForm(
             .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        FormLabel("Name")
+        FormLabel(stringResource(R.string.recipe_name_label))
         OutlinedTextField(
             value = draft.name,
             onValueChange = vm::setName,
-            placeholder = { Text("Recipe name") },
+            placeholder = { Text(stringResource(R.string.recipe_name_hint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
-        FormLabel("Ingredients")
+        FormLabel(stringResource(R.string.recipe_ingredients_label))
         for (index in draft.ingredients.indices) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,7 +74,7 @@ fun RecipeForm(
                 OutlinedTextField(
                     value = draft.ingredients[index],
                     onValueChange = { vm.setIngredient(index, it) },
-                    placeholder = { Text("Ingredient") },
+                    placeholder = { Text(stringResource(R.string.recipe_ingredient_hint)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
@@ -81,7 +84,7 @@ fun RecipeForm(
                 ) {
                     Icon(
                         Icons.Filled.Remove,
-                        contentDescription = "Remove ingredient",
+                        contentDescription = stringResource(R.string.recipe_remove_ingredient),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -90,23 +93,27 @@ fun RecipeForm(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = vm::addIngredient) {
-                Text("Add ingredient", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.recipe_add_ingredient), fontWeight = FontWeight.SemiBold)
             }
             TextButton(
                 onClick = vm::cleanIngredients,
                 enabled = state.cleanupBusy == null && state.hasIngredientText,
             ) {
                 Text(
-                    if (state.cleanupBusy == CleanupTarget.INGREDIENTS) "Cleaning up…" else "Clean up ingredients ✨",
+                    if (state.cleanupBusy == CleanupTarget.INGREDIENTS) {
+                        stringResource(R.string.recipe_cleaning_up)
+                    } else {
+                        stringResource(R.string.recipe_clean_ingredients)
+                    },
                 )
             }
         }
 
-        FormLabel("Instructions")
+        FormLabel(stringResource(R.string.recipe_instructions_label))
         OutlinedTextField(
             value = draft.instructions,
             onValueChange = vm::setInstructions,
-            placeholder = { Text("Steps, notes, timing…") },
+            placeholder = { Text(stringResource(R.string.recipe_instructions_hint)) },
             modifier = Modifier.fillMaxWidth(),
         )
         TextButton(
@@ -114,7 +121,11 @@ fun RecipeForm(
             enabled = state.cleanupBusy == null && state.hasInstructions,
         ) {
             Text(
-                if (state.cleanupBusy == CleanupTarget.INSTRUCTIONS) "Cleaning up…" else "Clean up instructions ✨",
+                if (state.cleanupBusy == CleanupTarget.INSTRUCTIONS) {
+                    stringResource(R.string.recipe_cleaning_up)
+                } else {
+                    stringResource(R.string.recipe_clean_instructions)
+                },
             )
         }
 
@@ -126,7 +137,7 @@ fun RecipeForm(
 
         val validationError = state.validationError
         if (validationError != null) {
-            Text(validationError, color = MaterialTheme.colorScheme.error)
+            Text(stringResource(validationError), color = MaterialTheme.colorScheme.error)
         }
 
         val preview = state.ingredientPreview
@@ -134,9 +145,13 @@ fun RecipeForm(
             val pairings = pairCleanupForReview(draft.ingredients.map { it.trim() }.filter { it.isNotEmpty() }, preview)
             val hasChanges = pairings.any { !isUnchangedPairing(it) }
             ConfirmDialog(
-                title = if (hasChanges) "Apply cleanup?" else "Nothing to clean up",
-                confirmLabel = if (hasChanges) "Apply" else "Close",
-                dismissLabel = if (hasChanges) "Cancel" else null,
+                title = if (hasChanges) {
+                    stringResource(R.string.recipe_apply_cleanup)
+                } else {
+                    stringResource(R.string.recipe_nothing_to_clean)
+                },
+                confirmLabel = stringResource(if (hasChanges) R.string.apply else R.string.close),
+                dismissLabel = if (hasChanges) stringResource(R.string.cancel) else null,
                 onConfirm = {
                     if (hasChanges) vm.applyIngredientCleanup() else vm.dismissIngredientCleanup()
                 },
@@ -149,12 +164,16 @@ fun RecipeForm(
                             .verticalScroll(rememberScrollState()),
                     ) {
                         if (!hasChanges) {
-                            Text("Your ingredients already look good - no changes suggested.")
+                            Text(stringResource(R.string.recipe_ingredients_look_good))
                         }
                         val unchanged = pairings.count { isUnchangedPairing(it) }
                         if (unchanged > 0) {
                             Text(
-                                "$unchanged ingredient${if (unchanged == 1) "" else "s"} unchanged",
+                                pluralStringResource(
+                                    R.plurals.recipe_unchanged_count,
+                                    unchanged,
+                                    unchanged,
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -173,13 +192,13 @@ fun RecipeForm(
                                 }
                                 if (pair.before.size > 1 && pair.after.size == 1) {
                                     Text(
-                                        "merged",
+                                        stringResource(R.string.recipe_merged),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 } else if (pair.after.size > 1) {
                                     Text(
-                                        "split",
+                                        stringResource(R.string.recipe_split),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -195,9 +214,13 @@ fun RecipeForm(
         if (newInstructions != null) {
             val hasChanges = newInstructions != draft.instructions.trim()
             ConfirmDialog(
-                title = if (hasChanges) "Apply cleanup?" else "Nothing to clean up",
-                confirmLabel = if (hasChanges) "Apply" else "Close",
-                dismissLabel = if (hasChanges) "Cancel" else null,
+                title = if (hasChanges) {
+                    stringResource(R.string.recipe_apply_cleanup)
+                } else {
+                    stringResource(R.string.recipe_nothing_to_clean)
+                },
+                confirmLabel = stringResource(if (hasChanges) R.string.apply else R.string.close),
+                dismissLabel = if (hasChanges) stringResource(R.string.cancel) else null,
                 onConfirm = {
                     if (hasChanges) vm.applyInstructionCleanup() else vm.dismissInstructionCleanup()
                 },
@@ -210,7 +233,7 @@ fun RecipeForm(
                             .verticalScroll(rememberScrollState()),
                     ) {
                         if (!hasChanges) {
-                            Text("Your instructions already look good - no changes suggested.")
+                            Text(stringResource(R.string.recipe_instructions_look_good))
                         }
                         for (line in newInstructions.lines()) {
                             Text(line)
@@ -223,13 +246,19 @@ fun RecipeForm(
         val cleanupErrorDisplay = state.cleanupError
         if (cleanupErrorDisplay != null) {
             InfoDialog(
-                title = cleanupErrorDisplay.title,
+                title = stringResource(cleanupErrorDisplay.title),
                 onDismiss = vm::dismissCleanupError,
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(cleanupErrorDisplay.message)
+                        Text(
+                            if (cleanupErrorDisplay.messageArg != null) {
+                                stringResource(cleanupErrorDisplay.message, cleanupErrorDisplay.messageArg)
+                            } else {
+                                stringResource(cleanupErrorDisplay.message)
+                            },
+                        )
                         if (cleanupErrorDisplay.hint != null) {
-                            Text(cleanupErrorDisplay.hint)
+                            Text(stringResource(cleanupErrorDisplay.hint))
                         }
                     }
                 },
