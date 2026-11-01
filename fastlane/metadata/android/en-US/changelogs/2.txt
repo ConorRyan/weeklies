@@ -1,0 +1,7 @@
+A Market redesign: one paper-and-cards theme in market green across every
+tab, replacing the coloured headers, with a Material navigation bar. Week
+gets a today card, the shopping list gets open and in-the-basket sections
+with today's recipe as chips, recipes search by name or ingredient, and
+settings are regrouped. The shopping list drops its "N to get" eyebrow and
+edits start at the end, and the AI chip now writes the steps when the box
+is empty, not just tidies existing text.

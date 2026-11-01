@@ -1,0 +1,7 @@
+Un habillage « marché » : un seul thème papier et cartes au vert marché
+pour tous les onglets, à la place des en-têtes colorés, avec une barre de
+navigation Material. La semaine gagne une carte du jour, la liste de
+courses des sections ouvertes et « dans le panier », les recettes se
+cherchent par nom ou ingrédient, et les réglages sont regroupés. La liste
+perd son bandeau « N à acheter », et la pastille IA écrit les étapes quand
+la boîte est vide, au lieu de simplement ranger le texte.
