@@ -275,6 +275,14 @@ private fun crossSimilarity(aLines: List<String>, bLines: List<String>): Double 
     return aLines.minOf { a -> bTokens.minOf { b -> tokenSimilarity(lineTokens(a), b) } }
 }
 
+/**
+ * Builds the final ingredient lines from a cleanup review: each pairing in
+ * order contributes its cleaned lines when its index is in [accepted], and
+ * its original lines otherwise. Unchanged pairings read the same either way.
+ */
+fun applyCleanupSelection(pairings: List<CleanupPairing>, accepted: Set<Int>): List<String> =
+    pairings.flatMapIndexed { index, pairing -> if (index in accepted) pairing.after else pairing.before }
+
 /** True for a 1:1 pairing the cleanup left exactly as it was. */
 fun isUnchangedPairing(pairing: CleanupPairing): Boolean =
     pairing.before.size == 1 && pairing.after.size == 1 && pairing.before[0] == pairing.after[0]

@@ -1,39 +1,54 @@
 package io.github.conorryan.weeklies.ui.recipes
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
-import io.github.conorryan.weeklies.data.import.isValidServings
-import io.github.conorryan.weeklies.data.import.rescaleToSinglePortion
 import io.github.conorryan.weeklies.data.model.NewRecipe
-import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.data.quantity.scaleIngredientLines
+import io.github.conorryan.weeklies.ui.CardDivider
+import io.github.conorryan.weeklies.ui.CardGroup
 import io.github.conorryan.weeklies.ui.ConfirmDialog
 import io.github.conorryan.weeklies.ui.ModalScreen
+import io.github.conorryan.weeklies.ui.ToastBus
+import io.github.conorryan.weeklies.ui.shopping.PortionsDialog
+import io.github.conorryan.weeklies.ui.weekdayName
 
 @Composable
 fun RecipeDetailScreen(
@@ -41,131 +56,225 @@ fun RecipeDetailScreen(
     recipeId: String,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    toastBus: ToastBus,
 ) {
-    // Warm app state: the recipe list is already loaded by the time the user
-    // can navigate here, so the first composed frame has real content and no
-    // placeholder flashes.
+    // Warm app state: the recipe list and plan are already loaded by the time
+    // the user can navigate here, so the first composed frame has real content
+    // and no placeholder flashes.
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
+    val byDay by graph.planState.collectAsStateWithLifecycle()
+    val settings by graph.settingsStore.settings.collectAsStateWithLifecycle(graph.settingsStore.defaults)
     val current = recipes.firstOrNull { it.id == recipeId }
-    val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph))
-    var adjustPortionsOpen by remember { mutableStateOf(false) }
+    val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph, toastBus))
 
-    ModalScreen(title = current?.name ?: stringResource(R.string.recipe_default_title), onBack = onBack) {
-        if (current != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(current.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Row {
-                    TextButton(onClick = { onEdit(current.id) }) {
-                        Text(stringResource(R.string.recipe_edit))
-                    }
-                    TextButton(onClick = { adjustPortionsOpen = true }) {
-                        Text(stringResource(R.string.recipe_adjust_portions))
-                    }
-                }
-                Text(
-                    stringResource(R.string.recipe_ingredients_single_portion),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                for (line in current.ingredients) {
-                    Text("- $line", style = MaterialTheme.typography.bodyLarge)
-                }
-                if (current.instructions.isNotEmpty()) {
-                    Text(
-                        stringResource(R.string.recipe_instructions_label),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(current.instructions, style = MaterialTheme.typography.bodyLarge)
-                }
-                TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
-                    Text(stringResource(R.string.recipe_back_to_recipes))
-                }
+    var scaleOpen by remember { mutableStateOf(false) }
+    var deleteOpen by remember { mutableStateOf(false) }
+    var portionsOpen by remember { mutableStateOf(false) }
+    var viewFactor by rememberSaveable { mutableStateOf(1.0) }
+    var viewLabel by rememberSaveable { mutableStateOf<String?>(null) }
+    // Amounts before the last "Save to recipe", so the banner can undo it.
+    var undoLines by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
+    var savedLabel by rememberSaveable { mutableStateOf("") }
+
+    if (current == null) {
+        ModalScreen(title = null, onBack = onBack) {
+            Text(stringResource(R.string.recipe_not_found_title), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.recipe_not_found_message))
+            TextButton(onClick = onBack) { Text(stringResource(R.string.recipe_back_to_recipes)) }
+        }
+        return
+    }
+
+    ModalScreen(
+        title = null,
+        onBack = onBack,
+        actions = {
+            IconButton(onClick = { onEdit(current.id) }) {
+                Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.recipe_edit))
             }
-            if (adjustPortionsOpen) {
-                AdjustPortionsDialog(
-                    recipe = current,
-                    onRescale = { scaled ->
-                        vm.rescaleRecipe(current.id, scaled)
-                        adjustPortionsOpen = false
-                    },
-                    onDismiss = { adjustPortionsOpen = false },
+            IconButton(onClick = { deleteOpen = true }) {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = stringResource(R.string.recipe_delete_content_desc, current.name),
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
-        } else {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize().padding(top = 12.dp),
+        },
+        bottomBar = {
+            Button(
+                onClick = { portionsOpen = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) {
+                Icon(Icons.Outlined.ShoppingBag, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.plan_add_to_list), modifier = Modifier.padding(start = 8.dp))
+            }
+        },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(current.name, style = MaterialTheme.typography.displaySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                val days = plannedDays(byDay, current.id)
+                if (days.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.recipe_every_day, days.map { weekdayName(it) }.joinToString(", ")),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.extraLarge)
+                            .padding(horizontal = 10.dp, vertical = 3.dp),
+                    )
+                }
                 Text(
-                    stringResource(R.string.recipe_not_found_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    pluralStringResource(R.plurals.recipe_ingredient_count, current.ingredients.size, current.ingredients.size),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(stringResource(R.string.recipe_not_found_message))
-                TextButton(onClick = onBack) { Text(stringResource(R.string.recipe_back_to_recipes)) }
+            }
+        }
+
+        CardGroup {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.recipe_ingredients_label), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        viewLabel?.let { stringResource(R.string.recipe_scaled_caption, it) }
+                            ?: stringResource(R.string.recipe_one_portion),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val scaled = viewLabel != null
+                Button(
+                    onClick = { scaleOpen = true },
+                    colors = if (scaled) {
+                        ButtonDefaults.buttonColors()
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 14.dp, end = 10.dp),
+                ) {
+                    Text(viewLabel ?: stringResource(R.string.scale_button))
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
+            for (line in scaleIngredientLines(current.ingredients, viewFactor)) {
+                CardDivider()
+                IngredientLine(line)
+            }
+            val undo = undoLines
+            if (undo != null) {
+                CardDivider()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(start = 16.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(16.dp))
+                    Text(
+                        stringResource(R.string.scale_saved_banner, savedLabel),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = {
+                        vm.rescaleRecipe(current.id, undo)
+                        undoLines = null
+                    }) { Text(stringResource(R.string.undo)) }
+                }
+            }
+        }
+
+        val steps = instructionSteps(current.instructions)
+        if (steps.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    stringResource(R.string.recipe_instructions_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                steps.forEachIndexed { index, step ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (steps.size > 1) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                contentColor = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.size(26.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text((index + 1).toString(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                        Text(step, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
-}
 
-/**
- * Asks how many portions the currently listed amounts make and rescales them
- * to a single portion, with a live preview of the resulting lines.
- */
-@Composable
-private fun AdjustPortionsDialog(
-    recipe: Recipe,
-    onRescale: (List<String>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var portionsText by remember { mutableStateOf("1") }
-    val portions = portionsText.trim().toDoubleOrNull()
-    val portionsValid = portions != null && isValidServings(portions) && portions != 1.0
-    val preview = if (portions != null && isValidServings(portions)) {
-        rescaleToSinglePortion(recipe.ingredients, portions)
-    } else {
-        emptyList()
+    if (scaleOpen) {
+        ScaleSheet(
+            ingredients = current.ingredients,
+            onShow = { choice ->
+                viewFactor = choice.factor
+                viewLabel = choice.label
+                scaleOpen = false
+            },
+            onSave = { choice ->
+                undoLines = ArrayList(current.ingredients)
+                savedLabel = choice.label
+                vm.rescaleRecipe(current.id, scaleIngredientLines(current.ingredients, choice.factor))
+                viewFactor = 1.0
+                viewLabel = null
+                scaleOpen = false
+            },
+            onReset = {
+                viewFactor = 1.0
+                viewLabel = null
+                scaleOpen = false
+            },
+            onDismiss = { scaleOpen = false },
+        )
     }
 
-    ConfirmDialog(
-        title = recipe.name,
-        confirmLabel = stringResource(R.string.recipe_rescale),
-        confirmEnabled = portionsValid,
-        onConfirm = { onRescale(preview) },
-        onDismiss = onDismiss,
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.recipe_adjust_portions_text))
-                OutlinedTextField(
-                    value = portionsText,
-                    onValueChange = { portionsText = it },
-                    label = { Text(stringResource(R.string.recipe_portions)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (portionsValid) {
-                    Text(
-                        stringResource(R.string.recipe_new_amounts),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        for (line in preview) {
-                            Text("- $line")
-                        }
-                    }
-                }
-            }
-        },
-    )
+    if (portionsOpen) {
+        PortionsDialog(
+            recipe = current,
+            defaultPortions = settings.portionsPerDay,
+            onAdd = { portions ->
+                vm.addToShoppingList(current, portions)
+                portionsOpen = false
+            },
+            onDismiss = { portionsOpen = false },
+        )
+    }
+
+    if (deleteOpen) {
+        ConfirmDialog(
+            title = stringResource(R.string.recipe_delete_confirm_title),
+            confirmLabel = stringResource(R.string.delete),
+            destructive = true,
+            onConfirm = {
+                deleteOpen = false
+                vm.removeRecipe(current.id)
+                onBack()
+            },
+            onDismiss = { deleteOpen = false },
+            text = { Text(stringResource(R.string.recipe_delete_confirm_text, current.name)) },
+        )
+    }
 }
 
 @Composable
@@ -184,26 +293,16 @@ fun RecipeEditScreen(
     val state by vm.state.collectAsStateWithLifecycle()
 
     ModalScreen(
-        title = if (current != null) stringResource(R.string.recipe_edit) else stringResource(R.string.recipe_new),
+        title = stringResource(if (current != null) R.string.recipe_edit else R.string.recipe_not_found_title),
         onBack = onBack,
+        actions = {
+            if (current != null) RecipeFormSaveButton(vm) { recipe -> vm.save(recipe, onBack) }
+        },
     ) {
         if (current != null) {
-            RecipeForm(
-                state = state,
-                vm = vm,
-                submitLabel = stringResource(R.string.recipe_save),
-            ) { recipe ->
-                vm.save(recipe, onBack)
-            }
+            RecipeForm(state = state, vm = vm)
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
-                Text(
-                    stringResource(R.string.recipe_not_found_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(stringResource(R.string.recipe_not_found_message))
-            }
+            Text(stringResource(R.string.recipe_not_found_message))
         }
     }
 }
@@ -218,13 +317,11 @@ fun RecipeNewScreen(
     )
     val state by vm.state.collectAsStateWithLifecycle()
 
-    ModalScreen(title = stringResource(R.string.recipe_new), onBack = onBack) {
-        RecipeForm(
-            state = state,
-            vm = vm,
-            submitLabel = stringResource(R.string.recipe_save),
-        ) { recipe ->
-            vm.save(recipe, onBack)
-        }
+    ModalScreen(
+        title = stringResource(R.string.recipe_new),
+        onBack = onBack,
+        actions = { RecipeFormSaveButton(vm) { recipe -> vm.save(recipe, onBack) } },
+    ) {
+        RecipeForm(state = state, vm = vm)
     }
 }

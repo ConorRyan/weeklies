@@ -12,7 +12,9 @@ import io.github.conorryan.weeklies.data.import.OkHttpTransport
 import io.github.conorryan.weeklies.data.import.PageFetcher
 import io.github.conorryan.weeklies.data.import.RecipeCleaner
 import io.github.conorryan.weeklies.data.import.RecipeImporter
+import io.github.conorryan.weeklies.data.model.DayAssignments
 import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.data.model.emptyByDay
 import io.github.conorryan.weeklies.data.repo.PlanRepository
 import io.github.conorryan.weeklies.data.repo.RecipeRepository
 import io.github.conorryan.weeklies.data.repo.ShoppingRepository
@@ -63,6 +65,10 @@ class AppGraph(
 
     val mistralKeyState: StateFlow<String?> = secretsStore.mistralApiKey
         .stateIn(appScope, SharingStarted.Eagerly, null)
+
+    /** Weekly plan, so recipe screens can label which days a recipe is planned for in their first frame. */
+    val planState: StateFlow<DayAssignments> = planRepository.byDay
+        .stateIn(appScope, SharingStarted.Lazily, emptyByDay())
 
     val autoBackup = AutoBackup(
         enabled = combine(

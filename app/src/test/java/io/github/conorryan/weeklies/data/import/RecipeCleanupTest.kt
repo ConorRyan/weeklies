@@ -317,6 +317,40 @@ class PairCleanupIngredientsTest {
     }
 }
 
+class ApplyCleanupSelectionTest {
+
+    private val pairings = listOf(
+        CleanupPairing(before = listOf("60g mushrooms"), after = listOf("60 g mushrooms")),
+        CleanupPairing(before = listOf("75 g rice"), after = listOf("75 g rice")),
+        CleanupPairing(before = listOf("200 ml stock"), after = listOf("200 ml water", "1 stock cube")),
+        CleanupPairing(before = listOf("salt", "pepper"), after = listOf("salt and pepper")),
+    )
+
+    @Test
+    fun acceptingEverythingUsesAllCleanedLines() {
+        assertEquals(
+            listOf("60 g mushrooms", "75 g rice", "200 ml water", "1 stock cube", "salt and pepper"),
+            applyCleanupSelection(pairings, setOf(0, 1, 2, 3)),
+        )
+    }
+
+    @Test
+    fun rejectedPairingsKeepTheirOriginalsInPlace() {
+        assertEquals(
+            listOf("60 g mushrooms", "75 g rice", "200 ml stock", "salt and pepper"),
+            applyCleanupSelection(pairings, setOf(0, 3)),
+        )
+    }
+
+    @Test
+    fun acceptingNothingRestoresTheOriginal() {
+        assertEquals(
+            listOf("60g mushrooms", "75 g rice", "200 ml stock", "salt", "pepper"),
+            applyCleanupSelection(pairings, emptySet()),
+        )
+    }
+}
+
 class IsUnchangedPairingTest {
 
     @Test

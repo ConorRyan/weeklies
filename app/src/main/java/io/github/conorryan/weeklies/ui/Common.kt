@@ -2,61 +2,68 @@ package io.github.conorryan.weeklies.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.github.conorryan.weeklies.data.model.Weekday
 import io.github.conorryan.weeklies.R
+import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.ui.theme.EyebrowStyle
+import io.github.conorryan.weeklies.ui.theme.LocalIsDarkTheme
 
 /**
- * Full-screen page for non-tab routes: back arrow, title, scrollable body.
- * Replaces the RN modal screens with their stack headers.
+ * Full-screen page for non-tab routes: back arrow, title, optional trailing
+ * actions, a scrollable body, and an optional bar pinned below it.
  */
 @Composable
 fun ModalScreen(
-    title: String,
+    title: String?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .height(56.dp),
+                .padding(horizontal = 4.dp)
+                .height(64.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -67,95 +74,143 @@ fun ModalScreen(
                 )
             }
             Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                title.orEmpty(),
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
+            actions()
         }
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        ) {
-            Column(Modifier.padding(bottom = 40.dp)) {
-                content()
-            }
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            content = content,
+        )
+        if (bottomBar != null) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) { bottomBar() }
         }
     }
 }
 
-/**
- * Flat colored header bar on tab screens.
- */
+/** Big title at the top of a tab screen, with an optional eyebrow above and action at the end. */
 @Composable
-fun TabHeader(
+fun ScreenTitle(
     title: String,
-    icon: ImageVector,
-    color: Color,
     modifier: Modifier = Modifier,
+    eyebrow: String? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(color)
-            .heightIn(min = 64.dp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(start = 20.dp, end = 12.dp, top = 24.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (eyebrow != null) Eyebrow(eyebrow)
+            Text(
+                title,
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        action?.invoke()
+    }
+}
+
+/** Small uppercase label for sections and titles. */
+@Composable
+fun Eyebrow(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    Text(text.uppercase(), style = EyebrowStyle, color = color, modifier = modifier)
+}
+
+/** Rounded, outlined white card that groups rows; rows are separated with [CardDivider]. */
+@Composable
+fun CardGroup(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surface,
+    border: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = color,
+        border = if (border) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+fun CardDivider() {
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+}
+
+private val TileColorsLight = listOf(Color(0xFFF3DED3), Color(0xFFDCEBDF), Color(0xFFE4E3F1), Color(0xFFF2E8C9))
+private val TileColorsDark = listOf(Color(0xFF4A3329), Color(0xFF244A33), Color(0xFF34305A), Color(0xFF4A4126))
+
+/** Rounded square with the recipe's first letter, tinted by a stable hash of its name. */
+@Composable
+fun RecipeTile(name: String, modifier: Modifier = Modifier, size: Int = 44) {
+    val colors = if (LocalIsDarkTheme.current) TileColorsDark else TileColorsLight
+    val tint = colors[(name.hashCode() and Int.MAX_VALUE) % colors.size]
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .background(tint, RoundedCornerShape((size * 0.3f).dp)),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            title,
-            color = Color.White,
+            name.trim().take(1).uppercase(),
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.85f),
-            modifier = Modifier.size(22.dp),
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
 
-/** Outlined Material action button used in rows on tab screens. */
+/** Rounded search box with a leading magnifier and a clear button once text is entered. */
 @Composable
-fun ActionButton(
-    label: String,
-    onClick: () -> Unit,
+fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    borderColor: Color = MaterialTheme.colorScheme.primary,
-    textColor: Color = MaterialTheme.colorScheme.primary,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier,
-        border = BorderStroke(1.dp, borderColor),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = textColor,
-            disabledContentColor = textColor.copy(alpha = 0.45f),
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text(placeholder) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.search_clear))
+                }
+            }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(24.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
         ),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Text(label, maxLines = 2)
-    }
+        modifier = modifier.fillMaxWidth(),
+    )
 }
-
-/**
- * One entry in a [BottomActionBar]: icon over label, tinted to its role.
- */
-data class BottomAction(
-    val icon: ImageVector,
-    val label: String,
-    val onClick: () -> Unit,
-    val enabled: Boolean = true,
-    val destructive: Boolean = false,
-)
 
 /** Alert dialog with a title, an optional body, and a single "Close" button. */
 @Composable
@@ -170,6 +225,7 @@ fun InfoDialog(
         modifier = modifier,
         title = { Text(title) },
         text = text,
+        containerColor = MaterialTheme.colorScheme.surface,
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         },
@@ -188,6 +244,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     confirmEnabled: Boolean = true,
+    destructive: Boolean = false,
     dismissLabel: String? = stringResource(R.string.cancel),
     text: @Composable () -> Unit = {},
 ) {
@@ -196,8 +253,14 @@ fun ConfirmDialog(
         modifier = modifier,
         title = { Text(title) },
         text = text,
+        containerColor = MaterialTheme.colorScheme.surface,
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(confirmLabel) }
+            TextButton(onClick = onConfirm, enabled = confirmEnabled) {
+                Text(
+                    confirmLabel,
+                    color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified,
+                )
+            }
         },
         dismissButton = {
             if (dismissLabel != null) {
@@ -207,83 +270,15 @@ fun ConfirmDialog(
     )
 }
 
-/** Title row at the top of a modal bottom sheet: title left, action word right. */
-@Composable
-fun SheetHeader(
-    title: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(
-            actionLabel,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clickable(onClick = onAction),
-        )
-    }
-}
-
-/**
- * Row of actions pinned to the bottom of a tab screen, directly above the
- * navigation bar. Renders each action as a stacked icon + label so three or
- * more actions fit without cramped text buttons.
- */
-@Composable
-fun BottomActionBar(
-    actions: List<BottomAction>,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier.fillMaxWidth()) {
-        for (action in actions) {
-            val tint = if (action.destructive) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
-            val resolved = if (action.enabled) tint else tint.copy(alpha = 0.45f)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = action.enabled) { action.onClick() }
-                    .padding(horizontal = 4.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Icon(
-                    action.icon,
-                    contentDescription = action.label,
-                    tint = resolved,
-                    modifier = Modifier.size(24.dp),
-                )
-                Text(
-                    action.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = resolved,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                )
-            }
-        }
-    }
-}
-
 /**
  * The weekday's name in the app's language. [Weekday.label] is English-only
  * (it mirrors the React Native app's keys), so display names come from the
  * platform's own localized weekday names.
  */
 @Composable
-fun weekdayName(day: Weekday): String {
+fun weekdayName(day: Weekday, short: Boolean = false): String {
     val locale = LocalConfiguration.current.locales[0] ?: java.util.Locale.getDefault()
     return java.time.DayOfWeek.of(day.ordinal + 1)
-        .getDisplayName(java.time.format.TextStyle.FULL, locale)
+        .getDisplayName(if (short) java.time.format.TextStyle.SHORT else java.time.format.TextStyle.FULL, locale)
+        .replaceFirstChar { it.titlecase(locale) }
 }

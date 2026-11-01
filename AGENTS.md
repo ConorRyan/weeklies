@@ -107,17 +107,32 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   `WeekliesApp`, the `Routes` object, and `PersistentTabHost`, which keeps all
   four tab screens composed so state stays warm across switches (only the active
   tab is measured/drawn) above a `NavHost` with transitions disabled. Tabs:
-  Plan, Recipes, Shopping List, Settings. Other destinations (recipe
+  Week (the plan), Recipes, Shopping, Settings. Other destinations (recipe
   new/detail/edit, import, help, privacy) are pushed onto the NavHost.
+- **Look** — one "Market" theme in `theme/Theme.kt` (paper background, white
+  cards, market-green primary, tomato error, violet tertiary for AI features;
+  light and dark). Shared building blocks live in `Common.kt` (`ModalScreen`,
+  `ScreenTitle`, `Eyebrow`, `CardGroup`, `SearchField`, `RecipeTile`, dialogs);
+  cross-feature pieces are `recipes/RecipePickerSheet` (Week and Shopping),
+  `shopping/PortionsDialog` (Week, Shopping, recipe detail) and
+  `recipes/ScaleSheet` (view or save scaled amounts on recipe detail). Pure
+  display helpers sit beside them (`RecipeSearch.kt`, `RecipeDisplay.kt`,
+  `splitLeadingQuantity`/`parseScaleFactor` in `QuantityMath.kt`).
 - **State flow** — ViewModels collect repository `Flow`s
   (`collectAsStateWithLifecycle`) and call suspend mutations; user feedback
   goes through `ToastBus` to a snackbar in `AppRoot`. Every feature has a
   ViewModel, including recipes: `RecipeFormViewModel` (draft, validation, AI
   cleanup, save; draft persisted through `SavedStateHandle`) and
-  `RecipesViewModel` (delete, rescale).
+  `RecipesViewModel` (delete, rescale, add to shopping list). The ingredient
+  cleanup review is per change: `RecipeFormViewModel` holds the pairings and
+  the accepted set, and `applyCleanupSelection` builds the final lines.
+- **Warm state** — `AppGraph` exposes app-lived `recipesState`,
+  `mistralKeyState` and `planState` so pushed screens render real data in
+  their first frame.
 - **Tests** — `app/src/test/java/` covers the data layer (backup, import,
   quantity, shopping, settings stores), the repositories (`ShoppingRepository`),
-  and ViewModels (`RecipeFormViewModel`); fixtures go in
+  ViewModels (`RecipeFormViewModel`), and UI state/display helpers
+  (`PlanUiState`, recipe search and display); fixtures go in
   `app/src/test/resources/`.
 
 ### Notable invariants

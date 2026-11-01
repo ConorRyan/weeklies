@@ -9,14 +9,15 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
@@ -80,10 +81,10 @@ object Routes {
 private data class TabSpec(val route: String, @StringRes val label: Int, val icon: ImageVector)
 
 private val TABS = listOf(
-    TabSpec(Routes.PLAN, R.string.tab_plan, Icons.Filled.CalendarMonth),
-    TabSpec(Routes.RECIPES, R.string.tab_recipes, Icons.AutoMirrored.Filled.MenuBook),
-    TabSpec(Routes.SHOPPING, R.string.tab_shopping, Icons.Filled.ShoppingCart),
-    TabSpec(Routes.SETTINGS, R.string.tab_settings, Icons.Filled.Settings),
+    TabSpec(Routes.PLAN, R.string.tab_plan, Icons.Outlined.CalendarMonth),
+    TabSpec(Routes.RECIPES, R.string.tab_recipes, Icons.AutoMirrored.Outlined.MenuBook),
+    TabSpec(Routes.SHOPPING, R.string.tab_shopping, Icons.Outlined.ShoppingBag),
+    TabSpec(Routes.SETTINGS, R.string.tab_settings, Icons.Outlined.Tune),
 )
 
 private fun NavHostController.navigateTab(route: String) {
@@ -172,7 +173,7 @@ fun WeekliesApp(graph: AppGraph) {
                 }
             },
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     for (tab in TABS) {
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
@@ -180,8 +181,15 @@ fun WeekliesApp(graph: AppGraph) {
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 navController.navigateTab(tab.route)
                             },
-                            icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
+                            icon = { Icon(tab.icon, contentDescription = null) },
                             label = { Text(stringResource(tab.label)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                         )
                     }
                 }
@@ -207,7 +215,11 @@ fun WeekliesApp(graph: AppGraph) {
                     when (route) {
                         Routes.PLAN -> PlanScreen(
                             graph = graph,
+                            toastBus = toastBus,
                             onGoToRecipes = { navController.navigateTab(Routes.RECIPES) },
+                            onNewRecipe = { navController.navigate(Routes.RECIPE_NEW) },
+                            onOpenRecipe = { id -> navController.navigate(Routes.recipeDetail(id)) },
+                            onOpenHelp = { navController.navigate(Routes.HELP) },
                         )
                         Routes.RECIPES -> RecipesScreen(
                             graph = graph,
@@ -215,7 +227,11 @@ fun WeekliesApp(graph: AppGraph) {
                             onImport = { navController.navigate(Routes.RECIPE_IMPORT) },
                             onOpenRecipe = { id -> navController.navigate(Routes.recipeDetail(id)) },
                         )
-                        Routes.SHOPPING -> ShoppingListScreen(graph, toastBus)
+                        Routes.SHOPPING -> ShoppingListScreen(
+                            graph = graph,
+                            toastBus = toastBus,
+                            onGoToRecipes = { navController.navigateTab(Routes.RECIPES) },
+                        )
                         Routes.SETTINGS -> SettingsScreen(
                             graph = graph,
                             toastBus = toastBus,
@@ -257,6 +273,7 @@ fun WeekliesApp(graph: AppGraph) {
                                 recipeId = entry.arguments?.getString("id") ?: "",
                                 onBack = { navController.popBackStack() },
                                 onEdit = { id -> navController.navigate(Routes.recipeEdit(id)) },
+                                toastBus = toastBus,
                             )
                         }
                         composable(Routes.RECIPE_EDIT) { entry ->

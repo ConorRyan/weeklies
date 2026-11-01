@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.conorryan.weeklies.data.db.AppDatabase
 import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.data.model.Recipe
+import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.data.model.emptyByDay
 import io.github.conorryan.weeklies.data.settings.AppSettingsStore
 import io.github.conorryan.weeklies.data.settings.BackupFolderStore
 import io.github.conorryan.weeklies.data.settings.SecretsStore
@@ -81,5 +83,21 @@ class AppGraphWarmStateTest {
         graph.secretsStore.setMistralApiKey("k-123")
         awaitTrue { graph.mistralKeyState.value == "k-123" }
         assertEquals("k-123", graph.mistralKeyState.value)
+    }
+
+    @Test
+    fun planStateSeedsEmptyThenTracksTheDatabase() = runBlocking {
+        val graph = buildGraph()
+
+        assertEquals(emptyByDay(), graph.planState.value)
+
+        val collector = CoroutineScope(Dispatchers.IO + Job())
+        val collect = collector.launch { graph.planState.collect { } }
+
+        val added = graph.recipeRepository.addRecipe(NewRecipe("Pasta", listOf("200g pasta")))
+        graph.planRepository.setDayRecipe(Weekday.entries[0], added.id)
+        awaitTrue { graph.planState.value[Weekday.entries[0]] == added.id }
+
+        collect.cancel()
     }
 }

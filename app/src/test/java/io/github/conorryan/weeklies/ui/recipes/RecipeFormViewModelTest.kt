@@ -229,6 +229,74 @@ class RecipeFormViewModelTest {
     }
 
     @Test
+    fun ingredientReviewStartsWithEveryChangeAccepted() {
+        val vm = twoChangeCleanup()
+
+        val state = vm.state.value
+        assertEquals(3, state.ingredientPairings.size)
+        assertEquals(listOf(0, 2), state.changedPairings)
+        assertEquals(setOf(0, 2), state.acceptedPairings)
+    }
+
+    @Test
+    fun rejectingOneChangeKeepsThatOriginalLine() {
+        val vm = twoChangeCleanup()
+
+        vm.setPairingAccepted(2, false)
+        vm.applyIngredientCleanup()
+
+        assertEquals(listOf("400 g pasta", "1 onion", "2 tbsp olive oil"), vm.state.value.draft.ingredients)
+        assertNull(vm.state.value.ingredientPreview)
+        assertEquals(emptyList<Any>(), vm.state.value.ingredientPairings)
+    }
+
+    @Test
+    fun rejectAllThenAcceptAllTogglesEveryChange() {
+        val vm = twoChangeCleanup()
+
+        vm.rejectAllPairings()
+        assertEquals(emptySet<Int>(), vm.state.value.acceptedPairings)
+        vm.acceptAllPairings()
+        assertEquals(setOf(0, 2), vm.state.value.acceptedPairings)
+
+        vm.rejectAllPairings()
+        vm.applyIngredientCleanup()
+        assertEquals(listOf("2 cups pasta", "1 onion", "2 tbsp olive oil"), vm.state.value.draft.ingredients)
+    }
+
+    @Test
+    fun outOfRangePairingIndexIsIgnored() {
+        val vm = twoChangeCleanup()
+
+        vm.setPairingAccepted(9, true)
+
+        assertEquals(setOf(0, 2), vm.state.value.acceptedPairings)
+    }
+
+    /** Draft of three lines where the cleanup changes the first and last and leaves the middle as is. */
+    private fun twoChangeCleanup(): RecipeFormViewModel {
+        val transport = FakeTransport(
+            chatResponse(
+                """{"ingredients":[
+                    {"name":"pasta","quantity":"400 g","from":[0]},
+                    {"name":"onion","quantity":"1","from":[1]},
+                    {"name":"olive oil","quantity":"30 ml","from":[2]}
+                ]}""",
+            ),
+        )
+        val vm = vm(cleaner = RecipeCleaner(transport))
+        vm.setName("Pasta")
+        vm.setIngredient(0, "2 cups pasta")
+        vm.addIngredient()
+        vm.setIngredient(1, "1 onion")
+        vm.addIngredient()
+        vm.setIngredient(2, "2 tbsp olive oil")
+        key.value = "k-1"
+        vm.cleanIngredients()
+        return vm
+    }
+
+    @Test
     fun dismissIngredientCleanupDropsPreview() {
         val transport = FakeTransport(
             chatResponse("""{"ingredients":[{"name":"pasta","quantity":"400 g","from":[0]}]}"""),

@@ -74,3 +74,49 @@ fun ingredientPartsToLine(quantity: String?, name: String): String? {
     val line = listOf(q, n).filter { it.isNotEmpty() }.joinToString(" ")
     return line.ifEmpty { null }
 }
+
+/** Multiplies every numeric token in each of [lines] by [factor]. */
+fun scaleIngredientLines(lines: List<String>, factor: Double): List<String> =
+    lines.map { scaleIngredientLine(it, factor) }
+
+/** Unit words that belong with a leading amount when splitting a line for display. */
+private val DISPLAY_UNITS = setOf(
+    "g", "kg", "mg", "ml", "cl", "dl", "l",
+    "tsp", "tbsp", "cup", "cups", "oz", "lb", "lbs",
+    "c.", "c", "càs", "càc",
+)
+
+private val LEADING_AMOUNT = Regex("""^\s*(${NUMERIC_TOKEN.pattern})(?:\s*([A-Za-zàéè.]+))?\s+(.+)$""")
+
+/**
+ * Splits an ingredient line into its leading amount (with a following unit
+ * word when it is a known unit) and the rest, for a two-column display:
+ * "75 g arborio rice" -> ("75 g", "arborio rice"). Null when the line does
+ * not start with a number.
+ */
+fun splitLeadingQuantity(line: String): Pair<String, String>? {
+    val match = LEADING_AMOUNT.find(line) ?: return null
+    val amount = match.groupValues[1].trim()
+    val unit = match.groupValues[2]
+    val rest = match.groupValues[3].trim()
+    return if (unit.isNotEmpty() && unit.lowercase() in DISPLAY_UNITS) {
+        "$amount $unit" to rest
+    } else if (unit.isNotEmpty()) {
+        amount to "$unit $rest"
+    } else {
+        amount to rest
+    }
+}
+
+/** Largest multiply or divide value the scale picker accepts. */
+const val MAX_SCALE_VALUE = 100.0
+
+/**
+ * Parses a user-typed scale value ("1.5", "0,75") into a factor; [divide]
+ * inverts it. Null for blank, non-numeric, zero, negative, or > [MAX_SCALE_VALUE].
+ */
+fun parseScaleFactor(text: String, divide: Boolean): Double? {
+    val value = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
+    if (value.isNaN() || value.isInfinite() || value <= 0.0 || value > MAX_SCALE_VALUE) return null
+    return if (divide) 1.0 / value else value
+}

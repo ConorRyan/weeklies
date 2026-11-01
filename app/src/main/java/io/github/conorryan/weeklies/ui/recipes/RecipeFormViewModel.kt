@@ -10,6 +10,10 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.import.CleanedIngredients
+import io.github.conorryan.weeklies.data.import.CleanupPairing
+import io.github.conorryan.weeklies.data.import.applyCleanupSelection
+import io.github.conorryan.weeklies.data.import.isUnchangedPairing
+import io.github.conorryan.weeklies.data.import.pairCleanupForReview
 import io.github.conorryan.weeklies.data.import.RecipeCleaner
 import io.github.conorryan.weeklies.data.import.RecipeImportErrorDisplay
 import io.github.conorryan.weeklies.data.import.RecipeImportErrors
@@ -39,8 +43,16 @@ data class RecipeFormUiState(
     @StringRes val validationError: Int? = null,
     val cleanupError: RecipeImportErrorDisplay? = null,
     val ingredientPreview: CleanedIngredients? = null,
+    /** Review rows for [ingredientPreview]: original line(s) against cleaned line(s), in order. */
+    val ingredientPairings: List<CleanupPairing> = emptyList(),
+    /** Indices into [ingredientPairings] whose cleaned lines will be used. */
+    val acceptedPairings: Set<Int> = emptySet(),
     val instructionPreview: String? = null,
 ) {
+    /** Indices of the pairings the cleanup actually changed; the review lists only these. */
+    val changedPairings: List<Int>
+        get() = ingredientPairings.indices.filterNot { isUnchangedPairing(ingredientPairings[it]) }
+
     val hasIngredientText: Boolean get() = draft.ingredients.any { it.isNotBlank() }
     val hasInstructions: Boolean get() = draft.instructions.isNotBlank()
 }
@@ -130,9 +142,17 @@ class RecipeFormViewModel(
         val cleaned = requireCleaner().cleanIngredients(
             latestKey,
             draft.name.trim(),
-            draft.ingredients.map { it.trim() }.filter { it.isNotEmpty() },
+            draftIngredientLines(),
         )
-        _state.update { it.copy(ingredientPreview = cleaned) }
+        val pairings = pairCleanupForReview(draftIngredientLines(), cleaned)
+        _state.update {
+            it.copy(
+                ingredientPreview = cleaned,
+                ingredientPairings = pairings,
+                // Every suggested change starts accepted; the review lets the user opt out per line.
+                acceptedPairings = pairings.indices.filterNot { i -> isUnchangedPairing(pairings[i]) }.toSet(),
+            )
+        }
     }
 
     fun cleanInstructions() = runCleanup(CleanupTarget.INSTRUCTIONS) {
@@ -146,15 +166,36 @@ class RecipeFormViewModel(
         _state.update { it.copy(instructionPreview = cleaned) }
     }
 
+    /** Accepts or rejects one suggested change in the ingredient cleanup review. */
+    fun setPairingAccepted(index: Int, accepted: Boolean) {
+        _state.update {
+            if (index !in it.ingredientPairings.indices) return@update it
+            it.copy(acceptedPairings = if (accepted) it.acceptedPairings + index else it.acceptedPairings - index)
+        }
+    }
+
+    fun acceptAllPairings() {
+        _state.update { it.copy(acceptedPairings = it.changedPairings.toSet()) }
+    }
+
+    fun rejectAllPairings() {
+        _state.update { it.copy(acceptedPairings = emptySet()) }
+    }
+
+    /** Applies the accepted changes; rejected ones keep the original lines. */
     fun applyIngredientCleanup() {
-        val preview = state.value.ingredientPreview ?: return
-        setDraft(state.value.draft.copy(ingredients = preview.lines))
-        _state.update { it.copy(ingredientPreview = null) }
+        val current = state.value
+        if (current.ingredientPreview == null) return
+        setDraft(current.draft.copy(ingredients = applyCleanupSelection(current.ingredientPairings, current.acceptedPairings)))
+        dismissIngredientCleanup()
     }
 
     fun dismissIngredientCleanup() {
-        _state.update { it.copy(ingredientPreview = null) }
+        _state.update { it.copy(ingredientPreview = null, ingredientPairings = emptyList(), acceptedPairings = emptySet()) }
     }
+
+    private fun draftIngredientLines(): List<String> =
+        state.value.draft.ingredients.map { it.trim() }.filter { it.isNotEmpty() }
 
     fun applyInstructionCleanup() {
         val preview = state.value.instructionPreview ?: return

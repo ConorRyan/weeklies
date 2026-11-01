@@ -3,7 +3,7 @@
     <string name="app_name">Weeklies</string>
 
     <!-- Tabs and common -->
-    <string name="tab_plan">Weeklies</string>
+    <string name="tab_plan">Week</string>
     <string name="tab_recipes">Recipes</string>
     <string name="tab_shopping">Shopping List</string>
     <string name="tab_settings">Settings</string>
@@ -11,12 +11,9 @@
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>
-    <string name="add">Add</string>
-    <string name="edit">Edit</string>
     <string name="done">Done</string>
     <string name="close">Close</string>
     <string name="apply">Apply</string>
-    <string name="remove">Remove</string>
     <string name="help">Help</string>
     <string name="settings">Settings</string>
 
@@ -85,51 +82,35 @@
     <string name="import_hint_unknown">Try again, or use Import with AI if standard Import cannot read the page.</string>
 
     <!-- Plan -->
-    <string name="plan_hint">Tap a row to assign a recipe. Repeats every week.</string>
     <string name="plan_choose_recipe">Choose recipe</string>
     <string name="plan_recipe_removed">Recipe removed</string>
-    <string name="plan_clear_assignment">Clear assignment</string>
     <string name="plan_add_recipes_first">Add recipes first, then pick one for each day.</string>
     <string name="plan_go_to_recipes">Go to Recipes</string>
 
     <!-- Shopping list -->
     <string name="shopping_done_editing">Done editing</string>
     <string name="shopping_edit_item">Edit item</string>
-    <string name="shopping_item_hint">Item</string>
+    <string name="shopping_item_hint">Add an item</string>
     <string name="shopping_add_item">Add item</string>
     <string name="shopping_add_todays_recipe">Add today\'s recipe</string>
     <string name="shopping_add_recipe">Add recipe</string>
-    <string name="shopping_remove_checked">Remove checked</string>
     <string name="shopping_no_recipe_today">No recipe today</string>
-    <string name="shopping_no_recipe_today_msg">Assign a recipe to today on the Weeklies tab first.</string>
+    <string name="shopping_no_recipe_today_msg">Assign a recipe to today on the Week tab first.</string>
     <string name="shopping_recipe_missing">Recipe missing</string>
-    <string name="shopping_recipe_missing_msg">The planned recipe was removed. Update Weeklies or Recipes.</string>
-    <string name="shopping_recipe_removed_msg">The recipe was removed. Update Weeklies or Recipes.</string>
-    <string name="shopping_portions_prompt">How many portions? (Settings default: %1$d)</string>
+    <string name="shopping_recipe_missing_msg">The planned recipe was removed. Update Week or Recipes.</string>
+    <string name="shopping_recipe_removed_msg">The recipe was removed. Update Week or Recipes.</string>
     <string name="shopping_portions_label">Portions</string>
     <string name="shopping_add_recipes_first">Add recipes first, then pick one here.</string>
-    <string name="shopping_no_other_recipes">No other recipes yet.</string>
 
     <!-- Settings -->
-    <string name="settings_section_appearance">Appearance</string>
     <string name="settings_dark_mode">Dark mode</string>
-    <string name="settings_section_planning">Planning</string>
     <string name="settings_portions_per_day">Portions per day</string>
-    <string name="settings_about_portions">About portions per day</string>
-    <string name="settings_portions_info">Used to scale recipe amounts on your shopping list. Will only work if numeric quantities are included in ingredients.</string>
     <string name="settings_section_recipe_import">Recipe import</string>
-    <string name="settings_mistral_api_key">Mistral API key</string>
-    <string name="settings_about_mistral_key">About the Mistral API key</string>
     <string name="settings_key_info">Your Mistral API key is stored only on this device and is not included in backup export or import. Get a key at console.mistral.ai.</string>
     <string name="settings_paste_api_key">Paste API key</string>
     <string name="settings_save_key">Save key</string>
     <string name="settings_clear_key">Clear key</string>
-    <string name="settings_section_data">Data</string>
-    <string name="settings_export_backup">Export backup</string>
-    <string name="settings_import_backup">Import backup</string>
     <string name="settings_import_replaces_data">Importing replaces all data on this device.</string>
-    <string name="settings_section_backup_folder">Backup folder</string>
-    <string name="settings_backing_up_to">Backing up to: %1$s</string>
     <string name="settings_configured_folder">configured folder</string>
     <string name="settings_backup_folder_info">Backups are written to a folder you choose - pick one from Google Drive, Nextcloud, or similar and your provider syncs it off this phone. The newest 3 backups are kept.</string>
     <string name="settings_change_folder">Change folder</string>
@@ -139,13 +120,11 @@
     <string name="settings_auto_backup_info">A backup is written automatically shortly after your recipes, plan, or shopping list change.</string>
     <string name="settings_backup_now">Back up now</string>
     <string name="settings_last_backup">Last backup: %1$s</string>
-    <string name="settings_section_other">Other</string>
     <string name="settings_privacy_policy">Privacy policy</string>
 
     <!-- Import screen -->
     <string name="import_review_title">Review import</string>
     <string name="import_review_hint">Review the imported recipe, edit if needed, then save. Ingredient amounts were scaled to one portion (the recipe\'s serving count was used only for scaling).</string>
-    <string name="import_save_recipe">Save recipe</string>
     <string name="import_again">Import again</string>
     <string name="import_recipe_title">Import recipe</string>
     <string name="import_url_label">Recipe URL</string>
@@ -158,13 +137,11 @@
     <!-- Recipes -->
     <string name="recipe_empty">No recipes yet.</string>
     <string name="recipe_delete_content_desc">Delete %1$s</string>
-    <string name="recipe_create_new">Create new</string>
+    <string name="recipe_create_new">New</string>
     <string name="recipe_import">Import</string>
-    <string name="recipe_websites">Websites</string>
     <string name="recipe_recommended_sites">Recommended websites</string>
     <string name="recipe_delete_confirm_title">Delete recipe?</string>
     <string name="recipe_delete_confirm_text">Remove \"%1$s\"? This cannot be undone.</string>
-    <string name="recipe_save">Save recipe</string>
     <string name="recipe_name_label">Name</string>
     <string name="recipe_name_hint">Recipe name</string>
     <string name="recipe_ingredients_label">Ingredients</string>
@@ -172,10 +149,8 @@
     <string name="recipe_remove_ingredient">Remove ingredient</string>
     <string name="recipe_add_ingredient">Add ingredient</string>
     <string name="recipe_cleaning_up">Cleaning up…</string>
-    <string name="recipe_clean_ingredients">Clean up ingredients ✨</string>
     <string name="recipe_instructions_label">Instructions</string>
     <string name="recipe_instructions_hint">Steps, notes, timing…</string>
-    <string name="recipe_clean_instructions">Clean up instructions ✨</string>
     <string name="recipe_name_required">Recipe name is required.</string>
     <string name="recipe_ingredient_required">Add at least one ingredient.</string>
     <string name="recipe_apply_cleanup">Apply cleanup?</string>
@@ -184,34 +159,27 @@
     <string name="recipe_merged">merged</string>
     <string name="recipe_split">split</string>
     <string name="recipe_instructions_look_good">Your instructions already look good - no changes suggested.</string>
-    <string name="recipe_default_title">Recipe</string>
     <string name="recipe_edit">Edit recipe</string>
-    <string name="recipe_adjust_portions">Adjust portions</string>
-    <string name="recipe_ingredients_single_portion">Ingredients (single portion)</string>
     <string name="recipe_back_to_recipes">Back to recipes</string>
     <string name="recipe_not_found_title">Recipe not found</string>
     <string name="recipe_not_found_message">The recipe may have been deleted.</string>
-    <string name="recipe_adjust_portions_text">The listed amounts make how many portions? Amounts are rescaled to a single portion (use 0.5 to double).</string>
-    <string name="recipe_portions">Portions</string>
-    <string name="recipe_new_amounts">New amounts</string>
-    <string name="recipe_rescale">Rescale</string>
     <string name="recipe_new">New recipe</string>
 
     <!-- Help -->
-    <string name="help_weeklies_intro">Weeklies is for planning meals once, then not asking yourself what to eat every day. Your week runs Monday through Sunday. Tap a day to choose a recipe, reuse the same plan across multiple weeks, or change any day whenever your plans change. Today\'s row has a light highlight and the day name and recipe line are bold so you can spot the current day quickly.</string>
-    <string name="help_recipes_intro">Recipes are for meals you already know how to cook. Store the ingredients you need, one line at a time, without writing out full cooking instructions. Open the Recipes tab to add, review, or remove saved meals.</string>
-    <string name="help_recipes_edit">To edit a recipe, open it from the list and tap Edit recipe. The screen matches new recipe (same fields and Save recipe), with your current name and ingredients filled in; saving replaces that recipe and keeps the same entry everywhere it is used in your plan.</string>
+    <string name="help_weeklies_intro">Weeklies is for planning meals once, then not asking yourself what to eat every day. Your week runs Monday through Sunday and repeats every week. Today\'s recipe sits in the green card at the top of the Week tab, with a button to add it to the shopping list; tap any other day to choose a recipe or change it whenever your plans change.</string>
+    <string name="help_recipes_intro">Recipes are for meals you already know how to cook. Store the ingredients for one portion, one line at a time, and optionally the instructions. Open the Recipes tab to add, search, review, or remove saved meals.</string>
+    <string name="help_recipes_edit">To edit a recipe, open it from the list and tap the pencil. The form is the same as for a new recipe, with your current name and ingredients filled in; saving replaces that recipe and keeps the same entry everywhere it is used in your plan. Tap Scale on a recipe to view its amounts multiplied or divided, or to save the scaled amounts to the recipe. The bin icon deletes a recipe.</string>
     <string name="help_recipes_import">Import (Recipes tab) reads recipe data from JSON-LD on the page — no API key needed. Enter a recipe URL; ingredient amounts are scaled to one portion before saving. You review and edit before saving.</string>
     <string name="help_recipes_import_ai">Import with AI uses your Mistral API key (Settings → Recipe import) to extract the recipe when schema data is missing or incomplete. The key stays on this device and is not included in backup files. Same URL input as Import; requires an internet connection.</string>
     <string name="help_shopping_list_title">Shopping list</string>
-    <string name="help_shopping_add">Type at the bottom and tap + to add a line. Tap the checkbox or anywhere on the row to check an item off. Use Remove checked to delete every checked line. Tap Add today\'s recipe to append ingredients from whatever recipe is planned for today on the Weeklies tab; amounts are scaled using Portions per day in Settings (each number in an ingredient line is multiplied by that value).</string>
+    <string name="help_shopping_add">Type in the Add an item row and press Done to add a line. Tap an item to put it in the basket; tap it again to bring it back. Clear empties the basket. Add today\'s recipe adds the ingredients of whatever recipe is planned for today on the Week tab, and Add recipe adds any recipe; you choose the number of portions each time, starting from Portions per day in Settings (each number in an ingredient line is multiplied by that value).</string>
     <string name="help_settings_dark_mode">Turn dark mode on or off; the choice is remembered after you close the app.</string>
     <string name="help_settings_portions">Portions per day is the multiplier used when you use Add today\'s recipe on the shopping list: every numeric quantity in each ingredient line is multiplied by this value.</string>
     <string name="help_settings_import_key">Recipe import: add your Mistral API key under Recipe import. It is stored locally and excluded from backup export and import.</string>
     <string name="help_settings_help_link">This Help screen is linked from Settings.</string>
     <string name="help_data_title">Data</string>
     <string name="help_data_local">Weeklies is fully local and completely offline. Recipes, your weekly plan, and the shopping list are stored on this device, where they stay until you remove them in the app or replace them by importing a backup.</string>
-    <string name="help_data_export">In Settings, open the Data section. Export writes one JSON file (default name like weeklies-backup-2026-05-09.json) containing recipes, your weekly plan, the shopping list, and settings — including dark mode and portions per day.</string>
+    <string name="help_data_export">In Settings, open the Backups section. Export file writes one JSON file (default name like weeklies-backup-2026-05-09.json) containing recipes, your weekly plan, the shopping list, and settings — including dark mode and portions per day.</string>
     <string name="help_data_import">Import replaces all stored data with the contents of that file. Nothing is merged with what you already had — confirm only when you intend to overwrite the app completely.</string>
 
     <!-- Privacy -->
@@ -234,6 +202,83 @@
     <string name="privacy_contact_title">Contact</string>
     <string name="privacy_contact">Questions about this policy can be raised on GitHub: github.com/ConorRyan/weeklies.</string>
 
+    <!-- Redesign -->
+    <string name="search_clear">Clear search</string>
+    <string name="selected">Selected</string>
+    <string name="undo">Undo</string>
+    <string name="plan_title">Your week</string>
+    <string name="plan_eyebrow">Repeats every week</string>
+    <string name="plan_rest_of_week">Rest of the week</string>
+    <string name="plan_every">Every</string>
+    <string name="plan_leave_empty">Leave empty</string>
+    <string name="plan_today_label">Today · %1$s</string>
+    <string name="plan_change">Change</string>
+    <string name="plan_today_empty">Nothing planned for today</string>
+    <string name="plan_add_to_list">Add to shopping list</string>
+    <string name="plan_open_recipe">Open recipe</string>
+    <string name="plan_recipe_removed_choose">Recipe removed – choose again</string>
+    <string name="plan_added_to_list">Added “%1$s” to your shopping list</string>
+    <string name="portions_dialog_eyebrow">Add to shopping list</string>
+    <string name="portions_fewer">Fewer portions</string>
+    <string name="portions_more">More portions</string>
+    <string name="portions_default_hint">Your default from Settings</string>
+    <string name="portions_default_other">Default is %1$d · set in Settings</string>
+    <string name="portions_merge_note">Lines already on your list are merged instead of repeated.</string>
+    <string name="shopping_title">Shopping</string>
+    <string name="shopping_in_basket">In the basket · %1$d</string>
+    <string name="shopping_clear_basket">Clear</string>
+    <string name="recipe_search_hint">Search recipes</string>
+    <string name="recipe_search_name_or_ingredient">Search by name or ingredient</string>
+    <string name="recipe_search_no_match">No recipes match your search.</string>
+    <string name="recipe_every_day">Every %1$s</string>
+    <string name="recipe_one_portion">One portion</string>
+    <string name="recipe_scaled_caption">Shown %1$s from one portion</string>
+    <string name="recipe_tidy_with_ai">Tidy with AI</string>
+    <string name="recipe_ingredients_one_portion">Ingredients · one portion</string>
+    <string name="recipe_suggested_by_mistral">Suggested by Mistral</string>
+    <string name="recipe_review_changes">Review changes</string>
+    <string name="recipe_changes_accepted">%1$d of %2$d changes accepted</string>
+    <string name="recipe_accept_all">Accept all</string>
+    <string name="recipe_reject_all">Reject all</string>
+    <string name="recipe_keep_my_version">Keep my version</string>
+    <string name="recipe_keep_mine">Keep mine</string>
+    <string name="recipe_use_ai">Use AI</string>
+    <string name="recipe_reworded">Reworded</string>
+    <string name="recipe_removed_line">Removed</string>
+    <string name="recipe_added_line">Added</string>
+    <string name="scale_button">Scale</string>
+    <string name="scale_title">Scale amounts</string>
+    <string name="scale_subtitle">Saved amounts are for one portion</string>
+    <string name="scale_reset">Reset</string>
+    <string name="scale_quick">Quick</string>
+    <string name="scale_custom">Custom</string>
+    <string name="scale_custom_hint">e.g. 1.5</string>
+    <string name="scale_multiply_by">Multiply by</string>
+    <string name="scale_divide_by">Divide by</string>
+    <string name="scale_invalid">Enter a number above 0 and up to 100, like 1.5 or 0.75.</string>
+    <string name="scale_becomes">Decimals allowed · amounts × %1$s</string>
+    <string name="scale_decimals_ok">Decimals allowed, with a point or a comma.</string>
+    <string name="scale_show">Show amounts %1$s</string>
+    <string name="scale_enter_value">Pick or enter a value</string>
+    <string name="scale_save">Save to recipe</string>
+    <string name="scale_save_hint">Saving replaces the stored amounts. Recipe was for 4? Pick ÷4 and save.</string>
+    <string name="scale_saved_banner">Saved %1$s as the new one-portion amounts</string>
+    <string name="import_importing">Importing…</string>
+    <string name="import_mode_standard">Standard</string>
+    <string name="import_mode_standard_body">Reads recipe data on the page. On-device, no key.</string>
+    <string name="import_mode_ai">With AI</string>
+    <string name="import_mode_ai_body">Sends the page to Mistral. Works on more sites.</string>
+    <string name="import_sites_subtitle">Sites that import cleanly</string>
+    <string name="settings_section_cooking">Cooking</string>
+    <string name="settings_section_backups">Backups</string>
+    <string name="settings_portions_subtitle">Scales amounts on your shopping list</string>
+    <string name="settings_no_folder">No backup folder</string>
+    <string name="settings_export_file">Export file</string>
+    <string name="settings_restore_backup">Restore from a backup file…</string>
+    <string name="settings_restore_confirm_title">Restore from backup?</string>
+    <string name="settings_restore_choose_file">Choose file</string>
+    <string name="settings_mistral_api_key_optional">Mistral API key · optional</string>
+
     <!-- Counts -->
     <plurals name="plan_ingredient_count">
         <item quantity="one">%1$d ingredient</item>
@@ -243,12 +288,32 @@
         <item quantity="one">%1$d ingredient</item>
         <item quantity="other">%1$d ingredients</item>
     </plurals>
-    <plurals name="shopping_ingredient_count">
-        <item quantity="one">%1$d ingredient</item>
-        <item quantity="other">%1$d ingredients</item>
-    </plurals>
     <plurals name="recipe_unchanged_count">
         <item quantity="one">%1$d ingredient unchanged</item>
         <item quantity="other">%1$d ingredients unchanged</item>
+    </plurals>
+    <plurals name="plan_portions_count">
+        <item quantity="one">%1$d portion</item>
+        <item quantity="other">%1$d portions</item>
+    </plurals>
+    <plurals name="portions_lines_added">
+        <item quantity="one">%1$d line will be added</item>
+        <item quantity="other">%1$d lines will be added</item>
+    </plurals>
+    <plurals name="portions_add_button">
+        <item quantity="one">Add %1$d portion</item>
+        <item quantity="other">Add %1$d portions</item>
+    </plurals>
+    <plurals name="shopping_to_get">
+        <item quantity="one">%1$d to get</item>
+        <item quantity="other">%1$d to get</item>
+    </plurals>
+    <plurals name="recipe_count">
+        <item quantity="one">%1$d recipe</item>
+        <item quantity="other">%1$d recipes</item>
+    </plurals>
+    <plurals name="recipe_apply_changes">
+        <item quantity="one">Apply %1$d change</item>
+        <item quantity="other">Apply %1$d changes</item>
     </plurals>
 </resources>

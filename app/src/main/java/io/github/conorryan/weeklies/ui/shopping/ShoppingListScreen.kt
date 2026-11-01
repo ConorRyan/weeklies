@@ -1,40 +1,40 @@
 package io.github.conorryan.weeklies.ui.shopping
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.RestaurantMenu
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,8 +50,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,19 +60,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Recipe
-import io.github.conorryan.weeklies.data.model.isValidPortionsPerDay
-import io.github.conorryan.weeklies.ui.BottomAction
-import io.github.conorryan.weeklies.ui.BottomActionBar
-import io.github.conorryan.weeklies.ui.ConfirmDialog
-import io.github.conorryan.weeklies.ui.SheetHeader
-import io.github.conorryan.weeklies.ui.TabHeader
+import io.github.conorryan.weeklies.data.model.ShoppingItem
+import io.github.conorryan.weeklies.ui.CardDivider
+import io.github.conorryan.weeklies.ui.CardGroup
+import io.github.conorryan.weeklies.ui.Eyebrow
+import io.github.conorryan.weeklies.ui.ScreenTitle
 import io.github.conorryan.weeklies.ui.ToastBus
-import io.github.conorryan.weeklies.ui.theme.HeaderColor
-import io.github.conorryan.weeklies.ui.theme.headerColorFor
+import io.github.conorryan.weeklies.ui.recipes.RecipePickerSheet
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
+fun ShoppingListScreen(
+    graph: AppGraph,
+    toastBus: ToastBus,
+    onGoToRecipes: () -> Unit,
+) {
     val vm: ShoppingViewModel = viewModel(
         factory = ShoppingViewModel.Factory(graph, toastBus),
     )
@@ -80,302 +83,326 @@ fun ShoppingListScreen(graph: AppGraph, toastBus: ToastBus) {
     val scrollState = rememberScrollState()
     var pickerOpen by remember { mutableStateOf(false) }
     var portionsFor by remember { mutableStateOf<Recipe?>(null) }
-    val pickerSheetState = rememberModalBottomSheetState()
+    var editTargetId by remember { mutableStateOf<String?>(null) }
+    var editLabel by remember { mutableStateOf("") }
+    val commitEdit = {
+        val target = editTargetId
+        if (target != null) {
+            val trimmed = editLabel.trim()
+            if (trimmed.isNotEmpty()) vm.renameItem(target, trimmed)
+            editTargetId = null
+        }
+    }
+    val open = state.items.filterNot { it.checked }
+    val done = state.items.filter { it.checked }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding(),
+            .imePadding()
+            .verticalScroll(scrollState),
     ) {
-        TabHeader(stringResource(R.string.tab_shopping), Icons.Filled.ShoppingCart, headerColorFor(HeaderColor.SHOPPING))
+        ScreenTitle(
+            title = stringResource(R.string.shopping_title),
+            eyebrow = pluralStringResource(R.plurals.shopping_to_get, open.size, open.size),
+        )
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AssistChip(
+                onClick = {
+                    val id = state.todayRecipeId
+                    val recipe = state.recipes.firstOrNull { it.id == id }
+                    when {
+                        id == null -> toastBus.info(
+                            R.string.shopping_no_recipe_today,
+                            message = R.string.shopping_no_recipe_today_msg,
+                        )
+                        recipe == null -> toastBus.info(
+                            R.string.shopping_recipe_missing,
+                            message = R.string.shopping_recipe_missing_msg,
+                        )
+                        else -> portionsFor = recipe
+                    }
+                },
+                label = { Text(stringResource(R.string.shopping_add_todays_recipe), fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                shape = MaterialTheme.shapes.extraLarge,
+                border = null,
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    labelColor = MaterialTheme.colorScheme.onPrimary,
+                    leadingIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                modifier = Modifier.heightIn(min = 40.dp),
+            )
+            AssistChip(
+                onClick = { pickerOpen = true },
+                label = { Text(stringResource(R.string.shopping_add_recipe), fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                shape = MaterialTheme.shapes.extraLarge,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.heightIn(min = 40.dp),
+            )
+        }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-                .verticalScroll(scrollState),
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            var editTargetId by remember { mutableStateOf<String?>(null) }
-            var editLabel by remember { mutableStateOf("") }
-            var editFieldFocused by remember { mutableStateOf(false) }
-            val commitEdit = {
-                val target = editTargetId
-                if (target != null) {
-                    val trimmed = editLabel.trim()
-                    if (trimmed.isNotEmpty()) {
-                        vm.renameItem(target, trimmed)
-                    }
-                    editTargetId = null
-                }
-            }
-            for (item in state.items) {
-                val editing = editTargetId == item.id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = !editing) { vm.tick(item.id) }
-                        .padding(horizontal = 12.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Checkbox(
-                        checked = item.checked,
-                        onCheckedChange = null,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    if (editing) {
-                        val focusRequester = remember { FocusRequester() }
-                        LaunchedEffect(Unit) { focusRequester.requestFocus() }
-                        BasicTextField(
-                            value = editLabel,
-                            onValueChange = { editLabel = it },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onBackground,
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(onDone = { commitEdit() }),
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    val wasFocused = editFieldFocused
-                                    editFieldFocused = focusState.isFocused
-                                    if (wasFocused && !focusState.isFocused) commitEdit()
-                                },
-                        )
-                    } else {
-                        Text(
-                            item.label,
-                            style = MaterialTheme.typography.bodyLarge,
-                            textDecoration = if (item.checked) TextDecoration.LineThrough else null,
-                            color = if (item.checked) {
-                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                            } else {
-                                MaterialTheme.colorScheme.onBackground
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            if (editing) {
-                                commitEdit()
-                            } else {
-                                editLabel = item.label
-                                editFieldFocused = false
-                                editTargetId = item.id
-                            }
+            CardGroup {
+                open.forEachIndexed { index, item ->
+                    if (index > 0) CardDivider()
+                    OpenItemRow(
+                        item = item,
+                        editing = editTargetId == item.id,
+                        editLabel = editLabel,
+                        onEditLabel = { editLabel = it },
+                        onTick = { vm.tick(item.id) },
+                        onStartEdit = {
+                            commitEdit()
+                            editLabel = item.label
+                            editTargetId = item.id
                         },
-                    ) {
-                        Icon(
-                            if (editing) Icons.Filled.Check else Icons.Filled.Edit,
-                            contentDescription = if (editing) {
-                                stringResource(R.string.shopping_done_editing)
-                            } else {
-                                stringResource(R.string.shopping_edit_item)
-                            },
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        )
-                    }
+                        onCommitEdit = commitEdit,
+                    )
                 }
+                if (open.isNotEmpty()) CardDivider()
+                NewItemRow(
+                    onAdd = vm::addItem,
+                    onFocused = {
+                        // Keep the input above the keyboard: scroll to the bottom now and again
+                        // whenever the keyboard opening changes the scroll bounds.
+                        snapshotFlow { scrollState.maxValue }
+                            .collect { maxValue -> scrollState.animateScrollTo(maxValue) }
+                    },
+                )
             }
 
-            var newLabel by remember { mutableStateOf("") }
-            var fieldFocused by remember { mutableStateOf(false) }
-            LaunchedEffect(fieldFocused) {
-                if (fieldFocused) {
-                    // Keep the input above the keyboard: scroll to the bottom now and again
-                    // whenever the keyboard opening changes the scroll bounds.
-                    snapshotFlow { scrollState.maxValue }
-                        .collect { maxValue -> scrollState.animateScrollTo(maxValue) }
-                }
-            }
-            val submitNewLabel = {
-                val trimmed = newLabel.trim()
-                if (trimmed.isNotEmpty()) {
-                    vm.addItem(trimmed)
-                    newLabel = ""
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                BasicTextField(
-                    value = newLabel,
-                    onValueChange = { newLabel = it },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onBackground,
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { submitNewLabel() }),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .onFocusChanged { fieldFocused = it.isFocused }
-                                .border(
-                                    width = 1.dp,
-                                    color = if (fieldFocused) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.outline
-                                    },
-                                    shape = RoundedCornerShape(4.dp),
-                                )
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            if (newLabel.isEmpty()) {
-                                Text(
-                                    stringResource(R.string.shopping_item_hint),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            innerTextField()
+            if (done.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Eyebrow(
+                            stringResource(R.string.shopping_in_basket, done.size),
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = vm::removeChecked) {
+                            Icon(
+                                Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                stringResource(R.string.shopping_clear_basket),
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(start = 6.dp),
+                            )
                         }
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(
-                    onClick = { submitNewLabel() },
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = stringResource(R.string.shopping_add_item),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    }
+                    CardGroup(color = MaterialTheme.colorScheme.surfaceContainerHighest, border = false) {
+                        done.forEachIndexed { index, item ->
+                            if (index > 0) CardDivider()
+                            DoneItemRow(item, onTick = { vm.tick(item.id) })
+                        }
+                    }
                 }
             }
         }
-
-        BottomActionBar(
-            listOf(
-                BottomAction(
-                    icon = Icons.Filled.AddShoppingCart,
-                    label = stringResource(R.string.shopping_add_todays_recipe),
-                    onClick = {
-                        val id = state.todayRecipeId
-                        val recipe = state.recipes.firstOrNull { it.id == id }
-                        when {
-                            id == null -> toastBus.info(
-                                R.string.shopping_no_recipe_today,
-                                message = R.string.shopping_no_recipe_today_msg,
-                            )
-                            recipe == null -> toastBus.info(
-                                R.string.shopping_recipe_missing,
-                                message = R.string.shopping_recipe_missing_msg,
-                            )
-                            else -> portionsFor = recipe
-                        }
-                    },
-                ),
-                BottomAction(
-                    icon = Icons.Filled.RestaurantMenu,
-                    label = stringResource(R.string.shopping_add_recipe),
-                    onClick = { pickerOpen = true },
-                ),
-                BottomAction(
-                    icon = Icons.Filled.Delete,
-                    label = stringResource(R.string.shopping_remove_checked),
-                    onClick = { vm.removeChecked() },
-                    enabled = state.hasChecked,
-                    destructive = true,
-                ),
-            ),
-        )
     }
 
     val portionsTarget = portionsFor
     if (portionsTarget != null) {
-        var portionsText by remember { mutableStateOf(state.defaultPortions.toString()) }
-        val portions = portionsText.trim().toIntOrNull()
-        val portionsValid = portions != null && isValidPortionsPerDay(portions)
-        ConfirmDialog(
-            title = portionsTarget.name,
-            confirmLabel = stringResource(R.string.add),
-            confirmEnabled = portionsValid,
-            onConfirm = {
+        PortionsDialog(
+            recipe = portionsTarget,
+            defaultPortions = state.defaultPortions,
+            onAdd = { portions ->
                 portionsFor = null
-                if (portions != null) vm.addRecipeIngredients(portionsTarget.id, portions)
+                vm.addRecipeIngredients(portionsTarget.id, portions)
             },
             onDismiss = { portionsFor = null },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.shopping_portions_prompt, state.defaultPortions))
-                    OutlinedTextField(
-                        value = portionsText,
-                        onValueChange = { portionsText = it },
-                        label = { Text(stringResource(R.string.shopping_portions_label)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                    )
-                }
-            },
         )
     }
 
     if (pickerOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { pickerOpen = false },
-            sheetState = pickerSheetState,
-        ) {
-            SheetHeader(
-                title = stringResource(R.string.shopping_add_recipe),
-                actionLabel = stringResource(R.string.cancel),
-                onAction = { pickerOpen = false },
-            )
-
-            val others = state.recipes.filter { it.id != state.todayRecipeId }
-            if (others.isEmpty()) {
-                Column(
-                    Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        if (state.recipes.isEmpty()) {
-                            stringResource(R.string.shopping_add_recipes_first)
-                        } else {
-                            stringResource(R.string.shopping_no_other_recipes)
-                        },
-                    )
-                }
-            } else {
-                for (item in others) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                pickerOpen = false
-                                portionsFor = item
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                    ) {
-                        Text(item.name, fontWeight = FontWeight.SemiBold)
-                        val ingredientCount = item.ingredients.size
-                        Text(
-                            pluralStringResource(
-                                R.plurals.shopping_ingredient_count,
-                                ingredientCount,
-                                ingredientCount,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+        RecipePickerSheet(
+            title = stringResource(R.string.shopping_add_recipe),
+            recipes = state.recipes,
+            onPick = { recipe ->
+                pickerOpen = false
+                portionsFor = recipe
+            },
+            onDismiss = { pickerOpen = false },
+            emptyContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.shopping_add_recipes_first))
+                    TextButton(onClick = { pickerOpen = false; onGoToRecipes() }) {
+                        Text(stringResource(R.string.plan_go_to_recipes))
                     }
                 }
+            },
+        )
+    }
+}
+
+/** Square checkbox drawn to match the design: outlined when open, filled with a tick when done. */
+@Composable
+private fun TickBox(checked: Boolean) {
+    val shape = MaterialTheme.shapes.extraSmall
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .then(
+                if (checked) {
+                    Modifier.background(MaterialTheme.colorScheme.primary, shape)
+                } else {
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.outline, shape)
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun OpenItemRow(
+    item: ShoppingItem,
+    editing: Boolean,
+    editLabel: String,
+    onEditLabel: (String) -> Unit,
+    onTick: () -> Unit,
+    onStartEdit: () -> Unit,
+    onCommitEdit: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !editing, role = Role.Checkbox, onClick = onTick)
+            .heightIn(min = 52.dp)
+            .padding(start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        TickBox(checked = false)
+        if (editing) {
+            val focusRequester = remember { FocusRequester() }
+            var wasFocused by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            BasicTextField(
+                value = editLabel,
+                onValueChange = onEditLabel,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onCommitEdit() }),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        if (wasFocused && !focusState.isFocused) onCommitEdit()
+                        wasFocused = focusState.isFocused
+                    },
+            )
+        } else {
+            Text(
+                item.label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        IconButton(onClick = if (editing) onCommitEdit else onStartEdit) {
+            Icon(
+                if (editing) Icons.Filled.Check else Icons.Outlined.Edit,
+                contentDescription = stringResource(if (editing) R.string.shopping_done_editing else R.string.shopping_edit_item),
+                tint = if (editing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DoneItemRow(item: ShoppingItem, onTick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox, onClick = onTick)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        TickBox(checked = true)
+        Text(
+            item.label,
+            style = MaterialTheme.typography.bodyMedium,
+            textDecoration = TextDecoration.LineThrough,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun NewItemRow(
+    onAdd: (String) -> Unit,
+    onFocused: suspend () -> Unit,
+) {
+    var newLabel by remember { mutableStateOf("") }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(focused) { if (focused) onFocused() }
+    val submit = {
+        val trimmed = newLabel.trim()
+        if (trimmed.isNotEmpty()) {
+            onAdd(trimmed)
+            newLabel = ""
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .padding(start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        BasicTextField(
+            value = newLabel,
+            onValueChange = { newLabel = it },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
+            decorationBox = { inner ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (newLabel.isEmpty()) {
+                        Text(
+                            stringResource(R.string.shopping_item_hint),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    inner()
+                }
+            },
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focused = it.isFocused },
+        )
+        if (newLabel.isNotBlank()) {
+            IconButton(onClick = { submit() }) {
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.shopping_add_item), tint = MaterialTheme.colorScheme.primary)
             }
-            Box(Modifier.padding(bottom = 32.dp))
         }
     }
 }

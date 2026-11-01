@@ -3,21 +3,29 @@ package io.github.conorryan.weeklies.ui.settings
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,10 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,53 +53,61 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.AppColorScheme
-import io.github.conorryan.weeklies.ui.InfoDialog
-import io.github.conorryan.weeklies.ui.TabHeader
+import io.github.conorryan.weeklies.ui.CardDivider
+import io.github.conorryan.weeklies.ui.CardGroup
+import io.github.conorryan.weeklies.ui.ConfirmDialog
+import io.github.conorryan.weeklies.ui.Eyebrow
+import io.github.conorryan.weeklies.ui.ScreenTitle
 import io.github.conorryan.weeklies.ui.ToastBus
-import io.github.conorryan.weeklies.ui.theme.HeaderColor
-import io.github.conorryan.weeklies.ui.theme.headerColorFor
+import io.github.conorryan.weeklies.ui.shopping.MAX_PORTIONS_STEPPER
 
 @Composable
-private fun SectionHeader(text: String, first: Boolean = false) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (first) 24.dp else 28.dp, bottom = 4.dp),
-    )
+private fun SectionLabel(text: String) {
+    Eyebrow(text, Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp))
 }
 
-@Composable
-private fun SupportingText(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-}
-
-/** One settings row: label, optional info icon, and an optional trailing control. */
+/** Settings row: title, optional subtitle, optional trailing control; clickable when [onClick] is set. */
 @Composable
 private fun SettingRow(
-    label: String,
+    title: String,
     modifier: Modifier = Modifier,
-    infoContentDescription: String? = null,
-    onInfo: (() -> Unit)? = null,
+    subtitle: String? = null,
+    onClick: (() -> Unit)? = null,
+    role: Role? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(role = role, onClick = onClick) else Modifier)
+            .heightIn(min = 60.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        if (infoContentDescription != null && onInfo != null) {
-            IconButton(onClick = onInfo) {
-                Icon(Icons.Outlined.Info, contentDescription = infoContentDescription)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         trailing?.invoke()
     }
+}
+
+@Composable
+private fun ChevronRow(title: String, onClick: () -> Unit) {
+    SettingRow(
+        title = title,
+        onClick = onClick,
+        trailing = {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        },
+    )
 }
 
 @Composable
@@ -105,14 +120,10 @@ fun SettingsScreen(
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(graph, toastBus))
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
-    var portionsText by remember { mutableStateOf(state.settings.portionsPerDay.toString()) }
     var keyText by remember { mutableStateOf("") }
-    var portionsInfoOpen by remember { mutableStateOf(false) }
-    var keyInfoOpen by remember { mutableStateOf(false) }
+    var restoreConfirmOpen by remember { mutableStateOf(false) }
 
-    // Keep inputs in sync when values change elsewhere (e.g. after backup import).
-    LaunchedEffect(state.settings.portionsPerDay) { portionsText = state.settings.portionsPerDay.toString() }
+    // Keep the key field in sync when it changes elsewhere (e.g. after a clear).
     LaunchedEffect(state.apiKey) { keyText = state.apiKey }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -151,190 +162,201 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 32.dp),
     ) {
-        TabHeader(stringResource(R.string.settings), Icons.Filled.Settings, headerColorFor(HeaderColor.SETTINGS))
+        ScreenTitle(stringResource(R.string.settings))
 
-        SectionHeader(stringResource(R.string.settings_section_appearance), first = true)
-        SettingRow(
-            label = stringResource(R.string.settings_dark_mode),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            trailing = {
-                Switch(
-                    checked = state.settings.colorScheme == AppColorScheme.DARK,
-                    onCheckedChange = { on -> vm.setColorScheme(on) },
-                )
-            },
-        )
-
-        SectionHeader(stringResource(R.string.settings_section_planning))
-        SettingRow(
-            label = stringResource(R.string.settings_portions_per_day),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            infoContentDescription = stringResource(R.string.settings_about_portions),
-            onInfo = { portionsInfoOpen = true },
-            trailing = {
-                OutlinedTextField(
-                    value = portionsText,
-                    onValueChange = { portionsText = it },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (!vm.applyPortions(portionsText)) {
-                                portionsText = state.settings.portionsPerDay.toString()
-                            }
-                            focusManager.clearFocus()
-                        },
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.width(88.dp),
-                )
-            },
-        )
-
-        SectionHeader(stringResource(R.string.settings_section_recipe_import))
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
+        SectionLabel(stringResource(R.string.settings_section_cooking))
+        CardGroup(Modifier.padding(horizontal = 20.dp)) {
+            val portions = state.settings.portionsPerDay
             SettingRow(
-                label = stringResource(R.string.settings_mistral_api_key),
-                infoContentDescription = stringResource(R.string.settings_about_mistral_key),
-                onInfo = { keyInfoOpen = true },
+                title = stringResource(R.string.settings_portions_per_day),
+                subtitle = stringResource(R.string.settings_portions_subtitle),
+                trailing = {
+                    Row(
+                        modifier = Modifier.background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.extraLarge),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { vm.applyPortions((portions - 1).toString()) }, enabled = portions > 1) {
+                            Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.portions_fewer))
+                        }
+                        Text(portions.toString(), style = MaterialTheme.typography.titleMedium)
+                        IconButton(
+                            onClick = { vm.applyPortions((portions + 1).toString()) },
+                            enabled = portions < MAX_PORTIONS_STEPPER,
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.portions_more))
+                        }
+                    }
+                },
             )
-            OutlinedTextField(
-                value = keyText,
-                onValueChange = { keyText = it },
-                placeholder = { Text(stringResource(R.string.settings_paste_api_key)) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
+            CardDivider()
+            val dark = state.settings.colorScheme == AppColorScheme.DARK
+            SettingRow(
+                title = stringResource(R.string.settings_dark_mode),
+                onClick = { vm.setColorScheme(!dark) },
+                role = Role.Switch,
+                trailing = { Switch(checked = dark, onCheckedChange = null) },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { vm.saveApiKey(keyText) },
-                    modifier = Modifier.weight(1f),
-                ) { Text(stringResource(R.string.settings_save_key)) }
-                if (state.apiKey.trim().isNotEmpty()) {
-                    TextButton(
-                        onClick = {
-                            vm.clearApiKey()
-                            keyText = ""
+        }
+
+        SectionLabel(stringResource(R.string.settings_section_backups))
+        val folder = state.backupFolder
+        CardGroup(Modifier.padding(horizontal = 20.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.small)
+                        .padding(10.dp)
+                        .size(24.dp),
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        if (folder.configured) {
+                            folder.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_configured_folder)
+                        } else {
+                            stringResource(R.string.settings_no_folder)
                         },
-                        modifier = Modifier.weight(1f),
-                    ) { Text(stringResource(R.string.settings_clear_key)) }
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    val lastBackup = folder.lastBackupAt
+                    if (lastBackup != null) {
+                        Text(
+                            stringResource(
+                                R.string.settings_last_backup,
+                                DateUtils.getRelativeTimeSpanString(lastBackup.toEpochMilli()).toString(),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                TextButton(onClick = { folderPicker.launch(null) }) {
+                    Text(stringResource(if (folder.configured) R.string.settings_change_folder else R.string.settings_choose_folder))
                 }
             }
-        }
-
-        SectionHeader(stringResource(R.string.settings_section_data))
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            OutlinedButton(
-                onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
-                enabled = !state.backupBusy,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.settings_export_backup)) }
-            OutlinedButton(
-                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
-                enabled = !state.backupBusy,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.settings_import_backup)) }
-            SupportingText(stringResource(R.string.settings_import_replaces_data))
-        }
-
-        SectionHeader(stringResource(R.string.settings_section_backup_folder))
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(vertical = 8.dp),
-        ) {
-            if (state.backupFolder.configured) {
-                val folderName = state.backupFolder.name?.takeIf { it.isNotBlank() }
-                    ?: stringResource(R.string.settings_configured_folder)
-                SupportingText(stringResource(R.string.settings_backing_up_to, folderName))
-            } else {
-                SupportingText(stringResource(R.string.settings_backup_folder_info))
-            }
-            OutlinedButton(
-                onClick = { folderPicker.launch(null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
+            // Full width under the row so the explanation isn't squeezed beside the button.
+            if (!folder.configured) {
                 Text(
-                    if (state.backupFolder.configured) {
-                        stringResource(R.string.settings_change_folder)
-                    } else {
-                        stringResource(R.string.settings_choose_folder)
-                    },
+                    stringResource(R.string.settings_backup_folder_info),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
                 )
             }
-            if (state.backupFolder.configured) {
+            if (folder.configured) {
+                CardDivider()
+                SettingRow(
+                    title = stringResource(R.string.settings_auto_backup),
+                    subtitle = stringResource(R.string.settings_auto_backup_info),
+                    onClick = { vm.setAutoBackup(!folder.autoBackup) },
+                    role = Role.Switch,
+                    trailing = { Switch(checked = folder.autoBackup, onCheckedChange = null) },
+                )
+            }
+            CardDivider()
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (folder.configured) {
+                    Button(
+                        onClick = { vm.backupNowToFolder() },
+                        enabled = !state.backupBusy,
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                    ) { Text(stringResource(R.string.settings_backup_now)) }
+                }
+                OutlinedButton(
+                    onClick = { exportLauncher.launch(graph.backupManager.defaultBackupFilename()) },
+                    enabled = !state.backupBusy,
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                ) { Text(stringResource(R.string.settings_export_file)) }
+            }
+        }
+        Row(Modifier.padding(horizontal = 12.dp)) {
+            TextButton(
+                onClick = { restoreConfirmOpen = true },
+                enabled = !state.backupBusy,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text(stringResource(R.string.settings_restore_backup)) }
+            if (folder.configured) {
                 TextButton(
                     onClick = { vm.clearBackupFolder() },
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                 ) { Text(stringResource(R.string.settings_remove_folder)) }
-                SettingRow(
-                    label = stringResource(R.string.settings_auto_backup),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    trailing = {
-                        Switch(
-                            checked = state.backupFolder.autoBackup,
-                            onCheckedChange = { on -> vm.setAutoBackup(on) },
-                        )
-                    },
-                )
-                SupportingText(stringResource(R.string.settings_auto_backup_info))
-                Button(
-                    onClick = { vm.backupNowToFolder() },
-                    enabled = !state.backupBusy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                ) { Text(stringResource(R.string.settings_backup_now)) }
             }
-            state.backupFolder.lastBackupAt?.let { at ->
-                SupportingText(
-                    stringResource(
-                        R.string.settings_last_backup,
-                        DateUtils.getRelativeTimeSpanString(at.toEpochMilli()).toString(),
-                    ),
+        }
+
+        SectionLabel(stringResource(R.string.settings_section_recipe_import))
+        CardGroup(Modifier.padding(horizontal = 20.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    stringResource(R.string.settings_mistral_api_key_optional),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                OutlinedTextField(
+                    value = keyText,
+                    onValueChange = { keyText = it },
+                    placeholder = { Text(stringResource(R.string.settings_paste_api_key)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { vm.saveApiKey(keyText) },
+                        enabled = keyText.trim() != state.apiKey.trim(),
+                        modifier = Modifier.weight(1f),
+                    ) { Text(stringResource(R.string.settings_save_key)) }
+                    if (state.apiKey.trim().isNotEmpty()) {
+                        FilledTonalButton(
+                            onClick = {
+                                vm.clearApiKey()
+                                keyText = ""
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) { Text(stringResource(R.string.settings_clear_key)) }
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_key_info),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
-        SectionHeader(stringResource(R.string.settings_section_other))
-        TextButton(
-            onClick = onOpenHelp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(stringResource(R.string.help))
-        }
-        TextButton(
-            onClick = onOpenPrivacy,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(stringResource(R.string.settings_privacy_policy))
+        Spacer(Modifier.height(24.dp))
+        CardGroup(Modifier.padding(horizontal = 20.dp)) {
+            ChevronRow(stringResource(R.string.help), onOpenHelp)
+            CardDivider()
+            ChevronRow(stringResource(R.string.settings_privacy_policy), onOpenPrivacy)
         }
     }
 
-    if (portionsInfoOpen) {
-        InfoDialog(
-            title = stringResource(R.string.settings_portions_per_day),
-            onDismiss = { portionsInfoOpen = false },
-            text = { Text(stringResource(R.string.settings_portions_info)) },
-        )
-    }
-    if (keyInfoOpen) {
-        InfoDialog(
-            title = stringResource(R.string.settings_mistral_api_key),
-            onDismiss = { keyInfoOpen = false },
-            text = { Text(stringResource(R.string.settings_key_info)) },
+    if (restoreConfirmOpen) {
+        ConfirmDialog(
+            title = stringResource(R.string.settings_restore_confirm_title),
+            confirmLabel = stringResource(R.string.settings_restore_choose_file),
+            destructive = true,
+            onConfirm = {
+                restoreConfirmOpen = false
+                importLauncher.launch(arrayOf("application/json", "text/plain"))
+            },
+            onDismiss = { restoreConfirmOpen = false },
+            text = { Text(stringResource(R.string.settings_import_replaces_data)) },
         )
     }
 }
