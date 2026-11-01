@@ -85,10 +85,7 @@ fun RecipesScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                ScreenTitle(
-                    title = stringResource(R.string.tab_recipes),
-                    eyebrow = pluralStringResource(R.plurals.recipe_count, recipes.size, recipes.size),
-                )
+                ScreenTitle(title = stringResource(R.string.tab_recipes))
             }
             if (recipes.isNotEmpty()) {
                 item {

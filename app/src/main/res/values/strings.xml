@@ -207,7 +207,6 @@
     <string name="selected">Selected</string>
     <string name="undo">Undo</string>
     <string name="plan_title">Your week</string>
-    <string name="plan_eyebrow">Repeats every week</string>
     <string name="plan_rest_of_week">Rest of the week</string>
     <string name="plan_every">Every</string>
     <string name="plan_leave_empty">Leave empty</string>
@@ -303,10 +302,6 @@
     <plurals name="portions_add_button">
         <item quantity="one">Add %1$d portion</item>
         <item quantity="other">Add %1$d portions</item>
-    </plurals>
-    <plurals name="recipe_count">
-        <item quantity="one">%1$d recipe</item>
-        <item quantity="other">%1$d recipes</item>
     </plurals>
     <plurals name="recipe_apply_changes">
         <item quantity="one">Apply %1$d change</item>

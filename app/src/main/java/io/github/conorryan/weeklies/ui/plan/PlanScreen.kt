@@ -77,7 +77,6 @@ fun PlanScreen(
     ) {
         ScreenTitle(
             title = stringResource(R.string.plan_title),
-            eyebrow = stringResource(R.string.plan_eyebrow),
             action = {
                 OutlinedIconButton(
                     onClick = onOpenHelp,

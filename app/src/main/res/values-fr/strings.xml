@@ -186,7 +186,6 @@
     <string name="selected">Sélectionnée</string>
     <string name="undo">Annuler</string>
     <string name="plan_title">Votre semaine</string>
-    <string name="plan_eyebrow">Se répète chaque semaine</string>
     <string name="plan_rest_of_week">Le reste de la semaine</string>
     <string name="plan_every">Chaque</string>
     <string name="plan_leave_empty">Laisser vide</string>
@@ -284,10 +283,6 @@
     <plurals name="portions_add_button">
         <item quantity="one">Ajouter %1$d portion</item>
         <item quantity="other">Ajouter %1$d portions</item>
-    </plurals>
-    <plurals name="recipe_count">
-        <item quantity="one">%1$d recette</item>
-        <item quantity="other">%1$d recettes</item>
     </plurals>
     <plurals name="recipe_apply_changes">
         <item quantity="one">Appliquer %1$d modification</item>
