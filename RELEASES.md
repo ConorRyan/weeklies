@@ -12,7 +12,7 @@ keystore exists.
   `~/.local/share/keystores/weeklies-release.password`. Back this up offline; losing
   it breaks updates for every installed user. Never commit it to any repo.
 - Android SDK + JDK 21, with `apksigner` from the build-tools
-  (`~/Android/Sdk/build-tools/<version>/apksigner`).
+  (`~/.local/share/android-sdk/build-tools/<version>/apksigner`).
 
 ## Per release
 
@@ -55,7 +55,7 @@ keystore exists.
 5. **Sign the APK** with the release key:
 
    ```bash
-   ~/Android/Sdk/build-tools/<version>/apksigner sign \
+   ~/.local/share/android-sdk/build-tools/<version>/apksigner sign \
      --ks ~/.local/share/keystores/weeklies-release.jks \
      --ks-pass "file:$HOME/.local/share/keystores/weeklies-release.password" \
      --ks-key-alias weeklies \
@@ -75,7 +75,8 @@ keystore exists.
 
 6. **Create the GitHub release** on the tag and upload
    `weeklies.<versionName>.apk` as a release asset. The filename must
-   follow the pattern exactly: `weeklies.<versionName>.apk`.
+   follow the pattern exactly: `weeklies.<versionName>.apk`. Use the
+   en-US changelog file as the release notes.
 
 ## F-Droid (planned)
 
