@@ -332,6 +332,22 @@ class RecipeFormViewModelTest {
     }
 
     @Test
+    fun cleanInstructionsWithBlankInstructionsAsksMistralToWriteThem() {
+        val transport = FakeTransport(chatResponse("""{"instructions":"- Boil\n- Serve"}"""))
+        val vm = vm(cleaner = RecipeCleaner(transport))
+        vm.setName("Pasta")
+        vm.setIngredient(0, "pasta")
+        key.value = "k-1"
+
+        vm.cleanInstructions()
+
+        assertEquals("- Boil\n- Serve", vm.state.value.instructionPreview)
+        val body = transport.requests.single()
+        assertTrue(body.contains("Write the cooking instructions"))
+        assertTrue(!body.contains("Instructions to clean up"))
+    }
+
+    @Test
     fun cleanupFailureShowsErrorAndClearsBusy() {
         val transport = FakeTransport(HttpResponse(500, "{}"))
         val vm = vm(cleaner = RecipeCleaner(transport))

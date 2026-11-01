@@ -100,6 +100,21 @@ fun buildInstructionsCleanupUserMessage(
     return "Recipe: $recipeName\n\nIngredients:\n$lines\n\nInstructions to clean up:\n$instructions"
 }
 
+private val INSTRUCTIONS_GENERATION_SYSTEM_PROMPT = """
+You write a recipe's instructions as a concise checklist. Return only a JSON object matching the schema.
+
+- Write the instructions as one string of bullet points: one step per line, each line starting with "- ".
+- The whole list must be readable in about two minutes: 5 to 15 bullets, each a short concrete action with its key time, temperature, or amount.
+- Base every step on the recipe name and its ingredient list; do not invent ingredients or amounts the recipe does not name.
+- Give each step a sensible time, temperature, or amount where the ingredients imply one.
+- No fluff: stories, introductions, serving suggestions, storage tips, nutrition notes, or sign-offs.
+""".trimIndent() + "\n"
+
+fun buildInstructionsGenerationUserMessage(recipeName: String, ingredients: List<String>): String {
+    val lines = ingredients.joinToString("\n") { "- $it" }
+    return "Recipe: $recipeName\n\nIngredients:\n$lines\n\nWrite the cooking instructions for this recipe."
+}
+
 /**
  * Parses instructions-cleanup response content into the rewritten instruction
  * text; null when the content is not valid JSON or carries no instructions.
@@ -498,7 +513,9 @@ class RecipeCleaner(transport: HttpTransport) {
 
     /**
      * Calls Mistral to rewrite a recipe's instructions as a concise bulleted
-     * list readable in about two minutes, with the fluff removed.
+     * list readable in about two minutes, with the fluff removed. With blank
+     * instructions it instead writes the steps from the recipe name and
+     * ingredients.
      */
     suspend fun cleanInstructions(
         apiKey: String,
@@ -509,12 +526,21 @@ class RecipeCleaner(transport: HttpTransport) {
         val key = apiKey.trim()
         if (key.isEmpty()) throw RecipeImportErrors.mistralKeyMissing()
 
+        val generating = instructions.isBlank()
         return chat.chatForJson(
             apiKey = key,
             model = ImportConstants.MISTRAL_CLEANUP_MODEL,
             schemaName = "recipe_cleanup",
-            systemPrompt = INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT,
-            userContent = buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions),
+            systemPrompt = if (generating) {
+                INSTRUCTIONS_GENERATION_SYSTEM_PROMPT
+            } else {
+                INSTRUCTIONS_CLEANUP_SYSTEM_PROMPT
+            },
+            userContent = if (generating) {
+                buildInstructionsGenerationUserMessage(recipeName, ingredients)
+            } else {
+                buildInstructionsCleanupUserMessage(recipeName, ingredients, instructions)
+            },
             schema = INSTRUCTIONS_CLEANUP_JSON_SCHEMA,
             parse = ::parseInstructionsCleanupResponse,
         )

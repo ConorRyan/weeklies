@@ -60,15 +60,16 @@ private fun FormSection(
     aiBusy: Boolean = false,
     onAi: (() -> Unit)? = null,
     aiEnabled: Boolean = true,
+    aiLabel: String = stringResource(R.string.recipe_tidy_with_ai),
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Eyebrow(label, Modifier.weight(1f))
-        if (onAi != null) AiChip(busy = aiBusy, enabled = aiEnabled, onClick = onAi)
+        if (onAi != null) AiChip(busy = aiBusy, enabled = aiEnabled, label = aiLabel, onClick = onAi)
     }
 }
 
 @Composable
-private fun AiChip(busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun AiChip(busy: Boolean, enabled: Boolean, label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         enabled = enabled && !busy,
@@ -88,7 +89,7 @@ private fun AiChip(busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
                 Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp))
             }
             Text(
-                stringResource(if (busy) R.string.recipe_cleaning_up else R.string.recipe_tidy_with_ai),
+                if (busy) stringResource(R.string.recipe_cleaning_up) else label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -200,7 +201,13 @@ fun RecipeForm(
             FormSection(
                 label = stringResource(R.string.recipe_instructions_label),
                 aiBusy = state.cleanupBusy == CleanupTarget.INSTRUCTIONS,
-                aiEnabled = state.cleanupBusy == null && state.hasInstructions,
+                // With no instructions yet, the chip asks Mistral to write the
+                // steps from the recipe name and ingredients instead of tidying.
+                aiEnabled = state.cleanupBusy == null &&
+                    (state.hasInstructions || state.hasIngredientText),
+                aiLabel = stringResource(
+                    if (state.hasInstructions) R.string.recipe_tidy_with_ai else R.string.recipe_write_with_ai,
+                ),
                 onAi = vm::cleanInstructions,
             )
             OutlinedTextField(

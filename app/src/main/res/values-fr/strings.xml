@@ -212,6 +212,7 @@
     <string name="recipe_one_portion">Une portion</string>
     <string name="recipe_scaled_caption">Affiché %1$s à partir d\'une portion</string>
     <string name="recipe_tidy_with_ai">Nettoyer avec l\'IA</string>
+    <string name="recipe_write_with_ai">Rédiger avec l\'IA</string>
     <string name="recipe_ingredients_one_portion">Ingrédients · une portion</string>
     <string name="recipe_suggested_by_mistral">Suggéré par Mistral</string>
     <string name="recipe_review_changes">Vérifier les modifications</string>

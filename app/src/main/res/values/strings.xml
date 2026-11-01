@@ -233,6 +233,7 @@
     <string name="recipe_one_portion">One portion</string>
     <string name="recipe_scaled_caption">Shown %1$s from one portion</string>
     <string name="recipe_tidy_with_ai">Tidy with AI</string>
+    <string name="recipe_write_with_ai">Write with AI</string>
     <string name="recipe_ingredients_one_portion">Ingredients · one portion</string>
     <string name="recipe_suggested_by_mistral">Suggested by Mistral</string>
     <string name="recipe_review_changes">Review changes</string>

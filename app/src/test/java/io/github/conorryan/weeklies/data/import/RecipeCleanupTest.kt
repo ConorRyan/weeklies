@@ -467,6 +467,27 @@ class RecipeCleanerTest {
             assertEquals(RecipeImportErrorCode.MISTRAL_EMPTY, e.code)
         }
     }
+
+    @Test
+    fun cleansInstructionsFromValidResponse() = runTest {
+        val transport = CleanupFakeTransport(cleanupChatResponse("""{"instructions":"- Boil"}"""))
+        val result = RecipeCleaner(transport).cleanInstructions("key", "Pasta", listOf("200 g pasta"), "Boil water, then serve.")
+
+        assertEquals("- Boil", result)
+        val body = transport.requests.single().second
+        assertTrue(body.contains("Instructions to clean up"))
+    }
+
+    @Test
+    fun generatesInstructionsWhenGivenBlankInstructions() = runTest {
+        val transport = CleanupFakeTransport(cleanupChatResponse("""{"instructions":"- Boil"}"""))
+        val result = RecipeCleaner(transport).cleanInstructions("key", "Pasta", listOf("200 g pasta"), "   ")
+
+        assertEquals("- Boil", result)
+        val body = transport.requests.single().second
+        assertTrue(body.contains("Write the cooking instructions"))
+        assertTrue(!body.contains("Instructions to clean up"))
+    }
 }
 
 class ParseInstructionsCleanupResponseTest {
