@@ -48,11 +48,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,11 +85,11 @@ fun ShoppingListScreen(
     var pickerOpen by remember { mutableStateOf(false) }
     var portionsFor by remember { mutableStateOf<Recipe?>(null) }
     var editTargetId by remember { mutableStateOf<String?>(null) }
-    var editLabel by remember { mutableStateOf("") }
+    var editLabel by remember { mutableStateOf(TextFieldValue("")) }
     val commitEdit = {
         val target = editTargetId
         if (target != null) {
-            val trimmed = editLabel.trim()
+            val trimmed = editLabel.text.trim()
             if (trimmed.isNotEmpty()) vm.renameItem(target, trimmed)
             editTargetId = null
         }
@@ -102,10 +103,7 @@ fun ShoppingListScreen(
             .imePadding()
             .verticalScroll(scrollState),
     ) {
-        ScreenTitle(
-            title = stringResource(R.string.shopping_title),
-            eyebrow = pluralStringResource(R.plurals.shopping_to_get, open.size, open.size),
-        )
+        ScreenTitle(title = stringResource(R.string.shopping_title))
         FlowRow(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -163,7 +161,7 @@ fun ShoppingListScreen(
                         onTick = { vm.tick(item.id) },
                         onStartEdit = {
                             commitEdit()
-                            editLabel = item.label
+                            editLabel = TextFieldValue(item.label, TextRange(item.label.length))
                             editTargetId = item.id
                         },
                         onCommitEdit = commitEdit,
@@ -276,8 +274,8 @@ private fun TickBox(checked: Boolean) {
 private fun OpenItemRow(
     item: ShoppingItem,
     editing: Boolean,
-    editLabel: String,
-    onEditLabel: (String) -> Unit,
+    editLabel: TextFieldValue,
+    onEditLabel: (TextFieldValue) -> Unit,
     onTick: () -> Unit,
     onStartEdit: () -> Unit,
     onCommitEdit: () -> Unit,

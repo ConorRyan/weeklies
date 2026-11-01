@@ -304,10 +304,6 @@
         <item quantity="one">Add %1$d portion</item>
         <item quantity="other">Add %1$d portions</item>
     </plurals>
-    <plurals name="shopping_to_get">
-        <item quantity="one">%1$d to get</item>
-        <item quantity="other">%1$d to get</item>
-    </plurals>
     <plurals name="recipe_count">
         <item quantity="one">%1$d recipe</item>
         <item quantity="other">%1$d recipes</item>
