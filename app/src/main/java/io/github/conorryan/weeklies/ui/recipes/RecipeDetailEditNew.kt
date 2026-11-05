@@ -164,6 +164,10 @@ fun RecipeDetailScreen(
                     Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
+            // View-only here; the edit form owns setting and estimating calories.
+            if (current.calories != null) {
+                CaloriesRow(calories = current.calories)
+            }
             for (line in scaleIngredientLines(current.ingredients, viewFactor)) {
                 CardDivider()
                 IngredientLine(line)
@@ -286,7 +290,7 @@ fun RecipeEditScreen(
     // Warm app state: see RecipeDetailScreen.
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
     val current = recipes.firstOrNull { it.id == recipeId }
-    val initial = current?.let { NewRecipe(name = it.name, ingredients = it.ingredients, instructions = it.instructions) }
+    val initial = current?.let { NewRecipe(name = it.name, ingredients = it.ingredients, instructions = it.instructions, calories = it.calories) }
     val vm: RecipeFormViewModel = viewModel(
         factory = RecipeFormViewModel.editRecipeFactory(graph, recipeId, initial),
     )

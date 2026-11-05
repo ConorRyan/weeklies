@@ -406,7 +406,7 @@ class RecipeCleanerTest {
         assertTrue(body.contains("Pancakes"))
         assertTrue(body.contains("2.1 cups flour"))
         assertTrue(body.contains("recipe_cleanup"))
-        assertTrue(body.contains("mistral-medium-latest"))
+        assertTrue(body.contains(ImportConstants.MISTRAL_MODEL))
     }
 
     @Test
@@ -546,7 +546,7 @@ class RecipeCleanerInstructionsTest {
         assertTrue(body.contains("250 g pasta"))
         assertTrue(body.contains("Boil the water in a large pot."))
         assertTrue(body.contains("recipe_cleanup"))
-        assertTrue(body.contains("mistral-medium-latest"))
+        assertTrue(body.contains(ImportConstants.MISTRAL_MODEL))
     }
 
     @Test

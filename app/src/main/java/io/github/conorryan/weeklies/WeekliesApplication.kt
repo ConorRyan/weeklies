@@ -7,6 +7,7 @@ import io.github.conorryan.weeklies.data.backup.AutoBackup
 import io.github.conorryan.weeklies.data.backup.BackupManager
 import io.github.conorryan.weeklies.data.backup.FolderBackups
 import io.github.conorryan.weeklies.data.db.AppDatabase
+import io.github.conorryan.weeklies.data.import.CalorieEstimator
 import io.github.conorryan.weeklies.data.import.MistralClient
 import io.github.conorryan.weeklies.data.import.OkHttpTransport
 import io.github.conorryan.weeklies.data.import.PageFetcher
@@ -92,6 +93,9 @@ class AppGraph(
 
     /** AI cleanup of a saved recipe's ingredient lines. */
     val recipeCleaner: RecipeCleaner by lazy { RecipeCleaner(OkHttpTransport()) }
+
+    /** AI calorie estimates for a saved recipe's portions. */
+    val calorieEstimator: CalorieEstimator by lazy { CalorieEstimator(OkHttpTransport()) }
 }
 
 class WeekliesApplication : Application() {

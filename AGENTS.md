@@ -59,7 +59,8 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   `RecipeImporter`/`RecipeCleaner`. No DI framework; screens receive `graph`.
 - **Data layer** (`data/`) — the only code that touches persistence:
   - `db/` — Room entities, DAOs, `AppDatabase` (recipes, weekly plan, shopping
-    list). Schema v2 added `recipes.instructions` (one text blob); migrations
+    list). Schema v2 added `recipes.instructions` (one text blob) and v3 added
+    the nullable `recipes.calories` (per-portion estimate); migrations
     live in `AppDatabase` and are covered by a Robolectric test.
   - `model/` — pure domain models (`Recipe`, `ShoppingItem`, `Weekday`, `AppSettings`).
   - `repo/` — `RecipeRepository`, `PlanRepository`, `ShoppingRepository`: the single
@@ -90,11 +91,13 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
     Mistral completion (`MistralClient`, which also holds the Mistral response
     parsing, with `ImportConstants`; recipe-servings scaling lives in
     `RecipeServings.kt`; `RecipeImporter` is the pipeline's single external
-    interface), and the AI cleanup of ingredients and instructions
-    (`RecipeCleaner` in `RecipeCleanup.kt`). `MistralChat` is the one place
+    interface), the AI cleanup of ingredients and instructions
+    (`RecipeCleaner` in `RecipeCleanup.kt`), and the AI calorie estimates
+    (`CalorieEstimator` in `CalorieEstimate.kt`, one portion = the stored
+    amounts). `MistralChat` is the one place
     that knows the Mistral wire protocol (request body, strict JSON schema,
-    HTTP error map, content extraction, retry-once); both `MistralClient` and
-    `RecipeCleaner` sit on it.
+    HTTP error map, content extraction, retry-once); `MistralClient`,
+    `RecipeCleaner`, and `CalorieEstimator` all sit on it.
   - `quantity/` — ingredient-quantity math (`QuantityMath.kt`: numeric token
     matching, parsing, formatting, `scaleIngredientLine`,
     `ingredientPartsToLine`): the neutral home both `data.import` and
@@ -122,10 +125,14 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   (`collectAsStateWithLifecycle`) and call suspend mutations; user feedback
   goes through `ToastBus` to a snackbar in `AppRoot`. Every feature has a
   ViewModel, including recipes: `RecipeFormViewModel` (draft, validation, AI
-  cleanup, save; draft persisted through `SavedStateHandle`) and
-  `RecipesViewModel` (delete, rescale, add to shopping list). The ingredient
-  cleanup review is per change: `RecipeFormViewModel` holds the pairings and
-  the accepted set, and `applyCleanupSelection` builds the final lines.
+  cleanup, per-portion calorie estimate, save; draft persisted through
+  `SavedStateHandle`) and `RecipesViewModel` (delete, rescale, add to shopping
+  list). The recipe page and list show calories view-only
+  (`recipes/CaloriesRow` in `RecipeDisplay.kt`); they are only ever set in the
+  edit form, an inline number field with the AI estimate chip. The
+  ingredient cleanup review is per change: `RecipeFormViewModel` holds the
+  pairings and the accepted set, and `applyCleanupSelection` builds the final
+  lines.
 - **Warm state** — `AppGraph` exposes app-lived `recipesState`,
   `mistralKeyState` and `planState` so pushed screens render real data in
   their first frame.
@@ -139,8 +146,9 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
 
 - Backup JSON must stay compatible with the previous React Native format
   (`BackupCodec`); backup import replaces everything — no merge. Recipes may
-  carry an optional `instructions` string; it is omitted when empty so
-  RN-era backups and recipes stay byte-identical.
+  carry an optional `instructions` string and an optional per-portion `calories`
+  integer; both are omitted when unset so RN-era backups and recipes stay
+  byte-identical.
 - The SAF backup folder URI/name, auto-backup toggle, and last-backup timestamp
   are device-local settings in `BackupFolderStore` outside `AppSettings`: they
   never appear in backup JSON and survive backup imports.
@@ -150,7 +158,12 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   folder are never touched.
 - The Mistral API key (`SecretsStore`) is never included in backups.
 - Recipe import normalizes ingredient amounts to one portion; the shopping list
-  scales lines by **portions per day** when adding today's recipe.
+  scales lines by **portions per day** when adding today's recipe. Per-portion
+  calorie estimates (`recipes.calories`) are stored per portion the same way,
+  travel with `NewRecipe` so they persist through edits, and are only ever
+  set in the edit form (+ the AI estimate there); the recipe page is view-only.
+  The AI's confidence level is display-only and never stored. Every AI feature
+  uses the one `ImportConstants.MISTRAL_MODEL`.
 - Shopping-line merging only combines a new line with an existing unchecked
   line whose remaining text matches ("100g pasta" + "100g pasta" -> "200g pasta").
   Adding a recipe's ingredients to the shopping list is one repository

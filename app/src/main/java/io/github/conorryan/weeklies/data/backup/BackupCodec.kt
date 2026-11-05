@@ -84,6 +84,9 @@ object BackupCodec {
                         if (recipe.instructions.isNotEmpty()) {
                             put("instructions", recipe.instructions)
                         }
+                        if (recipe.calories != null) {
+                            put("calories", recipe.calories)
+                        }
                     })
                 }
             })
@@ -156,7 +159,15 @@ object BackupCodec {
         val ingredientsArray = obj["ingredients"] as? JsonArray ?: return null
         val ingredients = ingredientsArray.mapNotNull(::ingredientElementToLine)
         val instructions = obj["instructions"]?.jsonPrimitive?.contentOrNull()?.trim() ?: ""
-        return Recipe(id = id, name = name, ingredients = ingredients, instructions = instructions)
+        // Tolerant like the RN era: 0 or negative calorie guesses are dropped, not clamped.
+        val calories = obj["calories"]?.jsonPrimitive?.intOrNullSafe()?.takeIf { it > 0 }
+        return Recipe(
+            id = id,
+            name = name,
+            ingredients = ingredients,
+            instructions = instructions,
+            calories = calories,
+        )
     }
 
     fun sanitizeItemsForImport(raw: JsonElement?): List<ShoppingItem> {

@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Recipe
-import io.github.conorryan.weeklies.ui.ToastBus
 import io.github.conorryan.weeklies.data.model.NewRecipe
+import io.github.conorryan.weeklies.data.repo.RecipeRepository
+import io.github.conorryan.weeklies.data.repo.ShoppingRepository
+import io.github.conorryan.weeklies.ui.ToastBus
 import kotlinx.coroutines.launch
 
 /**
@@ -16,21 +18,22 @@ import kotlinx.coroutines.launch
  * no longer happen from composable scopes.
  */
 class RecipesViewModel(
-    private val graph: AppGraph,
+    private val recipeRepository: RecipeRepository,
+    private val shoppingRepository: ShoppingRepository,
     private val toastBus: ToastBus? = null,
 ) : ViewModel() {
 
     fun removeRecipe(id: String) {
-        viewModelScope.launch { graph.recipeRepository.removeRecipe(id) }
+        viewModelScope.launch { recipeRepository.removeRecipe(id) }
     }
 
     /** Replaces the recipe's ingredient lines with [scaled], keeping name and instructions. */
     fun rescaleRecipe(recipeId: String, scaled: List<String>) {
         viewModelScope.launch {
-            val current = graph.recipeRepository.snapshot().firstOrNull { it.id == recipeId } ?: return@launch
-            graph.recipeRepository.updateRecipe(
+            val current = recipeRepository.snapshot().firstOrNull { it.id == recipeId } ?: return@launch
+            recipeRepository.updateRecipe(
                 recipeId,
-                NewRecipe(name = current.name, ingredients = scaled, instructions = current.instructions),
+                NewRecipe(name = current.name, ingredients = scaled, instructions = current.instructions, calories = current.calories),
             )
         }
     }
@@ -38,13 +41,17 @@ class RecipesViewModel(
     /** Adds [recipe]'s ingredients for [portions] to the shopping list and confirms with a toast. */
     fun addToShoppingList(recipe: Recipe, portions: Int) {
         viewModelScope.launch {
-            graph.shoppingRepository.addRecipeIngredients(recipe, portions)
+            shoppingRepository.addRecipeIngredients(recipe, portions)
             toastBus?.info(R.string.plan_added_to_list, titleArg = recipe.name)
         }
     }
 
     class Factory(private val graph: AppGraph, private val toastBus: ToastBus? = null) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = RecipesViewModel(graph, toastBus) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = RecipesViewModel(
+            graph.recipeRepository,
+            graph.shoppingRepository,
+            toastBus,
+        ) as T
     }
 }

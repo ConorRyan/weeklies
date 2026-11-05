@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -43,9 +44,11 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import io.github.conorryan.weeklies.R
+import io.github.conorryan.weeklies.data.import.CalorieConfidence
 import io.github.conorryan.weeklies.data.import.CleanupPairing
 import io.github.conorryan.weeklies.data.model.NewRecipe
 import io.github.conorryan.weeklies.ui.CardDivider
@@ -193,6 +196,89 @@ fun RecipeForm(
                         stringResource(R.string.recipe_add_ingredient),
                         modifier = Modifier.weight(1f).padding(start = 10.dp),
                     )
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FormSection(
+                label = stringResource(R.string.calories_row_caption),
+                aiBusy = state.cleanupBusy == CleanupTarget.CALORIES,
+                aiEnabled = state.cleanupBusy == null && state.hasIngredientText,
+                aiLabel = stringResource(R.string.calories_estimate_chip),
+                onAi = vm::estimateCalories,
+            )
+            OutlinedTextField(
+                value = draft.caloriesText,
+                onValueChange = vm::setCalories,
+                placeholder = { Text(stringResource(R.string.calories_field_label)) },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.titleLarge,
+                shape = MaterialTheme.shapes.small,
+                colors = formFieldColors(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // The offered guess with its verdict; typing anything else dismisses it.
+            val estimate = state.calorieEstimate
+            if (estimate != null) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Column(
+                            Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    stringResource(R.string.recipe_suggested_by_mistral),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                )
+                                Text(
+                                    stringResource(estimate.confidence.label),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.extraLarge)
+                                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                                )
+                            }
+                            if (estimate.rationale.isNotEmpty()) {
+                                Text(
+                                    estimate.rationale,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        IconButton(onClick = vm::dismissCalorieEstimate) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.close),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -574,3 +660,10 @@ fun RecipeFormSaveButton(
         modifier = Modifier.padding(end = 8.dp),
     ) { Text(label) }
 }
+
+private val CalorieConfidence.label: Int
+    get() = when (this) {
+        CalorieConfidence.HIGH -> R.string.calories_confidence_high
+        CalorieConfidence.MEDIUM -> R.string.calories_confidence_medium
+        CalorieConfidence.LOW -> R.string.calories_confidence_low
+    }

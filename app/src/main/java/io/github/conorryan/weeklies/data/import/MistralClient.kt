@@ -177,7 +177,7 @@ class MistralClient(transport: HttpTransport) {
 
         val payload = chat.chatForJson(
             apiKey = key,
-            model = ImportConstants.MISTRAL_RECIPE_MODEL,
+            model = ImportConstants.MISTRAL_MODEL,
             schemaName = "recipe_extract",
             systemPrompt = SYSTEM_PROMPT,
             userContent = buildUserMessage(preprocessed, sourceUrl),

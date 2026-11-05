@@ -225,6 +225,14 @@
     <string name="recipe_reworded">Reformulé</string>
     <string name="recipe_removed_line">Supprimé</string>
     <string name="recipe_added_line">Ajouté</string>
+    <string name="calories_row_caption">Calories par portion</string>
+    <string name="calories_kcal_value">≈ %1$d kcal</string>
+    <string name="calories_estimate_chip">Estimer avec l\'IA</string>
+    <string name="calories_field_label">kcal pour une portion</string>
+    <string name="calories_invalid">Saisissez un nombre entier entre 1 et 9999.</string>
+    <string name="calories_confidence_high">Confiance élevée</string>
+    <string name="calories_confidence_medium">Confiance moyenne</string>
+    <string name="calories_confidence_low">Confiance faible</string>
     <string name="scale_button">Ajuster</string>
     <string name="scale_title">Ajuster les quantités</string>
     <string name="scale_subtitle">Les quantités enregistrées sont pour une portion</string>

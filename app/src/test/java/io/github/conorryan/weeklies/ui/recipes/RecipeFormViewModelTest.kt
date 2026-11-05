@@ -2,6 +2,7 @@ package io.github.conorryan.weeklies.ui.recipes
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.conorryan.weeklies.R
+import io.github.conorryan.weeklies.data.import.CalorieEstimator
 import io.github.conorryan.weeklies.data.import.CleanedIngredients
 import io.github.conorryan.weeklies.data.import.HttpResponse
 import io.github.conorryan.weeklies.data.import.HttpTransport
@@ -52,9 +53,10 @@ class RecipeFormViewModelTest {
     private fun vm(
         initial: NewRecipe? = null,
         cleaner: RecipeCleaner? = null,
+        estimator: CalorieEstimator? = null,
         savedState: SavedStateHandle = SavedStateHandle(),
         save: suspend (NewRecipe) -> Unit = {},
-    ) = RecipeFormViewModel(savedState, initial, key, cleaner, save)
+    ) = RecipeFormViewModel(savedState, initial, key, cleaner, estimator, save)
 
     @Before
     fun setUp() {
@@ -86,6 +88,13 @@ class RecipeFormViewModelTest {
     }
 
     @Test
+    fun editDraftStartsWithInitialCalories() {
+        val vm = vm(initial = NewRecipe("Pasta", listOf("200 g pasta"), calories = 550))
+
+        assertEquals("550", vm.state.value.draft.caloriesText)
+    }
+
+    @Test
     fun draftEditsFlowThroughSetters() {
         val vm = vm()
 
@@ -112,17 +121,31 @@ class RecipeFormViewModelTest {
     }
 
     @Test
+    fun setCaloriesUpdatesDraftAndPersistsIntoSavedStateHandle() {
+        val savedState = SavedStateHandle()
+        val vm = vm(savedState = savedState)
+
+        vm.setCalories("480 ")
+        assertEquals("480 ", vm.state.value.draft.caloriesText)
+        assertEquals("480 ", savedState.get<String>("draft.calories"))
+
+        vm.setCalories("")
+        assertEquals("", vm.state.value.draft.caloriesText)
+    }
+
+    @Test
     fun draftRestoresFromSavedStateHandle() {
         val savedState = SavedStateHandle(
             mapOf(
                 "draft.name" to "Soup",
                 "draft.ingredients" to arrayListOf("2 carrots"),
                 "draft.instructions" to "Boil.",
+                "draft.calories" to "480",
             ),
         )
         val vm = vm(initial = NewRecipe("Other", listOf("x")), savedState = savedState)
 
-        assertEquals(RecipeDraft("Soup", listOf("2 carrots"), "Boil."), vm.state.value.draft)
+        assertEquals(RecipeDraft("Soup", listOf("2 carrots"), "Boil.", "480"), vm.state.value.draft)
     }
 
     @Test
@@ -374,6 +397,138 @@ class RecipeFormViewModelTest {
         vm.cleanIngredients()
 
         assertNotNull(vm.state.value.cleanupError)
+    }
+
+    // ---- Calorie estimate -----------------------------------------------------
+
+    @Test
+    fun estimateCaloriesFillsTheFieldAndVerdict() {
+        val content = """{"calories":550,"confidence":"medium","rationale":"Olive oil."}"""
+        val vm = vm(estimator = CalorieEstimator(FakeTransport(chatResponse(content))))
+        vm.setName("Pasta")
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+
+        vm.estimateCalories()
+
+        assertNull(vm.state.value.cleanupBusy)
+        assertEquals("550", vm.state.value.draft.caloriesText)
+        assertEquals(550, vm.state.value.calorieEstimate?.calories)
+        assertNull(vm.state.value.cleanupError)
+    }
+
+    @Test
+    fun estimateCaloriesWithoutKeyShowsErrorAndCallsNothing() {
+        val transport = FakeTransport()
+        val vm = vm(estimator = CalorieEstimator(transport))
+        vm.setIngredient(0, "200 g pasta")
+
+        vm.estimateCalories()
+
+        assertNotNull(vm.state.value.cleanupError)
+        assertTrue(transport.requests.isEmpty())
+        assertEquals("", vm.state.value.draft.caloriesText)
+    }
+
+    @Test
+    fun missingEstimatorSurfacesKeyError() {
+        val vm = vm(estimator = null)
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+
+        vm.estimateCalories()
+
+        assertNotNull(vm.state.value.cleanupError)
+    }
+
+    @Test
+    fun estimateFailureMapsToDisplayError() {
+        val vm = vm(estimator = CalorieEstimator(FakeTransport(HttpResponse(429, "{}"))))
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+
+        vm.estimateCalories()
+
+        assertNull(vm.state.value.cleanupBusy)
+        assertNull(vm.state.value.calorieEstimate)
+        assertNotNull(vm.state.value.cleanupError)
+    }
+
+    @Test
+    fun reEstimatingReplacesThePreviousGuess() {
+        val first = """{"calories":550,"confidence":"high","rationale":"a"}"""
+        val second = """{"calories":600,"confidence":"low","rationale":"b"}"""
+        val vm = vm(estimator = CalorieEstimator(FakeTransport(chatResponse(first), chatResponse(second))))
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+
+        vm.estimateCalories()
+        vm.estimateCalories()
+
+        assertEquals("600", vm.state.value.draft.caloriesText)
+        assertEquals(600, vm.state.value.calorieEstimate?.calories)
+    }
+
+    @Test
+    fun dismissCalorieEstimateKeepsTheNumberButDropsTheVerdict() {
+        val content = """{"calories":550,"confidence":"high","rationale":""}"""
+        val vm = vm(estimator = CalorieEstimator(FakeTransport(chatResponse(content))))
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+        vm.estimateCalories()
+
+        vm.dismissCalorieEstimate()
+
+        assertNull(vm.state.value.calorieEstimate)
+        assertEquals("550", vm.state.value.draft.caloriesText)
+    }
+
+    @Test
+    fun typingOverTheOfferedGuessDropsTheVerdict() {
+        val content = """{"calories":550,"confidence":"high","rationale":""}"""
+        val vm = vm(estimator = CalorieEstimator(FakeTransport(chatResponse(content))))
+        vm.setIngredient(0, "200 g pasta")
+        key.value = "k-1"
+        vm.estimateCalories()
+
+        vm.setCalories("600 ")
+
+        assertNull(vm.state.value.calorieEstimate)
+        assertEquals("600 ", vm.state.value.draft.caloriesText)
+    }
+
+    @Test
+    fun submitCarriesTheDraftCalories() {
+        val vm = vm(initial = NewRecipe("Pasta", listOf("200 g pasta"), calories = 550))
+        var submitted: NewRecipe? = null
+
+        vm.submit { submitted = it }
+
+        assertEquals(NewRecipe("Pasta", listOf("200 g pasta"), calories = 550), submitted)
+    }
+
+    @Test
+    fun submitRejectsInvalidCalories() {
+        val vm = vm(initial = NewRecipe("Pasta", listOf("200 g pasta")))
+        vm.setCalories("lots")
+        var submitted: NewRecipe? = null
+
+        vm.submit { submitted = it }
+
+        assertEquals(R.string.calories_invalid, vm.state.value.validationError)
+        assertNull(submitted)
+    }
+
+    @Test
+    fun submitAcceptsBlankCaloriesAsUnset() {
+        val vm = vm(initial = NewRecipe("Pasta", listOf("200 g pasta")))
+        vm.setCalories("   ")
+        var submitted: NewRecipe? = null
+
+        vm.submit { submitted = it }
+
+        assertEquals(null, submitted?.calories)
+        assertNull(vm.state.value.validationError)
     }
 
 }

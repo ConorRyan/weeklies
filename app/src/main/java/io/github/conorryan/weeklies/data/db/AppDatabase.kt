@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [RecipeEntity::class, PlanEntryEntity::class, ShoppingItemEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 @androidx.room.TypeConverters(Converters::class)
@@ -28,9 +28,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 added per-portion calorie estimates (nullable; unset recipes stay null). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recipes ADD COLUMN calories INTEGER")
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "weeklies.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

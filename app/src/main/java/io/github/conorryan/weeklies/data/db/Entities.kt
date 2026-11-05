@@ -13,6 +13,8 @@ data class RecipeEntity(
     /** Cooking steps as one editable text blob; added in schema v2. */
     @ColumnInfo(defaultValue = "")
     val instructions: String = "",
+    /** Estimated calories for one portion; added in schema v3. */
+    val calories: Int? = null,
 )
 
 @Entity(tableName = "plan")

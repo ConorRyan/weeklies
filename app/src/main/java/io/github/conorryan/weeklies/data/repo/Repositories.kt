@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.map
 import java.util.UUID
 
 private fun RecipeEntity.toModel() =
-    Recipe(id = id, name = name, ingredients = ingredients, instructions = instructions)
+    Recipe(id = id, name = name, ingredients = ingredients, instructions = instructions, calories = calories)
 private fun ShoppingItemEntity.toModel() =
     ShoppingItem(id = id, label = label, checked = checked)
 
@@ -39,6 +39,7 @@ class RecipeRepository(private val db: AppDatabase) {
             name = recipe.name,
             ingredients = recipe.ingredients,
             instructions = recipe.instructions,
+            calories = recipe.calories?.takeIf { it > 0 },
         )
         db.recipeDao().insert(entity)
         return entity.toModel()
@@ -47,7 +48,12 @@ class RecipeRepository(private val db: AppDatabase) {
     suspend fun updateRecipe(id: String, recipe: NewRecipe) {
         val existing = db.recipeDao().getById(id) ?: return
         db.recipeDao().update(
-            existing.copy(name = recipe.name, ingredients = recipe.ingredients, instructions = recipe.instructions),
+            existing.copy(
+                name = recipe.name,
+                ingredients = recipe.ingredients,
+                instructions = recipe.instructions,
+                calories = recipe.calories?.takeIf { it > 0 },
+            ),
         )
     }
 
@@ -63,6 +69,7 @@ class RecipeRepository(private val db: AppDatabase) {
         name = name,
         ingredients = ingredients,
         instructions = instructions,
+        calories = calories,
     )
 }
 

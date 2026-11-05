@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
+import io.github.conorryan.weeklies.data.import.CalorieEstimate
+import io.github.conorryan.weeklies.data.import.CalorieEstimator
 import io.github.conorryan.weeklies.data.import.CleanedIngredients
 import io.github.conorryan.weeklies.data.import.CleanupPairing
 import io.github.conorryan.weeklies.data.import.applyCleanupSelection
@@ -26,14 +28,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Which AI cleanup is running, if any. */
-enum class CleanupTarget { INGREDIENTS, INSTRUCTIONS }
+/** Which AI feature is running, if any. */
+enum class CleanupTarget { INGREDIENTS, INSTRUCTIONS, CALORIES }
 
-/** The recipe being written: name, editable ingredient rows, instructions. */
+/** Highest calorie value the form accepts for one portion. */
+const val MAX_FORM_CALORIES = 9999
+
+/** The recipe being written: name, editable ingredient rows, instructions, calories. */
 data class RecipeDraft(
     val name: String = "",
     val ingredients: List<String> = listOf(""),
     val instructions: String = "",
+    /** Raw kcal text for per-portion calories; blank means none. */
+    val caloriesText: String = "",
 )
 
 data class RecipeFormUiState(
@@ -48,6 +55,8 @@ data class RecipeFormUiState(
     /** Indices into [ingredientPairings] whose cleaned lines will be used. */
     val acceptedPairings: Set<Int> = emptySet(),
     val instructionPreview: String? = null,
+    /** The AI calorie guess under review; only the number is ever saved. */
+    val calorieEstimate: CalorieEstimate? = null,
 ) {
     /** Indices of the pairings the cleanup actually changed; the review lists only these. */
     val changedPairings: List<Int>
@@ -58,9 +67,10 @@ data class RecipeFormUiState(
 }
 
 /**
- * Owns the recipe draft, its validation, and the AI cleanup interaction
- * (busy, error copy, preview, apply). Screens render [state] and call the
- * mutation functions; no cleanup or error knowledge stays in composition.
+ * Owns the recipe draft, its validation, and the AI interactions (ingredient
+ * and instruction cleanup, per-portion calorie estimate): busy, error copy,
+ * preview, apply. Screens render [state] and call the mutation functions; no
+ * cleanup or error knowledge stays in composition.
  *
  * The draft persists through process death via [SavedStateHandle].
  */
@@ -69,6 +79,7 @@ class RecipeFormViewModel(
     initial: NewRecipe?,
     mistralKey: Flow<String>,
     private val cleaner: RecipeCleaner?,
+    private val calorieEstimator: CalorieEstimator?,
     private val saveDraft: suspend (NewRecipe) -> Unit,
 ) : ViewModel() {
 
@@ -109,6 +120,15 @@ class RecipeFormViewModel(
     fun setInstructions(value: String) =
         setDraft(state.value.draft.copy(instructions = value))
 
+    /** Edits the per-portion calories text; blank means the recipe has none. */
+    fun setCalories(value: String) {
+        setDraft(state.value.draft.copy(caloriesText = value))
+        // Typing over the offered guess dismisses its verdict card.
+        if (value.trim() != (state.value.calorieEstimate?.calories?.toString() ?: "")) {
+            _state.update { it.copy(calorieEstimate = null) }
+        }
+    }
+
     /**
      * Validates the draft and hands the trimmed recipe to [onReady]; invalid
      * drafts set [RecipeFormUiState.validationError] instead.
@@ -117,12 +137,23 @@ class RecipeFormViewModel(
         val draft = state.value.draft
         val name = draft.name.trim()
         val ingredients = draft.ingredients.map { it.trim() }.filter { it.isNotEmpty() }
+        val calories = draft.caloriesText.trim()
+        val caloriesValue = calories.toIntOrNull()?.takeIf { it in 1..MAX_FORM_CALORIES }
         when {
             name.isEmpty() -> _state.update { it.copy(validationError = R.string.recipe_name_required) }
             ingredients.isEmpty() -> _state.update { it.copy(validationError = R.string.recipe_ingredient_required) }
+            calories.isNotEmpty() && caloriesValue == null ->
+                _state.update { it.copy(validationError = R.string.calories_invalid) }
             else -> {
                 _state.update { it.copy(validationError = null) }
-                onReady(NewRecipe(name = name, ingredients = ingredients, instructions = draft.instructions.trim()))
+                onReady(
+                    NewRecipe(
+                        name = name,
+                        ingredients = ingredients,
+                        instructions = draft.instructions.trim(),
+                        calories = caloriesValue,
+                    ),
+                )
             }
         }
     }
@@ -137,7 +168,7 @@ class RecipeFormViewModel(
 
     // ---- AI cleanup ----------------------------------------------------------
 
-    fun cleanIngredients() = runCleanup(CleanupTarget.INGREDIENTS) {
+    fun cleanIngredients() = runCleanup(CleanupTarget.INGREDIENTS, cleaner != null) {
         val draft = state.value.draft
         val cleaned = requireCleaner().cleanIngredients(
             latestKey,
@@ -155,7 +186,7 @@ class RecipeFormViewModel(
         }
     }
 
-    fun cleanInstructions() = runCleanup(CleanupTarget.INSTRUCTIONS) {
+    fun cleanInstructions() = runCleanup(CleanupTarget.INSTRUCTIONS, cleaner != null) {
         val draft = state.value.draft
         val cleaned = requireCleaner().cleanInstructions(
             latestKey,
@@ -207,6 +238,34 @@ class RecipeFormViewModel(
         _state.update { it.copy(instructionPreview = null) }
     }
 
+    // ---- Calorie estimate ------------------------------------------------------
+
+    /**
+     * Asks Mistral to estimate the draft's per-portion calories; the guess
+     * fills the editable field right away, and its confidence and rationale
+     * show under it until the user types something else. Only the number is
+     * saved. Re-estimating replaces the previous guess.
+     */
+    fun estimateCalories() = runCleanup(CleanupTarget.CALORIES, calorieEstimator != null) {
+        val draft = state.value.draft
+        val estimate = requireEstimator().estimate(
+            latestKey,
+            draft.name.trim(),
+            draftIngredientLines(),
+            draft.instructions.trim(),
+        )
+        _state.update { it.copy(calorieEstimate = estimate) }
+        setDraft(state.value.draft.copy(caloriesText = estimate.calories.toString()))
+    }
+
+    /** Clears the verdict card under the calories field; the number stays. */
+    fun dismissCalorieEstimate() {
+        _state.update { it.copy(calorieEstimate = null) }
+    }
+
+    private fun requireEstimator(): CalorieEstimator =
+        calorieEstimator ?: throw RecipeImportErrors.mistralKeyMissing()
+
     fun dismissCleanupError() {
         _state.update { it.copy(cleanupError = null) }
     }
@@ -214,8 +273,8 @@ class RecipeFormViewModel(
     private fun requireCleaner(): RecipeCleaner =
         cleaner ?: throw RecipeImportErrors.mistralKeyMissing()
 
-    private fun runCleanup(target: CleanupTarget, work: suspend () -> Unit) {
-        if (cleaner == null || !state.value.hasApiKey) {
+    private fun runCleanup(target: CleanupTarget, available: Boolean, work: suspend () -> Unit) {
+        if (!available || !state.value.hasApiKey) {
             _state.update { it.copy(cleanupError = RecipeImportErrors.format(RecipeImportErrors.mistralKeyMissing())) }
             return
         }
@@ -239,6 +298,7 @@ class RecipeFormViewModel(
         savedStateHandle[KEY_NAME] = draft.name
         savedStateHandle[KEY_INGREDIENTS] = ArrayList(draft.ingredients)
         savedStateHandle[KEY_INSTRUCTIONS] = draft.instructions
+        savedStateHandle[KEY_CALORIES] = draft.caloriesText
         _state.update { it.copy(draft = draft) }
     }
 
@@ -248,12 +308,14 @@ class RecipeFormViewModel(
                 name = savedStateHandle.get<String>(KEY_NAME) ?: "",
                 ingredients = savedStateHandle.get<ArrayList<String>>(KEY_INGREDIENTS) ?: listOf(""),
                 instructions = savedStateHandle.get<String>(KEY_INSTRUCTIONS) ?: "",
+                caloriesText = savedStateHandle.get<String>(KEY_CALORIES) ?: "",
             )
         }
         return RecipeDraft(
             name = initial?.name ?: "",
             ingredients = initial?.ingredients?.takeIf { it.isNotEmpty() } ?: listOf(""),
             instructions = initial?.instructions ?: "",
+            caloriesText = initial?.calories?.toString() ?: "",
         )
     }
 
@@ -261,6 +323,7 @@ class RecipeFormViewModel(
         private const val KEY_NAME = "draft.name"
         private const val KEY_INGREDIENTS = "draft.ingredients"
         private const val KEY_INSTRUCTIONS = "draft.instructions"
+        private const val KEY_CALORIES = "draft.calories"
 
         /** Form for creating a new recipe. */
         fun newRecipeFactory(graph: AppGraph): ViewModelProvider.Factory =
@@ -286,6 +349,7 @@ class RecipeFormViewModel(
                     initial,
                     graph.secretsStore.mistralApiKey,
                     graph.recipeCleaner,
+                    graph.calorieEstimator,
                     saveDraft,
                 ) as T
         }

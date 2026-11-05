@@ -109,6 +109,52 @@ class BackupCodecTest {
     }
 
     @Test
+    fun roundTripsRecipeCalories() {
+        val json = BackupCodec.buildBackupJson(
+            AppSettings(AppColorScheme.LIGHT, 3),
+            sampleSnapshot().copy(
+                recipes = listOf(
+                    Recipe(id = "r1", name = "Pasta", ingredients = listOf("salt"), calories = 550),
+                ),
+            ),
+            "2024-01-01T00:00:00.000Z",
+        )
+        assertEquals(550, BackupCodec.parseBackup(json, defaults).recipes[0].calories)
+    }
+
+    @Test
+    fun omitsCaloriesFromBackupJsonWhenNull() {
+        val json = BackupCodec.buildBackupJson(
+            AppSettings(AppColorScheme.LIGHT, 3),
+            sampleSnapshot(),
+            "2024-01-01T00:00:00.000Z",
+        )
+        val root = Json.parseToJsonElement(json) as kotlinx.serialization.json.JsonObject
+        val recipe = (root["recipes"] as kotlinx.serialization.json.JsonArray)[0]
+            as kotlinx.serialization.json.JsonObject
+        assertEquals(null, recipe["calories"])
+    }
+
+    @Test
+    fun dropsImplausibleCaloriesOnImport() {
+        val raw = kotlinx.serialization.json.Json.parseToJsonElement(
+            """
+                [
+                    {"id":"1","name":"Pasta","ingredients":["salt"],"calories":0},
+                    {"id":"2","name":"Soup","ingredients":["water"],"calories":-100},
+                    {"id":"3","name":"Stew","ingredients":["beans"],"calories":"lots"},
+                    {"id":"4","name":"Rice","ingredients":["rice"],"calories":480}
+                ]
+            """,
+        )
+        val result = BackupCodec.sanitizeRecipesForImport(raw)
+        assertEquals(null, result[0].calories)
+        assertEquals(null, result[1].calories)
+        assertEquals(null, result[2].calories)
+        assertEquals(480, result[3].calories)
+    }
+
+    @Test
     fun rejectsInvalidJson() {
         try {
             BackupCodec.parseBackup("not json", defaults)

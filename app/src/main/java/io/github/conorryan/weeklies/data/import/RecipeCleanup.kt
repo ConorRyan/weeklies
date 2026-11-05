@@ -501,7 +501,7 @@ class RecipeCleaner(transport: HttpTransport) {
 
         val cleaned = chat.chatForJson(
             apiKey = key,
-            model = ImportConstants.MISTRAL_CLEANUP_MODEL,
+            model = ImportConstants.MISTRAL_MODEL,
             schemaName = "recipe_cleanup",
             systemPrompt = CLEANUP_SYSTEM_PROMPT,
             userContent = buildCleanupUserMessage(recipeName, ingredients),
@@ -529,7 +529,7 @@ class RecipeCleaner(transport: HttpTransport) {
         val generating = instructions.isBlank()
         return chat.chatForJson(
             apiKey = key,
-            model = ImportConstants.MISTRAL_CLEANUP_MODEL,
+            model = ImportConstants.MISTRAL_MODEL,
             schemaName = "recipe_cleanup",
             systemPrompt = if (generating) {
                 INSTRUCTIONS_GENERATION_SYSTEM_PROMPT
