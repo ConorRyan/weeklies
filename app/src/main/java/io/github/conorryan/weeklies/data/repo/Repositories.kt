@@ -59,6 +59,9 @@ class RecipeRepository(private val db: AppDatabase) {
 
     suspend fun removeRecipe(id: String) = db.recipeDao().delete(id)
 
+    /** Deletes the given recipes in one statement; unknown ids are ignored. */
+    suspend fun removeRecipes(ids: Collection<String>) = db.recipeDao().deleteByIds(ids.toList())
+
     /** Replaces the whole recipe list. */
     suspend fun replaceAll(recipes: List<Recipe>) {
         db.recipeDao().replaceAll(recipes.map { it.toEntity() })

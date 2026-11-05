@@ -126,6 +126,10 @@
     <string name="recipe_recommended_sites">Sites recommandés</string>
     <string name="recipe_delete_confirm_title">Supprimer la recette\u00A0?</string>
     <string name="recipe_delete_confirm_text">Supprimer «\u00A0%1$s\u00A0»\u00A0? Cette action est irréversible.</string>
+    <string name="recipe_select_long_press">Sélectionner</string>
+    <string name="recipe_selection_done">Terminé</string>
+    <string name="recipe_delete_selected">Supprimer (%1$d)</string>
+    <string name="recipe_delete_selected_confirm_title">Supprimer les recettes\u00A0?</string>
     <string name="recipe_name_label">Nom</string>
     <string name="recipe_name_hint">Nom de la recette</string>
     <string name="recipe_ingredients_label">Ingrédients</string>
@@ -280,6 +284,16 @@
         <item quantity="one">%1$d ingrédient inchangé</item>
         <item quantity="many">%1$d ingrédients inchangés</item>
         <item quantity="other">%1$d ingrédients inchangés</item>
+    </plurals>
+    <plurals name="recipe_selected_count">
+        <item quantity="one">%1$d sélectionnée</item>
+        <item quantity="many">%1$d sélectionnées</item>
+        <item quantity="other">%1$d sélectionnées</item>
+    </plurals>
+    <plurals name="recipe_delete_selected_confirm_text">
+        <item quantity="one">Supprimer %1$d recette\u00A0? Cette action est irréversible.</item>
+        <item quantity="many">Supprimer %1$d recettes\u00A0? Cette action est irréversible.</item>
+        <item quantity="other">Supprimer %1$d recettes\u00A0? Cette action est irréversible.</item>
     </plurals>
     <plurals name="plan_portions_count">
         <item quantity="one">%1$d portion</item>

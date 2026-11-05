@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,9 +25,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -37,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,10 +54,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.conorryan.weeklies.AppGraph
 import io.github.conorryan.weeklies.R
 import io.github.conorryan.weeklies.data.model.Recipe
 import io.github.conorryan.weeklies.data.model.Weekday
+import io.github.conorryan.weeklies.ui.ConfirmDialog
 import io.github.conorryan.weeklies.ui.InfoDialog
 import io.github.conorryan.weeklies.ui.RecipeTile
 import io.github.conorryan.weeklies.ui.ScreenTitle
@@ -66,6 +74,12 @@ private fun openWebsite(context: Context, url: String) {
     }
 }
 
+/** Selected recipe ids for multiselect delete; a Set so toggling is idempotent. */
+private val SelectionSaver = Saver<Set<String>, List<String>>(
+    save = { it.toList() },
+    restore = { it.toSet() },
+)
+
 @Composable
 fun RecipesScreen(
     graph: AppGraph,
@@ -73,10 +87,14 @@ fun RecipesScreen(
     onImport: () -> Unit,
     onOpenRecipe: (String) -> Unit,
 ) {
+    val vm: RecipesViewModel = viewModel(factory = RecipesViewModel.Factory(graph))
     val recipes by graph.recipesState.collectAsStateWithLifecycle()
     val byDay by graph.planState.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     var showRecommendedSites by remember { mutableStateOf(false) }
+    var selection by rememberSaveable(stateSaver = SelectionSaver) { mutableStateOf(emptySet<String>()) }
+    val selectionMode = selection.isNotEmpty()
+    var deleteOpen by remember { mutableStateOf(false) }
     val shown = filterRecipes(recipes, query)
 
     Box(Modifier.fillMaxSize()) {
@@ -119,7 +137,16 @@ fun RecipesScreen(
                 RecipeCard(
                     recipe = recipe,
                     days = plannedDays(byDay, recipe.id),
-                    onClick = { onOpenRecipe(recipe.id) },
+                    selected = recipe.id in selection,
+                    selectionMode = selectionMode,
+                    onClick = {
+                        if (selectionMode) {
+                            selection = if (recipe.id in selection) selection - recipe.id else selection + recipe.id
+                        } else {
+                            onOpenRecipe(recipe.id)
+                        }
+                    },
+                    onLongClick = { if (!selectionMode) selection = setOf(recipe.id) },
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
@@ -136,53 +163,117 @@ fun RecipesScreen(
 
         Row(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
                 .padding(20.dp),
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            ExtendedFloatingActionButton(
-                onClick = onImport,
-                icon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                text = { Text(stringResource(R.string.recipe_import)) },
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-            )
-            ExtendedFloatingActionButton(
-                onClick = onNew,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.recipe_create_new)) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
+            if (selectionMode) {
+                Text(
+                    pluralStringResource(R.plurals.recipe_selected_count, selection.size, selection.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .weight(1f)
+                        .align(Alignment.CenterVertically)
+                        .padding(start = 4.dp),
+                )
+                ExtendedFloatingActionButton(
+                    onClick = { selection = emptySet() },
+                    icon = { Icon(Icons.Outlined.Done, contentDescription = null) },
+                    text = { Text(stringResource(R.string.recipe_selection_done)) },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
+                )
+                ExtendedFloatingActionButton(
+                    onClick = { deleteOpen = true },
+                    icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                    text = { Text(stringResource(R.string.recipe_delete_selected, selection.size)) },
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                )
+            } else {
+                ExtendedFloatingActionButton(
+                    onClick = onImport,
+                    icon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                    text = { Text(stringResource(R.string.recipe_import)) },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                ExtendedFloatingActionButton(
+                    onClick = onNew,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.recipe_create_new)) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
         }
     }
 
     if (showRecommendedSites) {
         RecommendedSitesDialog(onDismiss = { showRecommendedSites = false })
     }
+
+    if (deleteOpen && selection.isNotEmpty()) {
+        ConfirmDialog(
+            title = stringResource(R.string.recipe_delete_selected_confirm_title),
+            confirmLabel = stringResource(R.string.delete),
+            destructive = true,
+            onConfirm = {
+                deleteOpen = false
+                vm.removeRecipes(selection)
+                selection = emptySet()
+            },
+            onDismiss = { deleteOpen = false },
+            text = {
+                Text(pluralStringResource(R.plurals.recipe_delete_selected_confirm_text, selection.size, selection.size))
+            },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RecipeCard(
     recipe: Recipe,
     days: List<Weekday>,
+    selected: Boolean,
+    selectionMode: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth(),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = stringResource(R.string.recipe_select_long_press),
+            ),
     ) {
         Row(
             Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            RecipeTile(recipe.name, size = 52)
+            if (selectionMode) {
+                // The whole card toggles; the checkbox only shows the state.
+                Checkbox(checked = selected, onCheckedChange = null)
+            } else {
+                RecipeTile(recipe.name, size = 52)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     recipe.name,

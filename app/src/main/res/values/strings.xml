@@ -142,6 +142,10 @@
     <string name="recipe_recommended_sites">Recommended websites</string>
     <string name="recipe_delete_confirm_title">Delete recipe?</string>
     <string name="recipe_delete_confirm_text">Remove \"%1$s\"? This cannot be undone.</string>
+    <string name="recipe_select_long_press">Select</string>
+    <string name="recipe_selection_done">Done</string>
+    <string name="recipe_delete_selected">Delete (%1$d)</string>
+    <string name="recipe_delete_selected_confirm_title">Delete recipes?</string>
     <string name="recipe_name_label">Name</string>
     <string name="recipe_name_hint">Recipe name</string>
     <string name="recipe_ingredients_label">Ingredients</string>
@@ -299,6 +303,14 @@
     <plurals name="recipe_unchanged_count">
         <item quantity="one">%1$d ingredient unchanged</item>
         <item quantity="other">%1$d ingredients unchanged</item>
+    </plurals>
+    <plurals name="recipe_selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="recipe_delete_selected_confirm_text">
+        <item quantity="one">Remove %1$d recipe? This cannot be undone.</item>
+        <item quantity="other">Remove %1$d recipes? This cannot be undone.</item>
     </plurals>
     <plurals name="plan_portions_count">
         <item quantity="one">%1$d portion</item>

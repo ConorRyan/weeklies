@@ -27,6 +27,12 @@ class RecipesViewModel(
         viewModelScope.launch { recipeRepository.removeRecipe(id) }
     }
 
+    /** Deletes every selected recipe in one repository operation. */
+    fun removeRecipes(ids: Set<String>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch { recipeRepository.removeRecipes(ids) }
+    }
+
     /** Replaces the recipe's ingredient lines with [scaled], keeping name and instructions. */
     fun rescaleRecipe(recipeId: String, scaled: List<String>) {
         viewModelScope.launch {
