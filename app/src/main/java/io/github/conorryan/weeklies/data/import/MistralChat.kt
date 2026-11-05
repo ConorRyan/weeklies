@@ -8,6 +8,21 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Output language used when no app language is supplied (tests, defaults). */
+const val DEFAULT_OUTPUT_LANGUAGE = "English"
+
+/**
+ * Rule appended to every Mistral system prompt so the model writes its text in
+ * [language] (the app's UI language), translating source text when needed,
+ * while schema keys and enum values stay as the schema gives them.
+ */
+fun languageRule(language: String): String =
+    "- Write every human-readable text value in the JSON (recipe name, ingredient names, " +
+        "unit words, instructions, rationale) in $language, translating the source when it " +
+        "is in another language. The examples above are in English only for illustration. " +
+        "Keep JSON keys and enum values (such as \"high\", \"medium\", \"low\") exactly as " +
+        "the schema gives them, and keep unit symbols such as g and ml."
+
 fun mapMistralHttpError(status: Int): RecipeImportException {
     return when {
         status == 401 -> RecipeImportErrors.mistralAuth()
@@ -25,9 +40,13 @@ fun mapMistralHttpError(status: Int): RecipeImportException {
  * extraction, the empty-response guard, and the retry-once-when-the-parse-
  * fails loop. Recipe import (MistralClient) and recipe cleanup (RecipeCleaner)
  * both sit on this module; only their prompts, schemas, and parse functions
- * differ.
+ * differ. Every system prompt gets [languageRule] appended, so all AI text
+ * comes back in the app's UI language ([outputLanguage], read per request).
  */
-class MistralChat(private val transport: HttpTransport) {
+class MistralChat(
+    private val transport: HttpTransport,
+    private val outputLanguage: () -> String = { DEFAULT_OUTPUT_LANGUAGE },
+) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -70,7 +89,7 @@ class MistralChat(private val transport: HttpTransport) {
             put("messages", buildJsonArray {
                 add(buildJsonObject {
                     put("role", "system")
-                    put("content", systemPrompt)
+                    put("content", systemPrompt.trimEnd() + "\n\n" + languageRule(outputLanguage()))
                 })
                 add(buildJsonObject {
                     put("role", "user")

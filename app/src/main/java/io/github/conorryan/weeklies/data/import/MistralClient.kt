@@ -163,9 +163,12 @@ fun buildUserMessage(preprocessed: PreprocessedRecipePage, sourceUrl: String?): 
  * retry behavior live in [MistralChat]; this class owns the import prompt,
  * schema, and response parsing.
  */
-class MistralClient(transport: HttpTransport) {
+class MistralClient(
+    transport: HttpTransport,
+    outputLanguage: () -> String = { DEFAULT_OUTPUT_LANGUAGE },
+) {
 
-    private val chat = MistralChat(transport)
+    private val chat = MistralChat(transport, outputLanguage)
 
     suspend fun extractRecipe(
         apiKey: String,

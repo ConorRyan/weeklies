@@ -297,4 +297,6 @@
         <item quantity="one">Appliquer %1$d modification</item>
         <item quantity="other">Appliquer %1$d modifications</item>
     </plurals>
+    <!-- Language name (in English) that AI features write their answers in; set it to the language of this translation. -->
+    <string name="ai_output_language">French</string>
 </resources>

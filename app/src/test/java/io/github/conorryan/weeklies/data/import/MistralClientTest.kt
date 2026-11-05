@@ -44,6 +44,15 @@ class MistralClientTest {
     }
 
     @Test
+    fun importPromptAsksForTheAppLanguage() = runTest {
+        val content = """{"found":true,"name":"Pâtes","servings":4,"ingredients":[{"name":"pâtes","quantity":"400 g"}]}"""
+        val transport = FakeTransport(chatResponse(content))
+        MistralClient(transport) { "French" }.extractRecipe("key", preprocessed())
+
+        assertTrue(transport.requests.single().second.contains("in French, translating"))
+    }
+
+    @Test
     fun throwsNoRecipeWhenFoundIsFalse() = runTest {
         val content = """{"found":false,"name":"","servings":1,"ingredients":[]}"""
         val transport = FakeTransport(chatResponse(content))

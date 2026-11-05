@@ -96,8 +96,11 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
     (`CalorieEstimator` in `CalorieEstimate.kt`, one portion = the stored
     amounts). `MistralChat` is the one place
     that knows the Mistral wire protocol (request body, strict JSON schema,
-    HTTP error map, content extraction, retry-once); `MistralClient`,
-    `RecipeCleaner`, and `CalorieEstimator` all sit on it.
+    HTTP error map, content extraction, retry-once, and the output-language
+    rule appended to every system prompt); `MistralClient`,
+    `RecipeCleaner`, and `CalorieEstimator` all sit on it and take the
+    language as a `() -> String` that `AppGraph` reads from
+    `R.string.ai_output_language`.
   - `quantity/` — ingredient-quantity math (`QuantityMath.kt`: numeric token
     matching, parsing, formatting, `scaleIngredientLine`,
     `ingredientPartsToLine`): the neutral home both `data.import` and
@@ -164,6 +167,9 @@ RecipeImporter  URL → PageFetcher/Scraper → JSON-LD parse → optional Mistr
   set in the edit form (+ the AI estimate there); the recipe page is view-only.
   The AI's confidence level is display-only and never stored. Every AI feature
   uses the one `ImportConstants.MISTRAL_MODEL`.
+- Every AI feature writes its text in the app's UI language
+  (`R.string.ai_output_language`, English or French, read per request), and
+  AI import translates pages written in other languages.
 - Shopping-line merging only combines a new line with an existing unchecked
   line whose remaining text matches ("100g pasta" + "100g pasta" -> "200g pasta").
   Adding a recipe's ingredients to the shopping list is one repository

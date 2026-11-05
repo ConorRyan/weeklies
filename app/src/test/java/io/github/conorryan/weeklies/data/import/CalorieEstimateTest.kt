@@ -81,6 +81,14 @@ class CalorieEstimateParseTest {
 class CalorieEstimatorTest {
 
     @Test
+    fun estimatePromptAsksForTheAppLanguage() = runTest {
+        val transport = FakeChatTransport(chatResponse("""{"calories":550,"confidence":"medium","rationale":"Surtout l'huile."}"""))
+        CalorieEstimator(transport) { "French" }.estimate("key", "Pâtes", listOf("200 g pâtes"), "")
+
+        assertTrue(transport.requests.single().second.contains("in French, translating"))
+    }
+
+    @Test
     fun estimatesFromRecipeContent() = runTest {
         val content = """{"calories":550,"confidence":"medium","rationale":"Olive oil carries most energy."}"""
         val transport = FakeChatTransport(chatResponse(content))

@@ -491,9 +491,12 @@ fun parseCleanupResponse(content: String): CleanedIngredients? {
  * retry behavior live in [MistralChat]; this class owns the cleanup prompts,
  * schemas, and response parsing.
  */
-class RecipeCleaner(transport: HttpTransport) {
+class RecipeCleaner(
+    transport: HttpTransport,
+    outputLanguage: () -> String = { DEFAULT_OUTPUT_LANGUAGE },
+) {
 
-    private val chat = MistralChat(transport)
+    private val chat = MistralChat(transport, outputLanguage)
 
     suspend fun cleanIngredients(apiKey: String, recipeName: String, ingredients: List<String>): CleanedIngredients {
         val key = apiKey.trim()

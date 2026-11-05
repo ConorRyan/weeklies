@@ -86,16 +86,19 @@ class AppGraph(
         onError = { e -> Log.w("AutoBackup", "Automatic backup failed", e) },
     )
 
+    /** Language every AI feature writes in: the one the UI is shown in. */
+    private val aiLanguage: () -> String = { context.getString(R.string.ai_output_language) }
+
     val recipeImporter: RecipeImporter by lazy {
         val transport = OkHttpTransport()
-        RecipeImporter(PageFetcher(transport), MistralClient(transport))
+        RecipeImporter(PageFetcher(transport), MistralClient(transport, aiLanguage))
     }
 
     /** AI cleanup of a saved recipe's ingredient lines. */
-    val recipeCleaner: RecipeCleaner by lazy { RecipeCleaner(OkHttpTransport()) }
+    val recipeCleaner: RecipeCleaner by lazy { RecipeCleaner(OkHttpTransport(), aiLanguage) }
 
     /** AI calorie estimates for a saved recipe's portions. */
-    val calorieEstimator: CalorieEstimator by lazy { CalorieEstimator(OkHttpTransport()) }
+    val calorieEstimator: CalorieEstimator by lazy { CalorieEstimator(OkHttpTransport(), aiLanguage) }
 }
 
 class WeekliesApplication : Application() {

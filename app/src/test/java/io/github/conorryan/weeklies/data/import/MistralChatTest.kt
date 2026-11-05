@@ -2,6 +2,7 @@ package io.github.conorryan.weeklies.data.import
 
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -126,5 +127,53 @@ class MistralChatTest {
             assertEquals(RecipeImportErrorCode.NO_RECIPE_DATA, e.code)
         }
         assertTrue(transport.requests.size == 1)
+    }
+
+    private fun systemContent(body: String): String {
+        val messages = (Json.parseToJsonElement(body) as JsonObject)["messages"] as JsonArray
+        val system = messages.first() as JsonObject
+        assertEquals("system", (system["role"] as JsonPrimitive).content)
+        return (system["content"] as JsonPrimitive).content
+    }
+
+    @Test
+    fun languageRuleNamesTheLanguageAndKeepsSchemaValues() {
+        val rule = languageRule("French")
+        assertTrue(rule.contains("in French"))
+        assertTrue(rule.contains("translating"))
+        assertTrue(rule.contains("enum values"))
+    }
+
+    @Test
+    fun appendsLanguageRuleToSystemPromptOnEveryRequest() = runTest {
+        val transport = FakeTransport(chatResponse("not json"), chatResponse("""{"ok":true}"""))
+        MistralChat(transport) { "French" }.chatForJson("key", "m", "s", "system prompt", "user", schema) { content ->
+            if (content == "not json") null else content
+        }
+
+        assertEquals(2, transport.requests.size)
+        for ((_, body) in transport.requests) {
+            assertEquals("system prompt\n\n" + languageRule("French"), systemContent(body))
+        }
+    }
+
+    @Test
+    fun readsOutputLanguageAtRequestTime() = runTest {
+        var language = "French"
+        val transport = FakeTransport(chatResponse("{}"), chatResponse("{}"))
+        val chat = MistralChat(transport) { language }
+        chat.chatForJson("key", "m", "s", "sys", "user", schema) { it }
+        language = "English"
+        chat.chatForJson("key", "m", "s", "sys", "user", schema) { it }
+
+        assertTrue(systemContent(transport.requests[0].second).endsWith(languageRule("French")))
+        assertTrue(systemContent(transport.requests[1].second).endsWith(languageRule("English")))
+    }
+
+    @Test
+    fun defaultsToEnglish() = runTest {
+        val transport = FakeTransport(chatResponse("{}"))
+        MistralChat(transport).chatForJson("key", "m", "s", "sys", "user", schema) { it }
+        assertTrue(systemContent(transport.requests.single().second).endsWith(languageRule("English")))
     }
 }

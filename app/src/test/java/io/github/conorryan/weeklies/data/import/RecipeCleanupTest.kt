@@ -469,6 +469,21 @@ class RecipeCleanerTest {
     }
 
     @Test
+    fun cleanupPromptsAskForTheAppLanguage() = runTest {
+        val transport = CleanupFakeTransport(
+            cleanupChatResponse("""{"ingredients":[{"name":"farine","quantity":"250 g","from":[0]}]}"""),
+            cleanupChatResponse("""{"instructions":"- Cuire"}"""),
+        )
+        val cleaner = RecipeCleaner(transport) { "French" }
+        cleaner.cleanIngredients("key", "Crêpes", listOf("250 g farine"))
+        cleaner.cleanInstructions("key", "Crêpes", listOf("250 g farine"), "")
+
+        assertEquals(2, transport.requests.size)
+        val rule = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(languageRule("French"))).trim('"')
+        transport.requests.forEach { (_, body) -> assertTrue(body.contains(rule)) }
+    }
+
+    @Test
     fun cleansInstructionsFromValidResponse() = runTest {
         val transport = CleanupFakeTransport(cleanupChatResponse("""{"instructions":"- Boil"}"""))
         val result = RecipeCleaner(transport).cleanInstructions("key", "Pasta", listOf("200 g pasta"), "Boil water, then serve.")

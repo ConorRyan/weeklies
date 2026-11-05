@@ -316,4 +316,6 @@
         <item quantity="one">Apply %1$d change</item>
         <item quantity="other">Apply %1$d changes</item>
     </plurals>
+    <!-- Language name (in English) that AI features write their answers in; set it to the language of this translation. -->
+    <string name="ai_output_language">English</string>
 </resources>

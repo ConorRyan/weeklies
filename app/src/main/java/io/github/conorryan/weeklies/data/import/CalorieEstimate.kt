@@ -98,9 +98,12 @@ fun parseCalorieEstimateResponse(content: String): CalorieEstimate? {
  * in [MistralChat]; this class owns the estimator prompt, schema, and
  * response parsing.
  */
-class CalorieEstimator(transport: HttpTransport) {
+class CalorieEstimator(
+    transport: HttpTransport,
+    outputLanguage: () -> String = { DEFAULT_OUTPUT_LANGUAGE },
+) {
 
-    private val chat = MistralChat(transport)
+    private val chat = MistralChat(transport, outputLanguage)
 
     suspend fun estimate(
         apiKey: String,
