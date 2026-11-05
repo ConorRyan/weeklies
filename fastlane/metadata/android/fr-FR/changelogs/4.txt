@@ -1,0 +1,3 @@
+L'onglet Recettes gagne la sélection multiple : un appui long sur une
+recette démarre la sélection, tapez d'autres recettes pour l'agrandir,
+puis supprimez-les toutes d'un coup avec une confirmation.

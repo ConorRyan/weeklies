@@ -1,0 +1,6 @@
+The Recipes tab gains multiselect: long-press a recipe to start a
+selection, tap more to add to it, then delete them all in one go with a
+confirmation.
+L'onglet Recettes gagne la sélection multiple : un appui long sur une
+recette démarre la sélection, tapez d'autres recettes pour l'agrandir,
+puis supprimez-les toutes d'un coup avec une confirmation.
