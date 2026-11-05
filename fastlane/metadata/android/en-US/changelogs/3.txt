@@ -1,0 +1,5 @@
+Recipes can now carry an estimated calorie count per portion: an AI chip
+in the edit form estimates it from the stored amounts, and the recipe page
+and list show it. Every AI feature now uses a larger Mistral model, and
+answers are written in the app's language, English or French, including
+imports of pages written in other languages.

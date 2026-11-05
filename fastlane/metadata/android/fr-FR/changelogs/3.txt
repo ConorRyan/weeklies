@@ -1,0 +1,7 @@
+Les recettes peuvent maintenant indiquer un nombre de calories estimé par
+portion : une pastille IA dans le formulaire d'édition l'estime à partir
+des quantités enregistrées, et la page et la liste des recettes
+l'affichent. Toutes les fonctions IA utilisent désormais un modèle
+Mistral plus grand, et répondent dans la langue de l'application, français
+ou anglais, y compris pour l'import de pages écrites dans une autre
+langue.
